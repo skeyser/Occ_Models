@@ -66,4 +66,4 @@ max.range <- merge(max.range, Species, by = "AOU")
 
 #Remove Unidentified species 
 max.clean <- max.range[!grepl("unid", max.range$English_Common_Name),]
-
+range.merge <- max.clean[, c("Latitude", "English_Common_Name")]
