@@ -1,4 +1,5 @@
 #NOAA Precipitation Data 
+#test 
 pacman::p_load("lubridate", "raster", "rasterVis", "maps", "maptools", "rgdal", "ncdf4", "ncdf4.helpers", "PCICt", "here", "tidyverse")
 noaa_prcp_monthly_lt <- nc_open(here("Data_Envi/Precipitation/precip.V1.0.mon.1981-2010.ltm.nc"))
 noaa_prcp <- nc_open(here("Data_Envi/Precipitation/precip.V1.0.mon.mean.nc"))
