@@ -10,8 +10,8 @@ pacman::p_load("sjPlot", "sjstats", "nlme","reshape2", "effects","vegan", "lmerT
 #Code below allowed me to get stringi back
 #install.packages("stringi", repos="http://cran.rstudio.com/", dependencies=TRUE)
 
-#Set working directory
 
+#Read in all the data for bird obs.
 bbs_tx <- read.csv(here("Data_BBS/States_GoM/States/Texas.csv"))
 bbs_al <- read.csv(here("Data_BBS/States_GoM/Alabama_New.csv"))
 bbs_ms <- read.csv(here("Data_BBS/States_GoM/States/Mississ.csv"))
@@ -35,25 +35,18 @@ routes.66 <- routes.66[routes.66$RTENAME == "SEMINOLE HLS" | routes.66$RTENAME =
 
 
 #Sum length for routes that are divided
-#Decide what is  the important length
+#Decide what is the important length
 rt_simple <- routes.99[, c("rte_length", "rteno", "RTENAME", "POINT_X", "POINT_Y")]
-names(rt_simple) <- tolower(names(rt_simple))
+colnames(rt_simple) <- tolower(names(rt_simple))
 colnames(rt_simple)[colnames(rt_simple) == "point_x"] <- "longitude"
 colnames(rt_simple)[colnames(rt_simple) == "point_y"] <- "latitude"
 
 rt66_simple <- routes.66[, c("RTELENG", "RTENO", "RTENAME", "POINT_X", "POINT_Y")]
-names(rt66_simple) <- tolower(names(rt66_simple))
+colnames(rt66_simple) <- tolower(names(rt66_simple))
 colnames(rt66_simple)[colnames(rt66_simple) == "rteleng"] <- "rte_length"
 colnames(rt66_simple)[colnames(rt66_simple) == "point_x"] <- "longitude"
 colnames(rt66_simple)[colnames(rt66_simple) == "point_y"] <- "latitude"
 
-#All of this was to reformat the two datasets, the two are identifcal except one has route coordinates
-# rt66_xy_simple <- routes66_xy[, c("POINT_X", "POINT_Y", "RTENO")]
-# names(rt66_xy_simple) <- tolower(names(rt66_xy_simple))
-# colnames(rt66_xy_simple)[colnames(rt66_xy_simple) == "point_x"] <- "longitude"
-# colnames(rt66_xy_simple)[colnames(rt66_xy_simple) == "point_y"] <- "latitude"
-# 
-# rt66_simple <- merge(rt66_simple, rt66_xy_simple, "rteno")
 
 ##Combine the two time periods using rbind
 rts <- rbind(rt_simple, rt66_simple)
@@ -62,37 +55,47 @@ rts <- as.tibble(rts)
 ##Remove duplicate Routes 
 rts_final <- rts[!duplicated(rts),]
 
-#***GIS Data Processing in R***
+############################################################
+############################################################
+############***GIS Data Processing in R***##################
+############################################################
+
 #Extracting BBS Route Names to pair with recorded start routes
 #Creation of the 5 segment lines
 #I need the names/rteno of the routes used from GIS
-write.csv(rts_final, file = "Gom_Routes_ID.correct.csv")
-all.routes <- read.csv(here("Data_BBS/States_GoM/routes.csv"))
-Gom.rt.id <- read.csv(here("Data_BBS/States_GoM/Gom_Routes_ID.correct.csv"))
+# write.csv(rts_final, file = "Gom_Routes_ID.correct.csv")
+# all.routes <- read.csv(here("Data_BBS/States_GoM/routes.csv"))
+# Gom.rt.id <- read.csv(here("Data_BBS/States_GoM/Gom_Routes_ID.correct.csv"))
+# link.to.lulc <- Gom.rt.id[, c("rteno", "rtename", "")]
+# link.to.lulc$rtename <- gsub(" ", "_", link.to.lulc$rtename)
+# 
+# #Merge two dataframes usin the Rteno
+# all.routes$RouteName <- as.character(all.routes$RouteName)
+# 
+# #Need to generate and merge by rteno
+# #Example: Mulitple "moon lake" rts across states
+# #Removing by rtename removes all "moon lakes" after the first
+# all.routes$rteno <- NA
+# 
+# #Prepare for the rteno creation
+# all.routes$stateindex <- all.routes$statenum * 1000
+# all.routes$rteno <- all.routes$stateindex + all.routes$Route
+# 
+# Gom.rt.id$rtename <- as.character(Gom.rt.id$rtename)
+# Gom.rt.id <- Gom.rt.id[, c("rteno", "rtename")]
+# colnames(Gom.rt.id)[colnames(Gom.rt.id) == "rtename"] <- "RouteName"
+# 
+# #Now we can merge by rteno...NOT by RteName
+# GoM.rts.true.starts <- merge(all.routes, Gom.rt.id, by = "rteno")
+# GoM.rts.true.starts <- GoM.rts.true.starts[!duplicated(GoM.rts.true.starts),]
+# GoM.rts.true.starts <- GoM.rts.true.starts[, c(-14, -15)]
+# colnames(GoM.rts.true.starts)[colnames(GoM.rts.true.starts) == "RouteName.x"] <- "RteName"
+# link.me.up <- Gom.rt.id[, c(3, 5, 6)]
 
-#Merge two dataframes usin the Rteno
-all.routes$RouteName <- as.character(all.routes$RouteName)
-
-#Need to generate and merge by rteno
-#Example: Mulitple "moon lake" rts across states
-#Removing by rtename removes all "moon lakes" after the first
-all.routes$rteno <- NA
-
-#Prepare for the rteno creation
-all.routes$stateindex <- all.routes$statenum * 1000
-all.routes$rteno <- all.routes$stateindex + all.routes$Route
-
-Gom.rt.id$rtename <- as.character(Gom.rt.id$rtename)
-Gom.rt.id <- Gom.rt.id[, c("rteno", "rtename")]
-colnames(Gom.rt.id)[colnames(Gom.rt.id) == "rtename"] <- "RouteName"
-
-#Now we can merge by rteno...NOT by RteName
-GoM.rts.true.starts <- merge(all.routes, Gom.rt.id, by = "rteno")
-GoM.rts.true.starts <- GoM.rts.true.starts[!duplicated(GoM.rts.true.starts),]
-GoM.rts.true.starts <- GoM.rts.true.starts[, c(-14, -15)]
-colnames(GoM.rts.true.starts)[colnames(GoM.rts.true.starts) == "RouteName.x"] <- "RteName"
-write.csv(GoM.rts.true.starts, file = "GoM.rt.start.csv")
-#***End of GIS Processing***
+#write.csv(GoM.rts.true.starts, file = "GoM.rt.start.csv")
+######################################################
+#############***End of GIS Processing***##############
+######################################################
 
 #Average Routes by rteno to generate average lat/lon
 #for climate data
@@ -101,10 +104,12 @@ rts_final <- rts_final %>% group_by(rteno) %>%
   ungroup()
 
 
+#Putting route names with RTENO and Coordinates
 sites <- rts[, "rtename"]
 sites <- sites[!duplicated(sites),]
 rts_final <- cbind(sites, rts_final) 
 
+#Renaming columns 
 rts_final$state <- rts_final$rteno
 colnames(rts_final)[colnames(rts_final)== "centroid.lon"] <- "longitude"
 colnames(rts_final)[colnames(rts_final) == "centroid.lat"] <- "latitude"
@@ -115,7 +120,7 @@ rts_fl$state <- 25
 bbs_fl <- bbs_fl %>% mutate(proxy = statenum * 1000) %>% mutate(rteno = proxy + Route)
 bbs_fl <- merge(bbs_fl, rts_fl, "rteno")
 fl <- bbs_fl[, c("rteno", "statenum", "rtename", "Year", "SpeciesTotal", "Aou", "latitude", "longitude")]
-names(fl) <- tolower(names(fl))
+colnames(fl) <- tolower(colnames(fl))
 
 #Alabama data slightly different 
 rts_al <- rts_final %>% filter(str_detect(rteno, "^2") & !str_detect(rteno, "^25"))
@@ -125,28 +130,28 @@ rts_al$state <- 02
 bbs_al <- mutate(bbs_al, proxy = StateNum * 1000) %>% mutate(rteno = proxy + Route)
 bbs_al <- merge(bbs_al, rts_al, "rteno")
 bbs_al$BCR <- 27
-names(bbs_al) <- tolower(names(bbs_al))
+colnames(bbs_al) <- tolower(colnames(bbs_al))
 al <- bbs_al[, c("rteno", "statenum", "rtename", "year", "speciestotal", "aou", "latitude", "longitude")]
 
 rts_tx <- rts_final %>% filter(str_detect(rteno, "^83"))
 rts_tx$state <- 83
 bbs_tx <- mutate(bbs_tx, proxy = statenum * 1000) %>% mutate(rteno = proxy + Route)
 bbs_tx <- merge(bbs_tx, rts_tx, "rteno")
-names(bbs_tx) <- tolower(names(bbs_tx))
+colnames(bbs_tx) <- tolower(colnames(bbs_tx))
 tx <- bbs_tx[, c("rteno", "statenum", "rtename", "year", "speciestotal", "aou", "latitude", "longitude")]
 
 rts_la <- rts_final %>% filter(str_detect(rteno, "^42"))
 rts_la$state <- 42
 bbs_la <- mutate(bbs_la, proxy = statenum * 1000) %>% mutate(rteno = proxy + Route)
 bbs_la <- merge(bbs_la, rts_la, "rteno")
-names(bbs_la) <- tolower(names(bbs_la))
+colnames(bbs_la) <- tolower(colnames(bbs_la))
 la <- bbs_la[, c("rteno", "statenum", "rtename", "year", "speciestotal", "aou", "latitude", "longitude")]
 
 rts_ms <-rts_final %>% filter(str_detect(rteno, "^51"))
 rts_ms$state <- 51
 bbs_ms <- mutate(bbs_ms, proxy = statenum * 1000) %>% mutate(rteno = proxy + Route)
 bbs_ms <- merge(bbs_ms, rts_ms, "rteno")
-names(bbs_ms) <- tolower(names(bbs_ms)) 
+colnames(bbs_ms) <- tolower(colnames(bbs_ms)) 
 ms <- bbs_ms[, c("rteno", "statenum", "rtename", "year", "speciestotal", "aou", "latitude", "longitude")]
 
 #Join all states together 
@@ -158,10 +163,13 @@ species$Linnean <- paste0(species$Genus, " ", species$Species)
 
 #Merge species names with AOU
 colnames(species)[2] <- "Aou"
-names(species) <- tolower(names(species))
+colnames(species) <- tolower(colnames(species))
 species_sub <- species[, c(-1, -4)]
 
+#Merging species name data with observation data 
 bbs_total <- merge(bbs_total, species_sub, by = "aou")
+
+#Adding state abbreviation distinction
 bbs_total$state <- 1
 bbs_total$state[bbs_total$statenum == 2] <- "AL"
 bbs_total$state[bbs_total$statenum == 83] <- "TX"
@@ -171,9 +179,6 @@ bbs_total$state[bbs_total$statenum == 42] <- "LA"
 
 bbs_total$unique_id <- paste0(bbs_total$state, "_", bbs_total$rteno, "_", bbs_total$year)
 bbs_total$abbrev <- paste0(bbs_total$state, "_", bbs_total$rteno)
-#Variable already exists...SpeciesTotal
-#bbs_total$Count_Total <- rowSums(bbs_total[,c("count10", "count20", "count30", "count40", "count50")], na.rm = FALSE)
-
 
 #Create a spp by site matrix
 #Keep only the columns we need
@@ -183,7 +188,6 @@ bbs_plot <- as.data.frame(bbs_plot)
 
 #Cast Data
 bbs_cast <- dcast(data = bbs_simple, formula = unique_id ~ linnean, fun.aggregate = sum)
-#as.matrix(cbc_cast)
 
 length(unique(bbs_total$linnean))
 length(unique(bbs_total$unique_id))
@@ -199,18 +203,26 @@ Total_Abundance <- cbind(rownames(bbs_cast), Total_Abundance)
 bbs_pa <- bbs_cast
 bbs_pa[bbs_pa > 0] <- 1
 
-
+#Species richness for each route_year
 Total_SR <- as.data.frame(rowSums(bbs_pa))
-Summary_stats <- cbind(Total_Abundance, Total_SR)
-colnames(Summary_stats) <- c("unique_id", "Total_Abundance", "Total_SR")
-Summary_stats$Total_Abundance <- as.numeric(Summary_stats$Total_Abundance)
-Summary_stats$unique_id <- as.character(Summary_stats$unique_id)
 
+#Create DF same as bbs_total
+bbs_master <- bbs_total
 
-plot(Summary_stats$Total_Abundance, Summary_stats$Total_SR)
+#Bind the richness and abundance
+bbs_total <- cbind(Total_Abundance, Total_SR)
+colnames(bbs_total) <- c("unique_id", "Total_Abundance", "Total_SR")
+bbs_total$Total_Abundance <- as.numeric(bbs_total$Total_Abundance)
+bbs_total$unique_id <- as.character(bbs_total$unique_id)
+
+#plot(bbs_total$Total_Abundance, bbs_total$Total_SR)
+
+#Create a RouteName Column for bbs_total
+bbs.rt.info <- bbs_master[, c("unique_id", "abbrev", "rteno", "rtename")]
+bbs_total <- merge(bbs_total, bbs.rt.info, by = "unique_id")
 
 #Calculate rarefied species richness
-min(Summary_stats$Total_Abundance)
+min(bbs_total$Total_Abundance)
 
 spp.accum <- specaccum(bbs_cast[1:10,])
 plot(spp.accum)
@@ -240,56 +252,66 @@ sum(!Total_400)
 
 rarefied.alpha[!Total_400] <- NA
 
-rarefied.alpha.1000 <- rarefy(bbs_cast, sample = 1000)
-Total_1000 <- Total_N >=1000
-
-rarefied.alpha.1000[!Total_1000] <- NA
-
-plot(rarefied.alpha, rarefied.alpha.1000)
-cor.test(rarefied.alpha, rarefied.alpha.1000)
+#Large correlation between 1000 and 400 subsample 
+#not necessary to do rarefy to 1000, lose extra
+# rarefied.alpha.1000 <- rarefy(bbs_cast, sample = 1000)
+# Total_1000 <- Total_N >=1000
+# 
+# rarefied.alpha.1000[!Total_1000] <- NA
+# 
+# plot(rarefied.alpha, rarefied.alpha.1000)
+# cor.test(rarefied.alpha, rarefied.alpha.1000)
 
 
 #check names are the same so we can just cbind them
-sum(rownames(bbs_cast) == Summary_stats$unique_id)
-Summary_stats <- cbind(Summary_stats, rarefied.alpha)
+bbs_total <- bbs_total[!duplicated(bbs_total),]
+sum(rownames(bbs_cast) == bbs_total$unique_id)
+bbs_total <- cbind(bbs_total, rarefied.alpha)
 
 #******Complete cases used******
-Summary_stats <- Summary_stats[complete.cases(Summary_stats), ]
-
+bbs_total <- bbs_total[complete.cases(bbs_total), ]
 
 
 #Add in year as another column
-years <- strsplit(Summary_stats$unique_id, split = "_")
-Summary_stats$Year <-as.numeric(sapply(years, function(x) x[[3]]))
-Summary_stats$Abbrev <- sapply(years, function(x) x[[1]])
+years <- strsplit(bbs_total$unique_id, split = "_")
+bbs_total$Year <-as.numeric(sapply(years, function(x) x[[3]]))
+bbs_total$Abbrev <- sapply(years, function(x) x[[1]])
 
 #Correlation of ~0.83 for Total SR and rarefied alpha 
-plot(Summary_stats$Total_SR, Summary_stats$rarefied.alpha)
-cor.test(Summary_stats$Total_SR, Summary_stats$rarefied.alpha)
-
-# cor(Summary_stats2$rarefied.alpha, as.numeric(Summary_stats2$Field_counters))
+plot(bbs_total$Total_SR, bbs_total$rarefied.alpha)
+cor.test(bbs_total$Total_SR, bbs_total$rarefied.alpha)
 
 #Pull out lat longs and year
-site_data <- unique(bbs_total[,c("unique_id", "year", "latitude", "longitude", "abbrev")])
+site_data <- unique(bbs_master[,c("unique_id", "year", "latitude", "longitude", "abbrev")])
 
-site_data_merge <- merge(site_data, Summary_stats, by = "unique_id")
+site_data_merge <- merge(site_data, bbs_total, by = "unique_id")
 
-plot(site_data_merge$Total_SR ~ site_data_merge$year)
-plot(site_data_merge$rarefied.alpha ~ site_data_merge$year)
+# plot(site_data_merge$Total_SR ~ site_data_merge$year)
+# plot(site_data_merge$rarefied.alpha ~ site_data_merge$year)
+# 
+# plot(site_data_merge$Total_SR ~ site_data_merge$latitude)
+# plot(site_data_merge$rarefied.alpha ~ site_data_merge$latitude)
+# 
+# plot(site_means$rarefied.alpha ~ site_means$latitude)
+# text(site_means$latitude , site_means$Total_Abundance, site_means$abbrev, cex = 0.8)
+# abline(lm(site_means$rarefied.alpha ~ site_means$latitude))
+# cor(site_means$rarefied.alpha, site_means$latitude)
+# 
+# plot(site_means$Total_SR ~ site_means$latitude, pch = "")
+# text(site_means$latitude , site_means$Total_SR, site_means$abbrev, cex = 0.8)
+# abline(lm(site_means$Total_SR ~ site_means$latitude))
+# cor(site_means$Total_SR, site_means$latitude)
 
-plot(site_data_merge$Total_SR ~ site_data_merge$latitude)
-plot(site_data_merge$rarefied.alpha ~ site_data_merge$latitude)
+#Clean up some remaining names from merge 
+#Could usesubset indexes, but want to make sure no hang-ups
+colnames(site_data_merge)[colnames(site_data_merge) == "abbrev.y"] <- "abbrev"
+colnames(site_data_merge)[colnames(site_data_merge) == "Abbrev"] <- "State"
+drop.it <- "abbrev.x"
+site_data_merge <- site_data_merge[, !names(site_data_merge) %in% drop.it, drop = F]
 
+#Calculate mean SR, Abundance, and rarefied SR 
 site_means <- aggregate(data = site_data_merge, cbind(Total_Abundance, Total_SR, rarefied.alpha) ~ abbrev + latitude, FUN = mean)
-plot(site_means$rarefied.alpha ~ site_means$latitude)
-text(site_means$latitude , site_means$Total_Abundance, site_means$abbrev, cex = 0.8)
-abline(lm(site_means$rarefied.alpha ~ site_means$latitude))
-cor(site_means$rarefied.alpha, site_means$latitude)
 
-plot(site_means$Total_SR ~ site_means$latitude, pch = "")
-text(site_means$latitude , site_means$Total_SR, site_means$abbrev, cex = 0.8)
-abline(lm(site_means$Total_SR ~ site_means$latitude))
-cor(site_means$Total_SR, site_means$latitude)
 
 
 n.sites <- length(unique(site_data_merge$abbrev))
@@ -330,12 +352,18 @@ bbs_cast_80 <- bbs_cast[rownames(bbs_cast) %in% site_list_80,]
 #Create matrix for storing Betas 
 beta.matrix <- data.frame(unique_id = site_list_80, beta = NA)
 
-#loop through each site
+#Fixing data frame to have abbrev
+bbs_total$unique_id <- paste0(bbs_total$abbrev, "_", bbs_total$year)
 
+
+#Loop for calculating Beta Diversity from baseline 5 years
+#If I average the Beta diversity after will this generate 
+#statistical biases???
+#Should we loop it from year bin to year bin?
 for (n in 1:n.sites){
   site.temp <- site.list[n]
   #Find all the years for which that site was surveys
-  yrs.temp <- unique(bbs_total[which(bbs_total$abbrev == site.temp),"year"])
+  yrs.temp <- unique(bbs_total[which(bbs_total$abbrev == site.temp),"Year"])
   yrs.temp <- yrs.temp[yrs.temp >= 1980]
   #only consider sites that were observed in more than 5 years 
   if (length(yrs.temp) > 5){
@@ -357,7 +385,7 @@ for (n in 1:n.sites){
       other.site.temp <- paste0(site.temp, "_", other.yr.temp)
       bbs_cast_other <- bbs_cast[rownames(bbs_cast) == other.site.temp,]
       bbs_cast_other <- rbind(bbs_cast_other, first.comm.temp)
-      beta.temp <- vegdist(sqrt(sqrt(bbs_cast_other)), method = "bray")
+      beta.temp <- vegdist(sqrt(sqrt(bbs_cast_other)), method = "jaccard")
       beta.matrix$beta[beta.matrix$unique_id == other.site.temp] <- beta.temp
     }
   }}
@@ -438,40 +466,34 @@ ggdraw() +
             x = 0, y = 0, width = .9, height = 1) +
   draw_plot(gghist_beta, x = 0.75, y = .025, width = .2, height = .75, scale = 1) 
 
-# #find the mean b-c for the site
-#     mean.beta <- mean(site.beta.temp)
-#     mean.betas[n,2] <- mean.beta
-# }}  
-
 #Species Richness Trends GoM
 #Add a column to Summary_Stats to indicate 5 year bin to look at long term trends
 #start at 1975 as this was the year standard protocols were implemented
-Summary_stats_80 <- Summary_stats[Summary_stats$Year >= 1980,]
-Summary_stats_80$Yr_bin <- 1
-Summary_stats_80$Yr_bin[Summary_stats_80$Year >= 1985 & Summary_stats_80$Year <= 1989] <- 2
-Summary_stats_80$Yr_bin[Summary_stats_80$Year >= 1990 & Summary_stats_80$Year <= 1994] <- 3
-Summary_stats_80$Yr_bin[Summary_stats_80$Year >= 1995 & Summary_stats_80$Year <= 1999] <- 4
-Summary_stats_80$Yr_bin[Summary_stats_80$Year >= 2000 & Summary_stats_80$Year <= 2004] <- 5
-Summary_stats_80$Yr_bin[Summary_stats_80$Year >= 2005 & Summary_stats_80$Year <= 2009] <- 6
-Summary_stats_80$Yr_bin[Summary_stats_80$Year >= 2010 & Summary_stats_80$Year <= 2014] <- 7
-Summary_stats_80$Yr_bin[Summary_stats_80$Year >= 2015 & Summary_stats_80$Year <= 2018] <- 8
+bbs_total <- bbs_total[bbs_total$Year >= 1980,]
+bbs_total$Yr_bin <- 1
+bbs_total$Yr_bin[bbs_total$Year >= 1985 & bbs_total$Year <= 1989] <- 2
+bbs_total$Yr_bin[bbs_total$Year >= 1990 & bbs_total$Year <= 1994] <- 3
+bbs_total$Yr_bin[bbs_total$Year >= 1995 & bbs_total$Year <= 1999] <- 4
+bbs_total$Yr_bin[bbs_total$Year >= 2000 & bbs_total$Year <= 2004] <- 5
+bbs_total$Yr_bin[bbs_total$Year >= 2005 & bbs_total$Year <= 2009] <- 6
+bbs_total$Yr_bin[bbs_total$Year >= 2010 & bbs_total$Year <= 2014] <- 7
+bbs_total$Yr_bin[bbs_total$Year >= 2015 & bbs_total$Year <= 2018] <- 8
 
-Summary_stats_80$site <- Summary_stats_80$unique_id
-Summary_stats_80 <- Summary_stats_80 %>% separate(site, c("StateName", "Rteno", "Yr"), sep = "_") %>% 
+bbs_total$unique_id <- paste0(bbs_total$unique_id, "_", bbs_total$Year)
+bbs_total$site <- bbs_total$unique_id
+
+bbs_total <- bbs_total %>% separate(site, c("StateName", "Rteno", "Yr"), sep = "_") %>% 
   unite(site, StateName, Rteno, sep = "_") 
 
-Mean_alpha_bin <- aggregate(data = Summary_stats_80, rarefied.alpha ~ Yr_bin + site, FUN = "mean")
+Mean_alpha_bin <- aggregate(data = bbs_total, rarefied.alpha ~ Yr_bin + abbrev, FUN = "mean")
 Mean_alpha_bin <- separate(Mean_alpha_bin, site, c("state", "rteno", "yr"), sep = "_")
-Mean_alpha_bin$site <- paste0(Mean_alpha_bin$state, "_", Mean_alpha_bin$rteno)
-Mean_alpha_bin <- aggregate(rarefied.alpha ~ site + Yr_bin, Mean_alpha_bin, FUN = "mean")
-# Mean_beta_bin <- aggregate(data)
 
 plot(Mean_alpha_bin$rarefied.alpha ~ Mean_alpha_bin$Yr_bin)
-lm_alpha <- lm(rarefied.alpha~ Yr_bin + site, data = Mean_alpha_bin)
+lm_alpha <- lm(rarefied.alpha~ Yr_bin + abbrev, data = Mean_alpha_bin)
 summary(lm_alpha)
 anova(lm_alpha)
 library(lme4)
-lmer_alpha <- lmer(rarefied.alpha~ Yr_bin + (1|site), data = Mean_alpha_bin)
+lmer_alpha <- lmer(rarefied.alpha~ Yr_bin + (1|abbrev), data = Mean_alpha_bin)
 summary(lmer_alpha)
 anova(lmer_alpha)
 dev.off()
@@ -508,16 +530,14 @@ gghist <- ggplot(data = slopes_sites, aes(slopes_sites$slope)) +
   theme_cowplot(font_size = 14, line_size = 1.2) +
   coord_flip()
 
-site_data_merge$Year <- site_data_merge$count_yr + 1900
-
 
 plot_alpha <- (ggplot(site_data_merge, aes(x = year, y = rarefied.alpha, group = abbrev, 
-                                           colour = factor(state, 
+                                           colour = factor(State, 
                                                            labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")))) +
                  #geom_point(size = 3) +
                  #geom_line()+
-                 geom_smooth(method = lm, se = FALSE, aes(x = year, y = rarefied.alpha, group = abbrev, 
-                                                          colour = factor(state, 
+                 geom_smooth(method = glm,se = FALSE, aes(x = year, y = rarefied.alpha, group = abbrev, 
+                                                          colour = factor(State, 
                                                                           labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")))) +
                  xlab("Year") +
                  ylab(expression(paste("Rarefied ", alpha, "-diversity"))) +
@@ -540,11 +560,37 @@ plot_alpha <- (ggplot(site_data_merge, aes(x = year, y = rarefied.alpha, group =
                        plot.margin = unit(c(1,1,2,2), "lines"),
                        text = element_text(size=14)))
 
+
+plot_alpha
 ggdraw() + 
   draw_plot(plot_alpha + theme(legend.justification = "top"), 
             x = 0, y = 0, width = .9, height = 1) +
   draw_plot(gghist, x = 0.77, y = .025, width = .2, height = .75, scale = 1) 
 #draw_plot_label(c("A", "B"), c(0, 1.5), c(.75, 0.75), size = 12)
+
+######################################################
+#############Plots for thesis proposal################
+######################################################
+my_mean.alpha = aggregate(Mean_alpha_bin$rarefied.alpha , by=list(Mean_alpha_bin$Yr_bin) , mean); colnames(my_mean.alpha)=c("Yr_Bin" , "mean")
+se <- function(x) sqrt(var(x)/length(x))
+my_sd_alpha=aggregate(Mean_alpha_bin$rarefied.alpha , by=list(Mean_alpha_bin$Yr_bin) , se); colnames(my_sd_alpha)=c("Yr_Bin" , "sd")
+my_info.rarefied=merge(my_mean.alpha , my_sd_alpha , by.x=1 , by.y=1)
+
+
+box4 <- ggplot(my_info.rarefied) + 
+  # geom_point(aes(x = Yr_Bin, y = CMRL) , colour=rgb(0.8,0.7,0.1,0.4) , size=5) + 
+  geom_point(data = my_info.rarefied, aes(x=Yr_Bin , y = mean) , colour = rgb(0.6,0.5,0.4,0.7) , size = 8) +
+  geom_errorbar(data = my_info.rarefied, aes(x = Yr_Bin, y = sd, ymin = mean - sd, ymax = mean + sd), colour = rgb(0.4,0.8,0.2,0.4) , width = 0.7 , size=1.5) +
+  scale_y_continuous(name = "Rarefied Alpha-diversity", breaks = seq(35, 50, 1)) +
+  scale_x_continuous(name = "Year Bin", breaks = seq(1, 8, 1), 
+                     labels = c("1980 - 1984", "1985 - 1989", "1990 - 1994", "1995 - 1999", 
+                                "2000 - 2004", "2005 - 2009", "2010 - 2014", "2015 - 2019")) +
+  coord_cartesian(ylim = c(35, 50)) 
+
+box4
+######################################################
+
+
 
 
 #Environmental Data Loading and Cleaning 
@@ -635,28 +681,35 @@ betas$Yr_bin[betas$year >= 2010 & betas$year <= 2014] <- 7
 betas$Yr_bin[betas$year >= 2015 & betas$year <= 2018] <- 8
 
 #Getting the Betas into the environmental Data 
+#Pull the minumum year-bin for the linking up the 
+#climate data to the first year bin with a beta value
 min.betas <- aggregate(Yr_bin ~ site, betas, FUN = "min")
 
 betas.mod <- betas
+
+#Calculate Mean Beta for each year-bin 
 betas.mod <- aggregate(beta ~ site + Yr_bin, betas, FUN = "mean")
-bbs_site_temp <- bbs_total[, c("rteno", "rtename", "state")]
+bbs_site_temp <- bbs_total[, c("rteno", "rtename", "abbrev")]
 bbs_site_temp$rtename <- as.character(bbs_site_temp$rtename)
 bbs_site_temp <- bbs_site_temp[!duplicated(bbs_site_temp$rteno), ]
 colnames(bbs_site_temp)[colnames(bbs_site_temp) == "rtename"] <- "Site"
 
-site.link <- bbs_site_temp[, c("Site", "state", "rteno")]
+#Create a site.link dataframe 
+site.link <- bbs_site_temp[, c("Site", "abbrev", "rteno")]
 site.link <- site.link[!duplicated(site.link),]
-site.link$site <- paste0(site.link$state, "_", site.link$rteno)
+site.link$site <- site.link$abbrev
 min.betas <- merge(min.betas, site.link, by = "site")
 
 colnames(min.betas)[colnames(min.betas) == "Yr_bin"] <- "min.yr.bin"
-# avgs <- merge(avgs, site.link, by = "Site")
-avgs$unique_id <- paste0(avgs$site, "_", avgs$yr_bin)
+
+#Merge the climate averages with the site data for ref
+avgs <- merge(avgs, site.link, by = "Site")
+avgs$unique_id <- paste0(avgs$rteno, "_", avgs$yr_bin)
 avgs <- merge(avgs, min.betas, by = "Site")
 avgs <- avgs[avgs$yr_bin >= avgs$min.yr.bin,]
 
 
-#Quick Metric Conversion
+#Metric Conversion
 avgs <- avgs %>% mutate(tmean.c = (tmean - 32) / 1.8, 
                         tmax.c = (avg.max - 32) / 1.8,
                         tmin.c = (avg.min - 32) / 1.8,
@@ -672,17 +725,21 @@ avgs <- avgs %>% group_by(Site, Month) %>%
 
 #Same as above for anomalies, need to merge the data for betas & anomalies 
 #using the join field of State_Rteno
-temp.agg <- avgs[, c(10, 3, 18, 19, 20, 21)]
+temp.agg <- avgs[, c(16, 3, 24, 25, 26, 27)]
+
+#Aggregate all the anomalies by year_bin for each site
 temp.agg <- aggregate(. ~ site + yr_bin, temp.agg, FUN = "mean")
 temp.avgs <- temp.agg
 betas.mod$unique_id <- paste0(betas.mod$site, "_", betas.mod$Yr_bin)
 temp.avgs$unique_id <- paste0(temp.avgs$site, "_", temp.avgs$yr_bin)
+
+#Put betas with temperature data 
 lmer.df <- merge(temp.avgs, betas.mod, by = "unique_id")
 test <- lmer.df
 
 
 #Average the Richness at Sites in the year bins for use as a covariate
-alpha.1980 <- Summary_stats
+alpha.1980 <- bbs_total
 alpha.1980 <- alpha.1980[alpha.1980$Year >= 1980,]
 alpha.1980$yr_bin <- 1
 alpha.1980$yr_bin[alpha.1980$Year >= 1985 & alpha.1980$Year <= 1989] <- 2
@@ -692,9 +749,9 @@ alpha.1980$yr_bin[alpha.1980$Year >= 2000 & alpha.1980$Year <= 2004] <- 5
 alpha.1980$yr_bin[alpha.1980$Year >= 2005 & alpha.1980$Year <= 2009] <- 6
 alpha.1980$yr_bin[alpha.1980$Year >= 2010 & alpha.1980$Year <= 2014] <- 7
 alpha.1980$yr_bin[alpha.1980$Year >= 2015 & alpha.1980$Year <= 2020] <- 8
-alpha.1980 <- separate(alpha.1980, unique_id, c("State", "rteno"), sep = "_")
+#alpha.1980 <- separate(alpha.1980, unique_id, c("State", "rteno"), sep = "_")
 rownames(alpha.1980) <- c()
-alpha.1980$site <- paste0(alpha.1980$State, "_", alpha.1980$rteno)
+colnames(alpha.1980)[colnames(alpha.1980) == "abbrev"] <- "site"
 alpha.1980 <- alpha.1980[, c("site", "yr_bin", "Year", "Total_Abundance", "Total_SR", "rarefied.alpha")]
 alpha.agg <- aggregate(. ~ site + yr_bin, alpha.1980, FUN = "mean")
 alpha.agg$unique_id <- paste0(alpha.agg$site, "_", alpha.agg$yr_bin)
@@ -708,21 +765,28 @@ test <- test[, c("unique_id", "Site", "Yr_bin", "Year", "rarefied.alpha",
                  "beta")]
 
 #Remove the first time bin for each site, that way we don't have a lot of 
-#untrue 0s in the tests
-test <- test %>%
+#untrue 0s in the tests, this is only for p.change
+test1 <- test %>%
   group_by(Site) %>%
   slice(2:n())
 
+test <- separate(test, Site, into = c("State", "Rteno"), sep = "_")
+test$unique.id <- paste0(test$Rteno, "_", test$Yr_bin)
 #1og-likelihood 
-mod.alpha <- lmer(p.change.alpha ~ precip.anomalies + (1|Site), data = test, REML = F)
+mod.alpha <- lmer(p.change.alpha ~ precip.anomalies + (1|Site), data = test1, REML = F)
 summary(mod.alpha)
 Anova(mod.alpha)
-t.test(test$p.change.alpha, mu = 0)
+t.test(test1$p.change.alpha, mu = 0)
 r.squaredGLMM(mod.alpha)
-plot(test$precip.anomalies, test$p.change.alpha)
-abline(lm(test$p.change.alpha ~ test$precip.anomalies))
+plot(test1$precip.anomalies, test1$p.change.alpha)
+abline(lm(test1$p.change.alpha ~ test1$precip.anomalies))
 
-a.test <- test[, c("site", "Yr_bin", "p.change.alpha", "rarefied.alpha", "anomalies", "precip.anomalies", "min.anomalies", "max.anomalies")]
+##########################################################################
+###################Code Cleaned Up To Here 4/24/2019######################
+##########################################################################
+
+
+a.test <- test1[, c("Site", "Yr_bin", "p.change.alpha", "rarefied.alpha", "anomalies", "precip.anomalies", "min.anomalies", "max.anomalies")]
 a.test <- a.test[a.test$p.change.alpha != 0, ]
 s <- scale(a.test$p.change.alpha)
 GHQ <- glmer(p.change.alpha ~ anomalies + precip.anomalies + (1 | site), data = a.test, family = poisson(link = "logit"), nAGQ = 25) # Set nAGQ to # of desired iterations
@@ -746,7 +810,7 @@ ggplotRegression <- function (fit) {
   
   require(ggplot2)
   
-  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+  ggplot(fit$model, aes_string(x = Yr_Bin(fit$model)[2], y = Yr_Bin(fit$model)[1])) + 
     geom_point() +
     stat_smooth(method = "lm", col = "red") +
     labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
@@ -904,7 +968,7 @@ Anova(mod.2015)
 vif.lme <- function (fit) {
   ## adapted from rms::vif
   v <- vcov(fit)
-  nam <- names(fixef(fit))
+  nam <- Yr_Bin(fixef(fit))
   ## exclude intercepts
   ns <- sum(1 * (nam == "Intercept" | nam == "(Intercept)"))
   if (ns > 0) {
@@ -912,7 +976,7 @@ vif.lme <- function (fit) {
     nam <- nam[-(1:ns)] }
   d <- diag(v)^0.5
   v <- diag(solve(v/(d %o% d)))
-  names(v) <- nam
+  Yr_Bin(v) <- nam
   v }
 vif.lme(mod2)
 
@@ -981,7 +1045,7 @@ ggplotRegression <- function (fit) {
   
   require(ggplot2)
   
-  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+  ggplot(fit$model, aes_string(x = Yr_Bin(fit$model)[2], y = Yr_Bin(fit$model)[1])) + 
     geom_point() +
     geom_smooth(method = "lm", col = "red") +
     labs(x = expression(paste("Precipitation Anomaly ", (cm))), y = expression(paste(beta, " -Diversity")))}
@@ -1009,3 +1073,128 @@ climate.map <- separate(slopes, site.list, c("State", "rteno"), sep = "_")
 climate.map <- merge(climate.mao, rts, by = "rteno")
 
 write.csv(climate.map, file = here("climate.map.csv"))
+
+
+
+#######################################################################
+######Link Spacies Name with Range and looking at tropicalization######
+#######################################################################
+
+bbs_total$english_common_name <- as.character(bbs_total$english_common_name)
+bbs_total <- merge(bbs_total, range.merge, by.x = "english_common_name", by.y = "English_Common_Name")
+bbs.agg <- aggregate(data = bbs_total, Latitude ~ abbrev + year, FUN = mean)
+bbs.agg <- bbs.agg[bbs.agg$year >= 1980, ]
+bbs.agg$Yr_bin <- 1
+bbs.agg$Yr_bin[bbs.agg$year >= 1985 & bbs.agg$year <= 1989] <- 2
+bbs.agg$Yr_bin[bbs.agg$year >= 1990 & bbs.agg$year <= 1994] <- 3
+bbs.agg$Yr_bin[bbs.agg$year >= 1995 & bbs.agg$year <= 1999] <- 4
+bbs.agg$Yr_bin[bbs.agg$year >= 2000 & bbs.agg$year <= 2004] <- 5
+bbs.agg$Yr_bin[bbs.agg$year >= 2005 & bbs.agg$year <= 2009] <- 6
+bbs.agg$Yr_bin[bbs.agg$year >= 2010 & bbs.agg$year <= 2014] <- 7
+bbs.agg$Yr_bin[bbs.agg$year >= 2015 & bbs.agg$year <= 2018] <- 8
+bbs.agg$unique_id <- paste0(bbs.agg$abbrev, "_", bbs.agg$Yr_bin)
+betas$unique_id <- paste0(betas$site, "_", betas$Yr_bin) 
+betas <- betas[, c(-1, -2, -4)]
+bbs.agg <- merge(bbs.agg, betas, by = "unique_id")
+
+colnames(bbs.agg)[colnames(bbs.agg) == "Latitude"] <- "CMRL"
+
+##Making some figures for tropicalization data 
+
+
+line = "#0000CC"
+fill = "#6699CC"
+box1 <- ggplot(bbs.agg, aes(x = Yr_bin, y = CMRL, group = Yr_bin)) +
+  geom_boxplot(alpha = 0.3, notch = T, fill = fill, colour = line) + 
+  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(46, 70, 2)) +
+  scale_x_continuous(name = "Year Bin (5 years from baseline)") + 
+  theme(legend.position = "none") +
+  scale_fill_brewer(palette = "Dark2") + 
+  stat_summary(fun.y = mean,
+               fun.ymin = function(x) mean(x) - sd(x), 
+               fun.ymax = function(x) mean(x) + sd(x), 
+               geom = "pointrange") +
+  stat_summary(fun.y = mean,
+               geom = "line")
+box1
+
+
+range_t <- bbs.agg %>% group_by(abbrev) %>% arrange(Yr_bin) %>%
+  filter(row_number()==1 | row_number()==n()) 
+
+box2 <- ggplot(df.mer, aes(x = Yr_bin, y = CMRL, group = Yr_bin, fill = region)) +
+  geom_boxplot(aes(x = Yr_bin, y = CMRL, group = Yr_bin, fill = region)) + 
+  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(46, 70, 2)) +
+  scale_x_continuous(name = "Year Bin (5 years from baseline)") +
+  theme(legend.position = "none") 
+
+
+box2
+
+#Calculation of mean and sd of each group ?
+my_mean=aggregate(bbs.agg$CMRL , by=list(bbs.agg$Yr_bin) , mean); colnames(my_mean)=c("Yr_Bin" , "mean")
+se <- function(x) sqrt(var(x)/length(x))
+my_sd=aggregate(bbs.agg$CMRL , by=list(bbs.agg$Yr_bin) , se); colnames(my_sd)=c("Yr_Bin" , "sd")
+my_info=merge(my_mean , my_sd , by.x=1 , by.y=1)
+
+
+#Plotting beta and cmrl
+plot5 <- ggplot(bbs.agg, aes(x = beta, y = CMRL, group = abbrev)) +
+  geom_smooth(method = "lm", se = F)
+plot5
+# Make the plot
+coefs <- coef(lm(df.mer$CMRL ~ df.mer$Yr_bin))
+box3 <- ggplot(my_info) + 
+  # geom_point(aes(x = Yr_Bin, y = CMRL) , colour=rgb(0.8,0.7,0.1,0.4) , size=5) + 
+  geom_point(data = my_info, aes(x=Yr_Bin , y = mean) , colour = rgb(0.6,0.5,0.4,0.7) , size = 8) +
+  geom_errorbar(data = my_info, aes(x = Yr_Bin, y = sd, ymin = mean - sd, ymax = mean + sd), colour = rgb(0.4,0.8,0.2,0.4) , width = 0.7 , size=1.5) +
+  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(59, 62, 0.5)) +
+  scale_x_continuous(name = "Year Bin", breaks = seq(1, 8, 1), 
+                     labels = c("1980 - 1984", "1985 - 1989", "1990 - 1994", "1995 - 1999", 
+                                "2000 - 2004", "2005 - 2009", "2010 - 2014", "2015 - 2019")) +
+  coord_cartesian(ylim = c(59, 62)) 
+
+box3 + annotate("text", x = 6, y = 61.8, size = 6, label = "Average difference between year bins corresponds 
+                to a decrease in community latitude of 1.6 km/y")
+
+
+mean.change <- my_info %>% mutate(lagged = lag(mean)) %>% mutate(dif = mean - lagged) %>% 
+  mutate(avg.dif = mean(dif, na.rm = T)) 
+
+mod5 <- lm(range_t$CMRL ~ range_t$Yr_bin)
+summary(mod5)
+Anova(mod5)
+
+mod.range <- lm(bbs.agg$CMRL ~ bbs.agg$beta)
+summary(mod.range)
+Anova(mod.range)
+
+
+bbs.testing <-  aggregate(data = bbs.agg, CMRL ~ abbrev + Yr_bin, FUN = mean)
+bbs.testing <- separate(bbs.testing, abbrev, into = c("State", "rteno"), sep = "_")
+bbs.testing$abbrev <- paste0(bbs.testing$State, "_", bbs.testing$rteno)
+link <- link.me.up
+link <- link %>% mutate_if(is.integer, as.character) 
+
+df.mer <- merge(bbs.testing, link, by = "rteno")
+df.mer$region <- "North"
+df.mer$region[df.mer$latitude <= 28.27796] <- "South"
+
+plot_cmrl2 <- ggplot(data = df.mer, aes(x = Yr_bin, y = CMRL, group = region)) +
+  geom_smooth(method = "lm", se = F)
+plot_cmrl2
+
+#Plotting 
+plot_cmrl <- ggplot(data = df.mer, aes(x = Yr_bin, y = CMRL, colour = region)) +
+  geom_boxplot(aes(x = Yr_bin, y = CMRL, colour = region))
+plot_cmrl
+
+bbs.agg <- bbs.agg[complete.cases(bbs.agg),]
+
+range.exp <- lmer(bbs.agg$beta ~ bbs.agg$CMRL + (1|bbs.agg$abbrev))
+summary(range.exp)
+tab_model(range.exp)
+Anova(range.exp)
+plot(bbs.agg$beta ~ bbs.agg$CMRL)
+abline(lm(bbs.agg$beta ~ bbs.agg$CMRL))
+beta.matrix <- merge()
