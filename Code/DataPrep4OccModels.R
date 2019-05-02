@@ -211,5 +211,7 @@ rownames(link.final20) <- link.final20$unique_id
 #Final DF that contains all of the Routes and Species for segments in all years that have 20% or more cover
 final_gom <- bbs_gom_final[bbs_gom_final$unique_id %in% rownames(link.final20),]
 
+#write.csv(final_gom, file = here("Data_BBS/Generated DFs/Final_GoM_DF.csv"))
 
 
+       
