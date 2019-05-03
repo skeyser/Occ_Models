@@ -64,10 +64,10 @@ rts_final <- rts[!duplicated(rts),]
 #Creation of the 5 segment lines
 #I need the names/rteno of the routes used from GIS
 # write.csv(rts_final, file = "Gom_Routes_ID.correct.csv")
-# all.routes <- read.csv(here("Data_BBS/States_GoM/routes.csv"))
-# Gom.rt.id <- read.csv(here("Data_BBS/States_GoM/Gom_Routes_ID.correct.csv"))
-# link.to.lulc <- Gom.rt.id[, c("rteno", "rtename", "")]
-# link.to.lulc$rtename <- gsub(" ", "_", link.to.lulc$rtename)
+all.routes <- read.csv(here("Data_BBS/States_GoM/routes.csv"))
+Gom.rt.id <- read.csv(here("Data_BBS/States_GoM/Gom_Routes_ID.correct.csv"))
+link.to.lulc <- Gom.rt.id[, c("rteno", "rtename", "")]
+link.to.lulc$rtename <- gsub(" ", "_", link.to.lulc$rtename)
 # 
 # #Merge two dataframes usin the Rteno
 # all.routes$RouteName <- as.character(all.routes$RouteName)
@@ -135,7 +135,7 @@ al <- bbs_al[, c("rteno", "statenum", "rtename", "year", "speciestotal", "aou", 
 
 rts_tx <- rts_final %>% filter(str_detect(rteno, "^83"))
 rts_tx$state <- 83
-bbs_tx <- mutate(bbs_tx, proxy = statenum * 1000) %>% mutate(rteno = proxy + Route)
+bbs_tx <- mutate(bbs_tx, proxy = StateNum * 1000) %>% mutate(rteno = proxy + Route)
 bbs_tx <- merge(bbs_tx, rts_tx, "rteno")
 colnames(bbs_tx) <- tolower(colnames(bbs_tx))
 tx <- bbs_tx[, c("rteno", "statenum", "rtename", "year", "speciestotal", "aou", "latitude", "longitude")]
@@ -486,7 +486,7 @@ bbs_total <- bbs_total %>% separate(site, c("StateName", "Rteno", "Yr"), sep = "
   unite(site, StateName, Rteno, sep = "_") 
 
 Mean_alpha_bin <- aggregate(data = bbs_total, rarefied.alpha ~ Yr_bin + abbrev, FUN = "mean")
-Mean_alpha_bin <- separate(Mean_alpha_bin, site, c("state", "rteno", "yr"), sep = "_")
+#Mean_alpha_bin <- separate(Mean_alpha_bin, site, c("state", "rteno", "yr"), sep = "_")
 
 plot(Mean_alpha_bin$rarefied.alpha ~ Mean_alpha_bin$Yr_bin)
 lm_alpha <- lm(rarefied.alpha~ Yr_bin + abbrev, data = Mean_alpha_bin)
@@ -725,7 +725,10 @@ avgs <- avgs %>% group_by(Site, Month) %>%
 
 #Same as above for anomalies, need to merge the data for betas & anomalies 
 #using the join field of State_Rteno
-temp.agg <- avgs[, c(16, 3, 24, 25, 26, 27)]
+#temp.agg <- avgs[, c(16, 3, 24, 25, 26, 27)]
+colnames(avgs)[colnames(avgs) == "site.x"] <- "site"
+temp.agg <- avgs[, c(11, 3, 17:24)]
+
 
 #Aggregate all the anomalies by year_bin for each site
 temp.agg <- aggregate(. ~ site + yr_bin, temp.agg, FUN = "mean")
@@ -776,6 +779,7 @@ test$unique.id <- paste0(test$Rteno, "_", test$Yr_bin)
 mod.alpha <- lmer(p.change.alpha ~ precip.anomalies + (1|Site), data = test1, REML = F)
 summary(mod.alpha)
 Anova(mod.alpha)
+eta_sq(mod.alpha)
 t.test(test1$p.change.alpha, mu = 0)
 r.squaredGLMM(mod.alpha)
 plot(test1$precip.anomalies, test1$p.change.alpha)
@@ -786,10 +790,10 @@ abline(lm(test1$p.change.alpha ~ test1$precip.anomalies))
 ##########################################################################
 
 
-a.test <- test1[, c("Site", "Yr_bin", "p.change.alpha", "rarefied.alpha", "anomalies", "precip.anomalies", "min.anomalies", "max.anomalies")]
+a.test <- test1[, c("site", "Yr_bin", "p.change.alpha", "rarefied.alpha", "anomalies", "precip.anomalies", "min.anomalies", "max.anomalies")]
 a.test <- a.test[a.test$p.change.alpha != 0, ]
 s <- scale(a.test$p.change.alpha)
-GHQ <- glmer(p.change.alpha ~ anomalies + precip.anomalies + (1 | site), data = a.test, family = poisson(link = "logit"), nAGQ = 25) # Set nAGQ to # of desired iterations
+GHQ <- lmer(p.change.alpha ~ anomalies + precip.anomalies + (1 | Site), data = a.test) # Set nAGQ to # of desired iterations
 summary(GHQ)
 
 ##Get residuals for partial regression plots 
@@ -825,7 +829,7 @@ precip <- lm(precip.partial ~ precip.anomalies, data = prplot)
 ggplotRegression(precip)
 
 ##If the model include rarefied alpha need to fix for all three effects
-mod.fix <- lmer(beta ~ anomalies + rarefied.alpha + precip.anomalies + (1|Site), data = test, REML = F)
+mod.fix <- lmer(beta ~ anomalies + rarefied.alpha + precip.anomalies + (1|Rteno), data = test, REML = F)
 tab_model(mod.fix)
 r.squaredGLMM(mod.fix)
 summary(mod.fix)
