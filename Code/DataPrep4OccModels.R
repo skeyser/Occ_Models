@@ -213,5 +213,7 @@ final_gom <- bbs_gom_final[bbs_gom_final$unique_id %in% rownames(link.final20),]
 
 #write.csv(final_gom, file = here("Data_BBS/Generated DFs/Final_GoM_DF.csv"))
 
+final_gom <- read.csv(here("Data_BBS/Generated DFs/Final_GoM_DF.csv"))
+length(unique(final_gom$Order))
 
        
