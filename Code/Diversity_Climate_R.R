@@ -64,10 +64,10 @@ rts_final <- rts[!duplicated(rts),]
 #Creation of the 5 segment lines
 #I need the names/rteno of the routes used from GIS
 # write.csv(rts_final, file = "Gom_Routes_ID.correct.csv")
-all.routes <- read.csv(here("Data_BBS/States_GoM/routes.csv"))
-Gom.rt.id <- read.csv(here("Data_BBS/States_GoM/Gom_Routes_ID.correct.csv"))
-link.to.lulc <- Gom.rt.id[, c("rteno", "rtename", "")]
-link.to.lulc$rtename <- gsub(" ", "_", link.to.lulc$rtename)
+#all.routes <- read.csv(here("Data_BBS/States_GoM/routes.csv"))
+#Gom.rt.id <- read.csv(here("Data_BBS/States_GoM/Gom_Routes_ID.correct.csv"))
+#link.to.lulc <- Gom.rt.id[, c("rteno", "rtename", "")]
+#link.to.lulc$rtename <- gsub(" ", "_", link.to.lulc$rtename)
 # 
 # #Merge two dataframes usin the Rteno
 # all.routes$RouteName <- as.character(all.routes$RouteName)
@@ -695,17 +695,35 @@ bbs_site_temp <- bbs_site_temp[!duplicated(bbs_site_temp$rteno), ]
 colnames(bbs_site_temp)[colnames(bbs_site_temp) == "rtename"] <- "Site"
 
 #Create a site.link dataframe 
-site.link <- bbs_site_temp[, c("Site", "abbrev", "rteno")]
-site.link <- site.link[!duplicated(site.link),]
-site.link$site <- site.link$abbrev
-min.betas <- merge(min.betas, site.link, by = "site")
+site.merge <- bbs_site_temp[, c("Site", "abbrev", "rteno")]
+site.merge <- site.merge[!duplicated(site.merge),]
+site.merge$site <- site.merge$abbrev
+
+site.merge$Site <- gsub(" ", "_", site.merge$Site)
+site.merge[site.merge$rtename == "BETAIR", 2] <- "BELAIR"
+site.merge[site.merge$rtename == "L._ATASCOSA_NWR", 2] <- "L__ATASCOSA_NWR"
+site.merge[site.merge$rtename == "SUGARLOAF_KEY_2", 2] <- "SUGARLOAF_KEY"
+site.merge[site.merge$rtename == "EGLIN_A.F.B.", 2] <- "EGLIN_A_F_B_"
+site.merge[site.merge$rtename == "SEMINOLE_HLS", 2] <- "SEMINOLE_HILLS"
+site.merge[site.merge$rtename == "ALABAMA_PORT", 2] <- "DAUPHIN_IS_2"
+
+min.betas <- merge(min.betas, site.merge, by = "site")
 
 colnames(min.betas)[colnames(min.betas) == "Yr_bin"] <- "min.yr.bin"
 
 #Merge the climate averages with the site data for ref
-avgs <- merge(avgs, site.link, by = "Site")
+avgs$Site <- gsub(" ", "_", avgs$Site)
+avgs[avgs$Site == "BETAIR", 1] <- "BELAIR"
+avgs[avgs$Site == "L._ATASCOSA_NWR", 1] <- "L__ATASCOSA_NWR"
+avgs[avgs$Site == "SUGARLOAF_KEY_2", 1] <- "SUGARLOAF_KEY"
+avgs[avgs$Site == "EGLIN_A.F.B.", 1] <- "EGLIN_A_F_B_"
+avgs[avgs$Site == "SEMINOLE_HLS", 1] <- "SEMINOLE_HILLS"
+avgs[avgs$Site == "ALABAMA_PORT", 1] <- "DAUPHIN_IS_2"
+
+
+avgs <- merge(avgs, site.merge, by = "Site")
 avgs$unique_id <- paste0(avgs$rteno, "_", avgs$yr_bin)
-avgs <- merge(avgs, min.betas, by = "Site")
+avgs <- merge(avgs, min.betas, by = "site")
 avgs <- avgs[avgs$yr_bin >= avgs$min.yr.bin,]
 
 
@@ -727,7 +745,7 @@ avgs <- avgs %>% group_by(Site, Month) %>%
 #using the join field of State_Rteno
 #temp.agg <- avgs[, c(16, 3, 24, 25, 26, 27)]
 colnames(avgs)[colnames(avgs) == "site.x"] <- "site"
-temp.agg <- avgs[, c(11, 3, 17:24)]
+temp.agg <- avgs[, c(1, 4, 20:27)]
 
 
 #Aggregate all the anomalies by year_bin for each site
@@ -740,6 +758,11 @@ temp.avgs$unique_id <- paste0(temp.avgs$site, "_", temp.avgs$yr_bin)
 lmer.df <- merge(temp.avgs, betas.mod, by = "unique_id")
 test <- lmer.df
 
+ggplotRegression(tempmod)
+
+ggplot(temp.avgs, aes(x = yr_bin, y = anomalies)) + labs(x = "Year Bin", ylab = "Temperature Anomalies") + geom_smooth(method = lm, se = T)
+tempmod <- lm(temp.avgs$anomalies ~ temp.avgs$yr_bin)
+summary(tempmod)
 
 #Average the Richness at Sites in the year bins for use as a covariate
 alpha.1980 <- bbs_total
@@ -758,6 +781,7 @@ colnames(alpha.1980)[colnames(alpha.1980) == "abbrev"] <- "site"
 alpha.1980 <- alpha.1980[, c("site", "yr_bin", "Year", "Total_Abundance", "Total_SR", "rarefied.alpha")]
 alpha.agg <- aggregate(. ~ site + yr_bin, alpha.1980, FUN = "mean")
 alpha.agg$unique_id <- paste0(alpha.agg$site, "_", alpha.agg$yr_bin)
+
 test <- merge(test, alpha.agg, "unique_id")
 test <- test %>% group_by(site) %>% arrange(Yr_bin) %>% 
   mutate(p.change.alpha = (rarefied.alpha - first(rarefied.alpha)) / first(rarefied.alpha) * 100) %>%
@@ -770,13 +794,13 @@ test <- test[, c("unique_id", "Site", "Yr_bin", "Year", "rarefied.alpha",
 #Remove the first time bin for each site, that way we don't have a lot of 
 #untrue 0s in the tests, this is only for p.change
 test1 <- test %>%
-  group_by(Site) %>%
+  group_by(Rteno) %>%
   slice(2:n())
 
 test <- separate(test, Site, into = c("State", "Rteno"), sep = "_")
 test$unique.id <- paste0(test$Rteno, "_", test$Yr_bin)
 #1og-likelihood 
-mod.alpha <- lmer(p.change.alpha ~ precip.anomalies + (1|Site), data = test1, REML = F)
+mod.alpha <- lmer(p.change.alpha ~ precip.anomalies + (1|Rteno), data = test1, REML = F)
 summary(mod.alpha)
 Anova(mod.alpha)
 eta_sq(mod.alpha)
@@ -808,19 +832,19 @@ precip.partial <- remef(mod2, fix = "anomalies", ran = "all")
 precip.partial <- as.data.frame(precip.partial)
 prplot <- cbind(prplot, precip.partial)
 alpha.partial <- 
-ggplot (data = prplot, aes(x = anomalies, y = precip.partial)) + geom_smooth(method = "lm")
+ggplot (data = prplot, aes(x = anomalies, y = beta.t.anom)) + geom_smooth(method = "lm")
 
 ggplotRegression <- function (fit) {
   
   require(ggplot2)
   
-  ggplot(fit$model, aes_string(x = Yr_Bin(fit$model)[2], y = Yr_Bin(fit$model)[1])) + 
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
     geom_point() +
     stat_smooth(method = "lm", col = "red") +
     labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
                        "Intercept =",signif(fit$coef[[1]],5 ),
                        " Slope =",signif(fit$coef[[2]], 5),
-                       " P =",signif(summary(fit)$coef[2,4], 5)), x = "Residuals Temperature Anomalies", y = expression(paste("Residuals ", beta, " -Diversity")))}
+                       " P =",signif(summary(fit)$coef[2,4], 5)), x = "Year Bins", y = ("Temperature Anomalies (Degree C)"))}
 
 temperature <- lm(y_partial ~ anomalies, data = prplot)
 ggplotRegression(temperature) + labs(x.axis = "Rarefied Alpha")
@@ -1016,22 +1040,27 @@ abline(lm(richness$rarefied.alpha ~ richness$latitude))
 # betas.mod$unique_id <- paste0(betas.mod$sites, "_", betas.mod$Yr_bide
 
 #Partial Regression Plots
-res.beta <- residuals(lm(beta ~ precip.anomalies + rarefied.alpha, data = test))
-res.temp <- residuals(lm(anomalies ~ precip.anomalies + rarefied.alpha, data = test))
+res.beta <- residuals(lm(beta ~ anomalies + pct.ur, data = test1))
+res.temp <- residuals(lm(anomalies ~ pct.ur + rarefied.alpha, data = test1))
 res <- cbind(as.data.frame(res.beta), as.data.frame(res.temp))
-res.beta.p <- residuals(lm(beta ~ anomalies + rarefied.alpha, data = test))
-res.precip <- residuals(lm(precip.anomalies ~ anomalies + rarefied.alpha, data = test))
-res2 <- cbind(as.data.frame(res.beta.p), as.data.frame(res.precip))
-res.beta.a <- residuals(lm(beta ~ anomalies + precip.anomalies, data = test))
-res.alpha <- residuals(lm(rarefied.alpha ~ anomalies + precip.anomalies, data = test))
+res.beta.u <- residuals(lm(beta ~ pct.ur + rarefied.alpha, data = test1))
+res.ur <- residuals(lm(pct.ur ~ anomalies + rarefied.alpha, data = test1))
+res2 <- cbind(as.data.frame(res.beta.u), as.data.frame(res.ur))
+res.beta.a <- residuals(lm(beta ~ anomalies + pct.ur, data = test1))
+res.alpha <- residuals(lm(rarefied.alpha ~ anomalies + pct.ur, data = test1))
 res3 <- cbind(as.data.frame(res.beta.a), as.data.frame(res.alpha))
 plot(res.temp, res.beta)
-k <- lm(res$res.beta ~ res$res.temp)
-p <- lm(res2$res.beta.p ~ res2$res.precip)
-g <- lm(res3$res.beta.a ~ res3$res.alpha)
+k <- lm(res.plot$res.beta ~ res.plot$res.temp)
+p <- lm(res.plot$res.beta.u ~ res.plot$res.ur)
+g <- lm(res.plot$res.beta.a ~ res.plot$res.alpha)
 ggplotRegression(k)
 ggplotRegression(p)
 ggplotRegression(g)
+
+res.plot <- cbind(prplot, res)
+res.plot <- cbind(res.plot, res2)
+res.plot <- cbind(res.plot, res3)
+
 etaSquared(mod.fix, type = 2, anova = F)
 
 t <- lm(beta ~ anomalies, data = test)
