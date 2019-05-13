@@ -496,6 +496,7 @@ library(lme4)
 lmer_alpha <- lmer(rarefied.alpha~ Yr_bin + (1|abbrev), data = Mean_alpha_bin)
 summary(lmer_alpha)
 anova(lmer_alpha)
+tab_model(lmer_alpha)
 dev.off()
 
 #Slopes for mean 1980 rarefied alphas 
@@ -581,7 +582,7 @@ box4 <- ggplot(my_info.rarefied) +
   # geom_point(aes(x = Yr_Bin, y = CMRL) , colour=rgb(0.8,0.7,0.1,0.4) , size=5) + 
   geom_point(data = my_info.rarefied, aes(x=Yr_Bin , y = mean) , colour = rgb(0.6,0.5,0.4,0.7) , size = 8) +
   geom_errorbar(data = my_info.rarefied, aes(x = Yr_Bin, y = sd, ymin = mean - sd, ymax = mean + sd), colour = rgb(0.4,0.8,0.2,0.4) , width = 0.7 , size=1.5) +
-  scale_y_continuous(name = "Rarefied Alpha-diversity", breaks = seq(35, 50, 1)) +
+  scale_y_continuous(name = "Rarefied Alpha-diversity", breaks = seq(37, 47, 1)) +
   scale_x_continuous(name = "Year Bin", breaks = seq(1, 8, 1), 
                      labels = c("1980 - 1984", "1985 - 1989", "1990 - 1994", "1995 - 1999", 
                                 "2000 - 2004", "2005 - 2009", "2010 - 2014", "2015 - 2019")) +
@@ -734,7 +735,7 @@ avgs <- avgs %>% mutate(tmean.c = (tmean - 32) / 1.8,
                         precipitation.c = (precipitation * 2.54))
 
 #Calculated anomalies relative to the base year
-avgs <- avgs %>% group_by(Site, Month) %>% 
+avgs <- avgs %>% group_by(site, Month) %>% 
   arrange(yr_bin, .by_group = T) %>% 
   mutate(anomalies = tmean.c - first(tmean.c)) %>% 
   mutate(max.anomalies = tmax.c - first(tmax.c)) %>% 
@@ -745,7 +746,7 @@ avgs <- avgs %>% group_by(Site, Month) %>%
 #using the join field of State_Rteno
 #temp.agg <- avgs[, c(16, 3, 24, 25, 26, 27)]
 colnames(avgs)[colnames(avgs) == "site.x"] <- "site"
-temp.agg <- avgs[, c(1, 4, 20:27)]
+temp.agg <- avgs[, c(1, 4, 17:24)]
 
 
 #Aggregate all the anomalies by year_bin for each site
@@ -760,7 +761,9 @@ test <- lmer.df
 
 ggplotRegression(tempmod)
 
-ggplot(temp.avgs, aes(x = yr_bin, y = anomalies)) + labs(x = "Year Bin", ylab = "Temperature Anomalies") + geom_smooth(method = lm, se = T)
+ggplot(temp.avgs, aes(x = yr_bin, y = anomalies)) + labs(x = "Year Bin", ylab = "Temperature Anomalies") + geom_smooth()
+ggplot(temp.avgs, aes(x = yr_bin, y = precip.anomalies)) + labs(x = "Year Bin", ylab = "Temperature Anomalies") + geom_smooth()
+
 tempmod <- lm(temp.avgs$anomalies ~ temp.avgs$yr_bin)
 summary(tempmod)
 
@@ -794,13 +797,13 @@ test <- test[, c("unique_id", "Site", "Yr_bin", "Year", "rarefied.alpha",
 #Remove the first time bin for each site, that way we don't have a lot of 
 #untrue 0s in the tests, this is only for p.change
 test1 <- test %>%
-  group_by(Rteno) %>%
+  group_by(Site) %>%
   slice(2:n())
 
 test <- separate(test, Site, into = c("State", "Rteno"), sep = "_")
 test$unique.id <- paste0(test$Rteno, "_", test$Yr_bin)
 #1og-likelihood 
-mod.alpha <- lmer(p.change.alpha ~ precip.anomalies + (1|Rteno), data = test1, REML = F)
+mod.alpha <- lmer(p.change.alpha ~ precip.anomalies + (1|Site), data = test1, REML = F)
 summary(mod.alpha)
 Anova(mod.alpha)
 eta_sq(mod.alpha)
@@ -809,10 +812,30 @@ r.squaredGLMM(mod.alpha)
 plot(test1$precip.anomalies, test1$p.change.alpha)
 abline(lm(test1$p.change.alpha ~ test1$precip.anomalies))
 
+mod.beta <- lmer(beta ~ anomalies + rarefied.alpha + precip.anomalies + (1|Rteno), data = test)
+summary(mod.beta)
+tab_model(mod.beta)
+
+
+
 ##########################################################################
 ###################Code Cleaned Up To Here 4/24/2019######################
 ##########################################################################
 
+
+
+
+lmer.df <- separate(lmer.df, col = site.x, into = c("State", "Rteno"),sep = "_")
+lmer.df$unique_id <- paste0(lmer.df$Rteno, "_", lmer.df$yr_bin)
+lmer2 <- lmer.df %>% group_by(Rteno) %>% first(lmer.df, order_by = "yr_bin")
+
+mod.complete <- merge(lmer.df, lulc.agg, by.x = "unique_id", by.y = "unique.id")
+
+mod.lulc <- lmer(data = lmer.df, beta ~ anomalies + (1|Rteno))
+summary(mod.lulc)
+tab_model(mod.lulc)
+
+lmer.df <- 
 
 a.test <- test1[, c("site", "Yr_bin", "p.change.alpha", "rarefied.alpha", "anomalies", "precip.anomalies", "min.anomalies", "max.anomalies")]
 a.test <- a.test[a.test$p.change.alpha != 0, ]
