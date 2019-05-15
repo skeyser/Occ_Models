@@ -233,12 +233,17 @@ final_sp_df <- bbs_gom_final[bbs_gom_final$site %in% wetland20.site,]
 length(unique(final_sp_df$Order))
 length(unique(final_sp_df$sci_name))
 
+
+#####################################################################
+###################Creating Groups for species#######################
+#####################################################################
+
 #Split DF up by BCR
 bcr31 <- final_sp_df[final_sp_df$BCR == 31,]
 bcr26 <- final_sp_df[final_sp_df$BCR == 26,]
 bcr27 <- final_sp_df[final_sp_df$BCR == 27,]
 bcr37 <- final_sp_df[final_sp_df$BCR == 37,]
-bcr19 <- final_sp_df[final_sp_df$BCR == 19,]
+bcr26 <- final_sp_df[final_sp_df$BCR == 26,]
 
 #Calculate # of species in BCR, Category, and Order 
 BCR_breakdown <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = BCR]
@@ -262,16 +267,71 @@ order_breakdown <- aggregate(data = order_breakdown, count ~ Order, FUN = sum)
 
 setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Nocturnal]
 
+passerine <- final_sp_df[final_sp_df$Order == "Passeriformes",]
+passer <- setDT(passerine)[, .(count = uniqueN(sci_name)), by = Family_Latin]
+
+#Rename phylo in the complete DF for grouping species
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Sturnidae"] <- "Sturnidae/Turdidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Turdidae"] <- "Sturnidae/Turdidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Alaudidae"] <- "Remizidae/Paridae/Alaudidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Paridae"] <- "Remizidae/Paridae/Alaudidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Remizidae"] <- "Remizidae/Paridae/Alaudidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Corvidae"] <- "Laniidae/Corvidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Laniidae"] <- "Laniidae/Corvidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Fringillidae"] <- "Passeridae/Cardinalidae/Fringillidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Cardinalidae"] <- "Passeridae/Cardinalidae/Fringillidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Passeridae"] <- "Passeridae/Cardinalidae/Fringillidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Troglodytidae"] <- "Polioptilidae/Sittidae/Troglodytidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Sittidae"] <- "Polioptilidae/Sittidae/Troglodytidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Polioptilidae"] <- "Polioptilidae/Sittidae/Troglodytidae"
+
+final_sp_df$Order[final_sp_df$Order == "Apodiformes"] <- "Apodiformes/Caprimulgiformes"
+final_sp_df$Order[final_sp_df$Order == "Caprimulgiformes"] <- "Apodiformes/Caprimulgiformes"
+final_sp_df$Order[final_sp_df$Order == "Falconiformes"] <- "Falconiformes/Psittaciformes"
+final_sp_df$Order[final_sp_df$Order == "Psittaciformes"] <- "Falconiformes/Psittaciformes"
+final_sp_df$Order[final_sp_df$Order == "Coraciiformes"] <- "Coraciiformes/Piciformes"
+final_sp_df$Order[final_sp_df$Order == "Piciformes"] <- "Coraciiformes/Piciformes"
+final_sp_df$Order[final_sp_df$Order == "Ciconiiformes"] <- "Ciconiiformes/Pelecaniformes" 
+final_sp_df$Order[final_sp_df$Order == "Pelecaniformes"] <- "Ciconiiformes/Pelecaniformes"
+final_sp_df$Order[final_sp_df$Order == "Podicipediformes"] <- "Podicipediformes/Gruiformes"
+final_sp_df$Order[final_sp_df$Order == "Gruiformes"] <- "Podicipediformes/Gruiformes"
+
+####Remove BCR 19#####
+final_sp_df <- final_sp_df[!(final_sp_df$BCR == 19),]
+
+
+#Create"group" identifier for each family group or order
+
+
+##########################
+
+
+#Compute total # of detections per Family and Order
+obs.phylo.fam <- aggregate(Detected ~ Family_Latin + Order, final_sp_df, FUN = sum)
+obs.phylo.fam <- obs.phylo.fam[obs.phylo.fam$Order == "Passeriformes",]
+
+obs.phylo.order <- aggregate(Detected ~ Order, final_sp_df, FUN = sum)
+obs.phylo.order$Family_Latin <- NA
+
+#Rearrange and bind order data and family data
+obs.phylo.fam <- obs.phylo.fam %>% select(Order, Family_Latin, Detected)
+obs.phylo.order <- obs.phylo.order %>% select(Order, Family_Latin, Detected)
+obs.phylo <- rbind(obs.phylo.fam, obs.phylo.order)
+
+
+
+
 #############################################################
 ##########Create augmented species x site matrix#############
 #############################################################
 
 #Take all of the sites where wetland >=20% from entire dataset
-total.sp.mat <- bbs_gom_final[bbs_gom_final$site %in% wetland20.site,]
+#total.sp.mat <- bbs_gom_final[bbs_gom_final$site %in% wetland20.site,]
+total.sp.mat <- final_sp_df
 raw.sp.mat <- total.sp.mat[, c("unique_id", "sci_name", "Detected")]
 raw.sp.mat <- dcast(raw.sp.mat, unique_id ~ sci_name, fun.aggregate = sum, value.var = "Detected")
 rownames(raw.sp.mat) <- raw.sp.mat$unique_id
-raw.sp.mat <- raw.sp.mat[, -which(names(raw.sp.mat) %in% "unique_id")]
+raw.sp.mat <- subset(raw.sp.mat, select = -unique_id)
 raw.sp.mat[raw.sp.mat > 1] <- 1
 
 #Calculate # of species in each Category and Order by BCR
@@ -288,19 +348,30 @@ setDT(bcr19)[, .(count = uniqueN(sci_name)), by = Order]
 
 #Extract a list of species for phylogenetic subset
 spp.occ <- as.data.frame(unique(final_sp_df$sci_name))
-#write.csv(spp.occ, file = here("Data_BBS/Generated DFs/spp.list.csv"))
+
+###################################
+####Extracting for JAGS coding#####
+###################################
 
 #Create JAGS code for species
 spp.occ <- spp.occ %>% mutate(spp.code = 1:n()) %>%
                      select(spp.code, everything())
 colnames(spp.occ) <- c("spp.code", "species")
+
 #Write csv 
+#write.csv(spp.occ, file = here("Data_BBS/Generated DFs/spp.list.csv"))
 
 #BCR matrix 
-bcr.occ <- as.data.frame(unique(final_gom$BCR))
+bcr.occ <- as.data.frame(unique(final_sp_df$BCR))
 bcr.occ <- bcr.occ %>% mutate(bcr.code = 1:n()) %>%
   select(bcr.code, everything())
-colnames(bcr.occ)[colnames(bcr.occ) == "unique(final_gom$BCR)"] <- "BCR"
+colnames(bcr.occ)[colnames(bcr.occ) == "unique(final_sp_df$BCR)"] <- "BCR"
+
 #Write csv
+#write.csv(bcr.occ, file = here("Data_BBS/Generated DFs/BCR.occ.csv"))
 
 ###Create the time component for each segment###
+
+
+
+save.image(file = here("R Workspace/DataPrep4OccModel5_15_2019.RData"))
