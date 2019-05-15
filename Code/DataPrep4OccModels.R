@@ -3,10 +3,12 @@
 ###############Created by Spencer R Keyser##############
 ########################################################
 
+rm(list = ls()) 
+
 ##Package Loading## 
 
 library(pacman)
-pacman::p_load(here, tidyverse, reshape2, ggplot2)
+pacman::p_load(here, tidyverse, reshape2, ggplot2, data.table)
 
 ##End Package Loading##
 
@@ -171,16 +173,20 @@ elton$Scientific <- as.character(elton$Scientific)
 
 #Merge the functional data with the complete merged dataset 
 bbs_gom_final <- merge(bbs_gom_merge, elton, by.x = "sci_name", by.y = "Scientific")
+bbs_gom_final$site <- paste0(bbs_gom_final$rteno.x, "_", bbs_gom_final$Segment)
 bbs_gom_final$Category <- as.character(bbs_gom_final$Category)
 
 #Load in the Routes with more than 20% wetland 
-wetland20 <- read.csv(here("Data_BBS/Generated DFs/RouteSegs_With_20percent.csv"), stringsAsFactors = F)
+wetland20 <- read.csv(here("Data_BBS/Generated DFs/CompleteSegments_With_20percent.csv"), stringsAsFactors = F)
 
 #Make all items capital letters for merging 
 wetland20 <- data.frame(lapply(wetland20, function(v) {
   if (is.character(v)) return(toupper(v))
   else return(v)
 }))
+
+wetland20.site <- unique(wetland20$site)
+wetland20.site <- as.vector(wetland20.site)
 
 #Make a "site.link" DF to connect name with Rteno for getting routes with only 20% into bbs_gom_final
 site.link <- rts_final[, c("rteno", "rtename")]
@@ -200,6 +206,10 @@ site.link[site.link$rtename == "ALABAMA_PORT", 2] <- "DAUPHIN_IS_2"
 #Merge the site.link df with the Wetland 20
 wetland.link <- merge(wetland20, site.link, by.x = "Route", by.y = "rtename")
 
+wetland.link$rteno.segment <- paste0(wetland.link$rteno, "_", wetland.link$Segment) 
+wetland20.site <- unique(wetland.link$rteno.segment)
+wetland20.site <- as.vector(wetland20.site)
+
 #Remove the Name and Link With the RTENO
 link.final20 <- wetland.link[, c("rteno", "year", "Segment")]
 
@@ -209,11 +219,88 @@ link.final20 <- link.final20[!duplicated(link.final20$unique_id),]
 rownames(link.final20) <- link.final20$unique_id
 
 #Final DF that contains all of the Routes and Species for segments in all years that have 20% or more cover
+#DF only has species detections for each year of LULC data
 final_gom <- bbs_gom_final[bbs_gom_final$unique_id %in% rownames(link.final20),]
 
+#Final DF with all species for all years for sites w/ >=20%
+final_sp_df <- bbs_gom_final[bbs_gom_final$site %in% wetland20.site,]
+
 #write.csv(final_gom, file = here("Data_BBS/Generated DFs/Final_GoM_DF.csv"))
+#write.csv(final_sp_df, file = here("Data_BBS/Generated DFs/Final_Sp_GoM_DF.csv"))
 
-final_gom <- read.csv(here("Data_BBS/Generated DFs/Final_GoM_DF.csv"))
-length(unique(final_gom$Order))
 
-       
+#final_gom <- read.csv(here("Data_BBS/Generated DFs/Final_GoM_DF.csv"))
+length(unique(final_sp_df$Order))
+length(unique(final_sp_df$sci_name))
+
+#Split DF up by BCR
+bcr31 <- final_sp_df[final_sp_df$BCR == 31,]
+bcr26 <- final_sp_df[final_sp_df$BCR == 26,]
+bcr27 <- final_sp_df[final_sp_df$BCR == 27,]
+bcr37 <- final_sp_df[final_sp_df$BCR == 37,]
+bcr19 <- final_sp_df[final_sp_df$BCR == 19,]
+
+#Calculate # of species in BCR, Category, and Order 
+BCR_breakdown <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = BCR]
+write.csv(BCR_breakdown, file = here("Data_BBS/Generated DFs/BCR_Count.csv"))
+
+setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Category]
+order_breakdown <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Order]
+order_breakdown$Order[order_breakdown$Order == "Apodiformes"] <- "Apodiformes/Caprimulgiformes"
+order_breakdown$Order[order_breakdown$Order == "Caprimulgiformes"] <- "Apodiformes/Caprimulgiformes"
+order_breakdown$Order[order_breakdown$Order == "Falconiformes"] <- "Falconiformes/Psittaciformes"
+order_breakdown$Order[order_breakdown$Order == "Psittaciformes"] <- "Falconiformes/Psittaciformes"
+order_breakdown$Order[order_breakdown$Order == "Coraciiformes"] <- "Coraciiformes/Piciformes"
+order_breakdown$Order[order_breakdown$Order == "Piciformes"] <- "Coraciiformes/Piciformes"
+order_breakdown$Order[order_breakdown$Order == "Ciconiiformes"] <- "Ciconiiformes/Pelecaniformes" 
+order_breakdown$Order[order_breakdown$Order == "Pelecaniformes"] <- "Ciconiiformes/Pelecaniformes"
+order_breakdown$Order[order_breakdown$Order == "Podicipediformes"] <- "Podicipediformes/Gruiformes"
+order_breakdown$Order[order_breakdown$Order == "Gruiformes"] <- "Podicipediformes/Gruiformes"
+
+order_breakdown <- aggregate(data = order_breakdown, count ~ Order, FUN = sum)
+#write.csv(order_breakdown, file = here("Data_BBS/Generated DFs/PhyloGroups.csv"))
+
+setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Nocturnal]
+
+#############################################################
+##########Create augmented species x site matrix#############
+#############################################################
+
+#Take all of the sites where wetland >=20% from entire dataset
+total.sp.mat <- bbs_gom_final[bbs_gom_final$site %in% wetland20.site,]
+raw.sp.mat <- total.sp.mat[, c("unique_id", "sci_name", "Detected")]
+raw.sp.mat <- dcast(raw.sp.mat, unique_id ~ sci_name, fun.aggregate = sum, value.var = "Detected")
+rownames(raw.sp.mat) <- raw.sp.mat$unique_id
+raw.sp.mat <- raw.sp.mat[, -which(names(raw.sp.mat) %in% "unique_id")]
+raw.sp.mat[raw.sp.mat > 1] <- 1
+
+#Calculate # of species in each Category and Order by BCR
+setDT(bcr31)[, .(count = uniqueN(sci_name)), by = Category]
+setDT(bcr31)[, .(count = uniqueN(sci_name)), by = Order]
+setDT(bcr26)[, .(count = uniqueN(sci_name)), by = Category]
+setDT(bcr26)[, .(count = uniqueN(sci_name)), by = Order]
+setDT(bcr27)[, .(count = uniqueN(sci_name)), by = Category]
+setDT(bcr27)[, .(count = uniqueN(sci_name)), by = Order]
+setDT(bcr37)[, .(count = uniqueN(sci_name)), by = Category]
+setDT(bcr37)[, .(count = uniqueN(sci_name)), by = Order]
+setDT(bcr19)[, .(count = uniqueN(sci_name)), by = Category]
+setDT(bcr19)[, .(count = uniqueN(sci_name)), by = Order]
+
+#Extract a list of species for phylogenetic subset
+spp.occ <- as.data.frame(unique(final_sp_df$sci_name))
+#write.csv(spp.occ, file = here("Data_BBS/Generated DFs/spp.list.csv"))
+
+#Create JAGS code for species
+spp.occ <- spp.occ %>% mutate(spp.code = 1:n()) %>%
+                     select(spp.code, everything())
+colnames(spp.occ) <- c("spp.code", "species")
+#Write csv 
+
+#BCR matrix 
+bcr.occ <- as.data.frame(unique(final_gom$BCR))
+bcr.occ <- bcr.occ %>% mutate(bcr.code = 1:n()) %>%
+  select(bcr.code, everything())
+colnames(bcr.occ)[colnames(bcr.occ) == "unique(final_gom$BCR)"] <- "BCR"
+#Write csv
+
+###Create the time component for each segment###
