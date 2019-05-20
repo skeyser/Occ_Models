@@ -8,7 +8,7 @@ rm(list = ls())
 ##Package Loading## 
 
 library(pacman)
-pacman::p_load(here, tidyverse, reshape2, ggplot2, data.table)
+pacman::p_load(here, tidyverse, reshape2, ggplot2, data.table, lubridate, stringr)
 
 ##End Package Loading##
 
@@ -330,8 +330,8 @@ obs.phylo <- rbind(obs.phylo.fam, obs.phylo.order)
 total.sp.mat <- final_sp_df
 raw.sp.mat <- total.sp.mat[, c("unique_id", "sci_name", "Detected")]
 raw.sp.mat <- dcast(raw.sp.mat, unique_id ~ sci_name, fun.aggregate = sum, value.var = "Detected")
-rownames(raw.sp.mat) <- raw.sp.mat$unique_id
-raw.sp.mat <- subset(raw.sp.mat, select = -unique_id)
+#rownames(raw.sp.mat) <- raw.sp.mat$unique_id
+#raw.sp.mat <- subset(raw.sp.mat, select = -unique_id)
 raw.sp.mat[raw.sp.mat > 1] <- 1
 
 #Calculate # of species in each Category and Order by BCR
@@ -370,8 +370,63 @@ colnames(bcr.occ)[colnames(bcr.occ) == "unique(final_sp_df$BCR)"] <- "BCR"
 #Write csv
 #write.csv(bcr.occ, file = here("Data_BBS/Generated DFs/BCR.occ.csv"))
 
+
 ###Create the time component for each segment###
+time <- bbs_merge[, c("rteno", "Year", "StartTime", "EndTime", "Day", "Month", "ObsN")]
+time$rt_yr <- paste0(time$rteno, "_", time$Year)
+time <- time[!duplicated(time), ]
+segments <- final_sp_df[, c("rt_yr", "Segment")]
+
+#Getting Segments and Time of Day Data Together 
+time.occ <- merge(time, segments, by = "rt_yr")
+time.occ <- time.occ[!duplicated(time.occ), ]
+time.occ$site <- paste0(time.occ$rteno, "_", time.occ$Segment)
+time.occ <- time.occ[!duplicated(time.occ$site), ]
+
+#Create Site Matrix 
+#Fill in unique id code for each route_segment 
+time.occ <- time.occ %>% mutate(site.code = 1:n()) 
+
+#Unique_id for route level 
+time.occ <- transform(time.occ, rteno.code = as.numeric(interaction(rteno, drop = T)))
+
+#Time of Day for each segment calculated
+#All route segments assumed to be surveyed at consistent interval
+time.occ$StartTime <- as.character(time.occ$StartTime)
+time.occ$EndTime <- as.character(time.occ$EndTime)
+
+#Split military time up to hours and minutes
+time.occ$StrtH <- str_sub(time.occ$StartTime, 1, -3)
+time.occ$StrtMin <- str_sub(time.occ$StartTime, -2)
+time.occ$EndH <- str_sub(time.occ$EndTime, 1, -3)
+time.occ$EndMin <- str_sub(time.occ$EndTime, -2)
+
+time.occ[, c("StrtH", "StrtMin", "EndH", "EndMin", "Segment")] <- sapply(time.occ[, c("StrtH", "StrtMin", "EndH", "EndMin", "Segment")], as.numeric)
+
+#Convert to time elapsed since midnight
+#Calculate duration of entire survey 
+#Calculate duration of each segment
+#Multiply duration  of each segment by segment #
+#Add back to start time 
+time.occ <- time.occ %>% mutate(StrtElapsed = (StrtH * 60) + StrtMin) %>%
+            mutate(EndElapsed = (EndH * 60) + EndMin) %>% mutate(Duration = EndElapsed - StrtElapsed) %>%
+            mutate(SegDur = Duration / 5) %>% mutate(TOD = (SegDur * Segment) + StrtElapsed)
+
+
+time.occ <- transform(time.occ, ObsN.code = as.numeric(interaction(ObsN, drop = T)))
+
+bcr <- final_sp_df[, c("rteno.x", "BCR")]
+bcr <- bcr[!duplicated(bcr), ]
+colnames(bcr)[colnames(bcr) == "rteno.x"] <- "rteno"
+time.occ <- merge(time.occ, bcr, by = "rteno")
+time.occ <- transform(time.occ, bcr.code = as.numeric(interaction(BCR, drop = T)))
+time.occ <- transform(time.occ, year.code = as.numeric(interaction(Year, drop = T)))
 
 
 
-save.image(file = here("R Workspace/DataPrep4OccModel5_15_2019.RData"))
+site.occ.df <- time.occ %>% select(rteno, rteno.code, site, site.code, BCR, bcr.code, Year, year.code, ObsN, ObsN.code, TOD)
+
+#write.csv
+#write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"))
+
+#save.image(file = here("R Workspace/DataPrep4OccModel5_15_2019.RData"))
