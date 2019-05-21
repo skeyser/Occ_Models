@@ -15,20 +15,20 @@ pacman::p_load(here, tidyverse, reshape2, ggplot2, data.table, lubridate, string
 ##Load in Data for Species 
 
 #Species Records for Gulf of Mexico
-bbs_tx <- read.csv(here("Data_BBS/States_GoM/States_Complete/Texas_Complete.csv"))
-bbs_al <- read.csv(here("Data_BBS/States_GoM/States_Complete/Alabama_Complete.csv"))
-bbs_ms <- read.csv(here("Data_BBS/States_GoM/States_Complete/Mississ_Complete.csv"))
-bbs_fl <- read.csv(here("Data_BBS/States_GoM/States_Complete/Florida_Complete.csv"))
-bbs_la <- read.csv(here("Data_BBS/States_GoM/States_Complete/Louisia_Complete.csv"))
+bbs_tx <- read.csv(here::here("Data_BBS/States_GoM/States_Complete/Texas_Complete.csv"))
+bbs_al <- read.csv(here::here("Data_BBS/States_GoM/States_Complete/Alabama_Complete.csv"))
+bbs_ms <- read.csv(here::here("Data_BBS/States_GoM/States_Complete/Mississ_Complete.csv"))
+bbs_fl <- read.csv(here::here("Data_BBS/States_GoM/States_Complete/Florida_Complete.csv"))
+bbs_la <- read.csv(here::here("Data_BBS/States_GoM/States_Complete/Louisia_Complete.csv"))
 
 #All states put together
 bbs <- rbind(bbs_tx, bbs_al, bbs_fl, bbs_ms, bbs_la)
 
 #Species Identifiers DF
-species <- read.csv(here("Data_BBS/States_GoM/SpeciesList.csv"), stringsAsFactors = F)
+species <- read.csv(here::here("Data_BBS/States_GoM/SpeciesList.csv"), stringsAsFactors = F)
 
 #Weather Data will include if the route meets criteria
-weather <- read.csv(here("Data_BBS/weather.csv"), stringsAsFactors = F)
+weather <- read.csv(here::here("Data_BBS/weather.csv"), stringsAsFactors = F)
 
 #Link Species data with Route Data
 bbs <- merge(bbs, species, by = "AOU")
@@ -45,10 +45,10 @@ bbs_total <- bbs_total[!grepl("hybrid", bbs_total$English_Common_Name),]
 names(bbs_total) <- gsub(x = names(bbs_total), pattern =  ".x", replacement = "")
 
 #Load in the Routes file for selected routes
-routes.99 <- read.csv(here("Data_BBS/States_GoM/bbsrts_1999_GoM_xy_mid.csv")) 
-routes.66 <- read.csv(here("Data_BBS/States_GoM/bbsrts_1966_GoM_xy_mid.csv"))
+routes.99 <- read.csv(here::here("Data_BBS/States_GoM/bbsrts_1999_GoM_xy_mid.csv")) 
+routes.66 <- read.csv(here::here("Data_BBS/States_GoM/bbsrts_1966_GoM_xy_mid.csv"))
 #Load in data for all of the route info
-routes <- read.csv(here("Data_BBS/routes.csv"), stringsAsFactors = F)
+routes <- read.csv(here::here("Data_BBS/routes.csv"), stringsAsFactors = F)
 
 ##Using the PRISM data where the envi data is from to get the used routes
 routes.66$RTENAME <- as.character(routes.66$RTENAME)
@@ -167,7 +167,7 @@ bbs_gom_merge$sci_name[bbs_gom_merge$sci_name == "Spinus psaltria"] <- "Cardueli
 bbs_gom_merge <- bbs_gom_merge[!bbs_gom_merge$sci_name == "Porphyrio porphyrio",]
 
 #Upload the functional traits 
-elton <- read.csv(file = here("Functional_Traits/Functional_Traits_ESA_Jetz_updated_csv.csv"), header = TRUE, stringsAsFactors = F) 
+elton <- read.csv(file = here::here("Functional_Traits/Functional_Traits_ESA_Jetz_updated_csv.csv"), header = TRUE, stringsAsFactors = F) 
 elton$English <- as.character(elton$English)
 elton$Scientific <- as.character(elton$Scientific)
 
@@ -177,7 +177,7 @@ bbs_gom_final$site <- paste0(bbs_gom_final$rteno.x, "_", bbs_gom_final$Segment)
 bbs_gom_final$Category <- as.character(bbs_gom_final$Category)
 
 #Load in the Routes with more than 20% wetland 
-wetland20 <- read.csv(here("Data_BBS/Generated DFs/CompleteSegments_With_20percent.csv"), stringsAsFactors = F)
+wetland20 <- read.csv(here::here("Data_BBS/Generated DFs/CompleteSegments_With_20percent.csv"), stringsAsFactors = F)
 
 #Make all items capital letters for merging 
 wetland20 <- data.frame(lapply(wetland20, function(v) {
@@ -247,7 +247,7 @@ bcr26 <- final_sp_df[final_sp_df$BCR == 26,]
 
 #Calculate # of species in BCR, Category, and Order 
 BCR_breakdown <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = BCR]
-write.csv(BCR_breakdown, file = here("Data_BBS/Generated DFs/BCR_Count.csv"))
+write.csv(BCR_breakdown, file = here::here("Data_BBS/Generated DFs/BCR_Count.csv"))
 
 setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Category]
 order_breakdown <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Order]
@@ -347,19 +347,56 @@ setDT(bcr19)[, .(count = uniqueN(sci_name)), by = Category]
 setDT(bcr19)[, .(count = uniqueN(sci_name)), by = Order]
 
 #Extract a list of species for phylogenetic subset
-spp.occ <- as.data.frame(unique(final_sp_df$sci_name))
+#spp.occ <- as.data.frame(unique(final_sp_df$sci_name))
 
 ###################################
 ####Extracting for JAGS coding#####
 ###################################
 
-#Create JAGS code for species
-spp.occ <- spp.occ %>% mutate(spp.code = 1:n()) %>%
-                     select(spp.code, everything())
-colnames(spp.occ) <- c("spp.code", "species")
+#Pull out BCRs of species detections
+bcr.detections <- final_sp_df %>% select(sci_name, BCR, Detected)
 
-#Write csv 
-#write.csv(spp.occ, file = here("Data_BBS/Generated DFs/spp.list.csv"))
+#BCR by Species Matrix for later
+bcr.detections <- dcast(bcr.detections, sci_name ~ BCR, fun.aggregate = sum, value.var = "Detected")
+bcr.detections <- data.frame(bcr.detections, row.names = 1)
+bcr.detections[bcr.detections > 1] <- 1
+colnames(bcr.detections)[colnames(bcr.detections) == "X36"] <- "BCR36"
+colnames(bcr.detections)[colnames(bcr.detections) == "X26"] <- "BCR26"
+colnames(bcr.detections)[colnames(bcr.detections) == "X27"] <- "BCR27"
+colnames(bcr.detections)[colnames(bcr.detections) == "X31"] <- "BCR31"
+colnames(bcr.detections)[colnames(bcr.detections) == "X37"] <- "BCR37"
+bcr.detections$Species <- rownames(bcr.detections) 
+rownames(bcr.detections) <- NULL
+bcr.detections <- bcr.detections %>% mutate(Species.code = 1:n())
+bcr.detections <- bcr.detections %>% select(Species, Species.code, BCR26, BCR27, BCR31, BCR36, BCR37)
+
+
+#Write BCR 
+write.csv(bcr.detections, file = here::here("Data_BBS/Generated DFs/BCR.Detections.csv"), row.names = F)
+
+#Put BCR detections with species for the species DF
+spp.occ <- final_sp_df %>% select(sci_name, Order, Family_Latin, BodyMass)
+spp.occ <- spp.occ[!duplicated(spp.occ),]
+spp.occ <- cbind(spp.occ, bcr.detections)
+spp.occ <- spp.occ %>% select(Species, BCR26, BCR27, BCR31, BCR36, BCR37, Order, Family_Latin, BodyMass)
+spp.occ <- plyr::rename(spp.occ, c("Order" = "Phylo.V2", "Family_Latin" = "Phylo.V1"))
+
+#Create Phylo Class 1 (Orders + Families for Passerines)
+spp.occ$Phylo.V1 <- ifelse(spp.occ$Phylo.V2 != "Passeriformes", spp.occ$Phylo.V2, spp.occ$Phylo.V1)
+
+#Create JAGs codes for the species IDs
+spp.occ <- transform(spp.occ, Phylo.V1.code = as.numeric(interaction(Phylo.V1, drop = T)))
+spp.occ <- transform(spp.occ, Phylo.V2.code = as.numeric(interaction(Phylo.V2, drop = T)))
+
+spp.occ <- spp.occ %>% mutate(Species.code = 1:n()) %>% 
+           select(Species, Species.code, Phylo.V1, Phylo.V1.code, Phylo.V2, Phylo.V2.code, BodyMass)
+
+
+###Write Species DF csv
+#write.csv(spp.occ, file = here::here("Data_BBS/Generated DFs/Spp.Occ.csv"), row.names = F)
+
+###################################
+###################################
 
 #BCR matrix 
 bcr.occ <- as.data.frame(unique(final_sp_df$BCR))
@@ -370,6 +407,9 @@ colnames(bcr.occ)[colnames(bcr.occ) == "unique(final_sp_df$BCR)"] <- "BCR"
 #Write csv
 #write.csv(bcr.occ, file = here("Data_BBS/Generated DFs/BCR.occ.csv"))
 
+################################################
+#####Creating Time and Segment JAGs DFs#########
+################################################
 
 ###Create the time component for each segment###
 time <- bbs_merge[, c("rteno", "Year", "StartTime", "EndTime", "Day", "Month", "ObsN")]
@@ -381,11 +421,14 @@ segments <- final_sp_df[, c("rt_yr", "Segment")]
 time.occ <- merge(time, segments, by = "rt_yr")
 time.occ <- time.occ[!duplicated(time.occ), ]
 time.occ$site <- paste0(time.occ$rteno, "_", time.occ$Segment)
-time.occ <- time.occ[!duplicated(time.occ$site), ]
+
+#Removes all dates exceot for the first date associated with the routes
+#time.occ <- time.occ[!duplicated(time.occ$site), ]
+
 
 #Create Site Matrix 
 #Fill in unique id code for each route_segment 
-time.occ <- time.occ %>% mutate(site.code = 1:n()) 
+time.occ <- transform(time.occ, site.code = as.numeric(interaction(site, drop = T))) 
 
 #Unique_id for route level 
 time.occ <- transform(time.occ, rteno.code = as.numeric(interaction(rteno, drop = T)))
@@ -412,21 +455,32 @@ time.occ <- time.occ %>% mutate(StrtElapsed = (StrtH * 60) + StrtMin) %>%
             mutate(EndElapsed = (EndH * 60) + EndMin) %>% mutate(Duration = EndElapsed - StrtElapsed) %>%
             mutate(SegDur = Duration / 5) %>% mutate(TOD = (SegDur * Segment) + StrtElapsed)
 
-
+#Create Observer Code
 time.occ <- transform(time.occ, ObsN.code = as.numeric(interaction(ObsN, drop = T)))
 
+#Bring in the BCR
 bcr <- final_sp_df[, c("rteno.x", "BCR")]
 bcr <- bcr[!duplicated(bcr), ]
 colnames(bcr)[colnames(bcr) == "rteno.x"] <- "rteno"
 time.occ <- merge(time.occ, bcr, by = "rteno")
+
+#BCR Code and Year code creation
 time.occ <- transform(time.occ, bcr.code = as.numeric(interaction(BCR, drop = T)))
 time.occ <- transform(time.occ, year.code = as.numeric(interaction(Year, drop = T)))
 
+#Calculate J-Date 
+time.occ$Date <- paste0(time.occ$Month, "/", time.occ$Day, "/", time.occ$Year)
+time.occ$Date <- as.Date(time.occ$Date, "%m/%d/%Y")
+time.occ$OrdinalDate <- yday(time.occ$Date)
 
+site.occ.df <- time.occ %>% select(rteno, rteno.code, site, site.code, BCR, bcr.code, Year, year.code, ObsN, ObsN.code, TOD, OrdinalDate)
 
-site.occ.df <- time.occ %>% select(rteno, rteno.code, site, site.code, BCR, bcr.code, Year, year.code, ObsN, ObsN.code, TOD)
+years.occ <- time.occ %>% select(Year, year.code)
+years.occ <-years.occ[!duplicated(years.occ),]
 
 #write.csv
-#write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"))
+#write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), row.names = F)
+#write.csv(years.occ, file = here::here("Data_BBS/Generated DFs/Years.Occ.csv"), row.names = F)
+
 
 #save.image(file = here("R Workspace/DataPrep4OccModel5_15_2019.RData"))
