@@ -479,19 +479,31 @@ time.occ$OrdinalDate <- yday(time.occ$Date)
 
 site.occ.df <- time.occ %>% select(rteno, rteno.code, site, site.code, BCR, bcr.code, Year, year.code, ObsN, ObsN.code, TOD, OrdinalDate)
 
-site.occ.df$ObsN.change <- NA
 
-for (i in 1:nrow(site.occ.df)){
-  obs.temp <- site.occ.df$ObsN[i]
-  for (j in 1:nrow(site.occ.df)){
-    obs.tmp <- site.occ.df$ObsN[j + 1]
-    if (obs.temp == obs.tmp) {
-      site.occ.df[site.occ.df$ObsN == obs.tmp, 13] <- 0
-    } else {
-      site.occ.df[site.occ.df$ObsN == obs.tmp, 13] <- 1
-  }
+
+#Assigning codes for new observers
+
+obs.change <- site.occ.df[, c("ObsN", "Year", "rteno")]
+obs.change$ObsID <- paste0(obs.change$ObsN, "_", obs.change$rteno, "_", obs.change$Year)
+obs.change$rt_yr <- paste0(obs.change$rteno, "_", obs.change$Year)
+obs.change$Change <- NA
+obs.change <- obs.change[order(obs.change$rt_yr),]
+obs.n.vect <- obs.change$ObsN
+obs.n.vect <- as.integer(obs.n.vect)
+
+base::for (i in 1:length(obs.n.vect)){
   
-  }}
+  if (obs.n.vect[i] == obs.n.vect[i] + 1){
+     obs.n.vect[i] <- 1
+  } else {
+    obs.n.vect[i] <- 0
+  }
+}
+
+obs.change$ObsRt <- paste0(obs.change$rteno, "_", obs.change$ObsN)
+obs.change <- transform(obs.change, RtObs.id = as.numeric(interaction(ObsRt, drop = T)))
+
+
 
 years.occ <- time.occ %>% select(Year, year.code)
 years.occ <-years.occ[!duplicated(years.occ),]
