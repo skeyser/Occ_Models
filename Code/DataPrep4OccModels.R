@@ -348,7 +348,7 @@ setDT(bcr19)[, .(count = uniqueN(sci_name)), by = Order]
 
 #Extract a list of species for phylogenetic subset
 #spp.occ <- as.data.frame(unique(final_sp_df$sci_name))
-
+  
 ###################################
 ####Extracting for JAGS coding#####
 ###################################
@@ -369,10 +369,14 @@ bcr.detections$Species <- rownames(bcr.detections)
 rownames(bcr.detections) <- NULL
 bcr.detections <- bcr.detections %>% mutate(Species.code = 1:n())
 bcr.detections <- bcr.detections %>% select(Species, Species.code, BCR26, BCR27, BCR31, BCR36, BCR37)
+bcr.jags <- bcr.detections[-1:-2]
+bcr.jags <- as.matrix(bcr.jags)
 
+#Write csv
+#write.table(bcr.jags, file = here::here("Data_BBS/Generated DFs/bcr.detection.raw.csv"), sep = ",", row.names = F, col.names = F)
 
 #Write BCR 
-write.csv(bcr.detections, file = here::here("Data_BBS/Generated DFs/BCR.Detections.csv"), row.names = F)
+#write.csv(bcr.detections, file = here::here("Data_BBS/Generated DFs/BCR.Detections.csv"), row.names = F)
 
 #Put BCR detections with species for the species DF
 spp.occ <- final_sp_df %>% select(sci_name, Order, Family_Latin, BodyMass)
@@ -475,12 +479,58 @@ time.occ$OrdinalDate <- yday(time.occ$Date)
 
 site.occ.df <- time.occ %>% select(rteno, rteno.code, site, site.code, BCR, bcr.code, Year, year.code, ObsN, ObsN.code, TOD, OrdinalDate)
 
+site.occ.df$ObsN.change <- NA
+
+for (i in 1:nrow(site.occ.df)){
+  obs.temp <- site.occ.df$ObsN[i]
+  for (j in 1:nrow(site.occ.df)){
+    obs.tmp <- site.occ.df$ObsN[j + 1]
+    if (obs.temp == obs.tmp) {
+      site.occ.df[site.occ.df$ObsN == obs.tmp, 13] <- 0
+    } else {
+      site.occ.df[site.occ.df$ObsN == obs.tmp, 13] <- 1
+  }
+  
+  }}
+
 years.occ <- time.occ %>% select(Year, year.code)
 years.occ <-years.occ[!duplicated(years.occ),]
 
 #write.csv
 #write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), row.names = F)
 #write.csv(years.occ, file = here::here("Data_BBS/Generated DFs/Years.Occ.csv"), row.names = F)
+
+
+
+######################################################################
+############Spp DF that has only presence in the route for############ 
+######################creation of the ydf#############################
+######################################################################
+spp.df <- final_sp_df
+spp.df <- final_sp_df[!final_sp_df$Detected < 1]
+spp.df <- transform(spp.df, spp.id = as.numeric(interaction(sci_name, drop = T)))
+spp.df <- transform(spp.df, site.id = as.numeric(interaction(site, drop = T)))
+spp.df <- transform(spp.df, year.id = as.numeric(interaction(Year, drop = T)))
+spp.df <- transform(spp.df, rt.id = as.numeric(interaction(rteno.x, drop = T)))
+
+spp.df <- spp.df %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
+
+S <- length(unique(spp.df$spp.id))
+J <- length(unique(spp.df$site.id))
+M <- length(unique(spp.df$rt.id))
+K <- length(unique(spp.df$year.id))
+
+ydf <- array(0, dim = c(S, J, K))
+
+for( i in 1:dim( spp.df )[1] ){
+  ydf[ as.numeric( spp.df[i,'spp.id'] ), as.numeric(spp.df[i,'site.id']), 
+       as.numeric( spp.df[i,'year.id'] ) ] <- 1
+}
+
+ydf[4, 1, 9]  
+
+
+
 
 
 #save.image(file = here("R Workspace/DataPrep4OccModel5_15_2019.RData"))
