@@ -483,25 +483,42 @@ site.occ.df <- time.occ %>% select(rteno, rteno.code, site, site.code, BCR, bcr.
 
 #Assigning codes for new observers
 
-obs.change <- site.occ.df[, c("ObsN", "Year", "rteno")]
+obs.change <- site.occ.df[, c("ObsN", "Year", "site", "rteno")]
+obs.change <- obs.change %>% separate(site, into = c("rteno", "segment"), by = "_")
+obs.change$site <- paste0(obs.change$rteno, "_", obs.change$segment)
 obs.change$ObsID <- paste0(obs.change$ObsN, "_", obs.change$rteno, "_", obs.change$Year)
-obs.change$rt_yr <- paste0(obs.change$rteno, "_", obs.change$Year)
+obs.change$rt_yr <- paste0(obs.change$rteno, "_", obs.change$Year, "_", obs.change$segment)
 obs.change$Change <- NA
-obs.change <- obs.change[order(obs.change$rt_yr),]
-obs.n.vect <- obs.change$ObsN
-obs.n.vect <- as.integer(obs.n.vect)
-
-base::for (i in 1:length(obs.n.vect)){
-  
-  if (obs.n.vect[i] == obs.n.vect[i] + 1){
-     obs.n.vect[i] <- 1
-  } else {
-    obs.n.vect[i] <- 0
-  }
-}
-
 obs.change$ObsRt <- paste0(obs.change$rteno, "_", obs.change$ObsN)
 obs.change <- transform(obs.change, RtObs.id = as.numeric(interaction(ObsRt, drop = T)))
+obs.n.vect <- obs.change$RtObs.id
+obs.n.vect.s <- obs.n.vect
+obs.change <- obs.change[order(obs.change$rt_yr),]
+#obs.change <- obs.change[!duplicated(obs.change),]
+obs.change <- obs.change %>% mutate(obs.id.lag = lag(RtObs.id))
+
+chang.fun <- function(x, y){
+  x = x
+  y = y
+  ifelse(x == y, 0,1)
+}
+
+obs.change$Change <- chang.fun(obs.change$RtObs.id, obs.change$obs.id.lag)
+obs.change$rt_yr <- paste0(obs.change$rteno, "_", obs.change$Year)
+obs.change[1, 8] <- 1
+obs.change <- obs.change %>% group_by(rt_yr) %>% mutate(ChangeD = first(Change)) %>%
+              ungroup(obs.change)
+
+obs.change <- obs.change %>% select(ChangeD)
+site.occ.df <- cbind(site.occ.df, obs.change)
+
+#write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), row.names = F)
+
+
+test <- site.occ.df
+test$rt_yr <- paste0(test$rteno, "_", test$Year)
+
+test <- merge(test, obs.change, by = "rt_yr")
 
 
 
@@ -527,6 +544,22 @@ spp.df <- transform(spp.df, rt.id = as.numeric(interaction(rteno.x, drop = T)))
 
 spp.df <- spp.df %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
 
+###Finding Years that surveys occurred on
+missing.years <- spp.df
+missing.years$rt_yr <- paste0(missing.years$rteno.x, "_", missing.years$Year)
+sites <- rep(unique(missing.years$rteno.x), 38)
+sites <- rep(sites, 38)
+sites <- as.data.frame(sites)
+sites <- sites[order(sites$sites),]
+all.years <- rep(1980:2017, 94)
+all.years <- as.data.frame(all.years)
+perfect.world <- cbind(sites, all.years)
+
+perfect.world$rt_yr <- paste0(perfect.world$sites, "_", perfect.world$all.years)
+missed <- anti_join(perfect.world, missing.years)
+
+
+
 S <- length(unique(spp.df$spp.id))
 J <- length(unique(spp.df$site.id))
 M <- length(unique(spp.df$rt.id))
@@ -539,9 +572,12 @@ for( i in 1:dim( spp.df )[1] ){
        as.numeric( spp.df[i,'year.id'] ) ] <- 1
 }
 
-ydf[4, 1, 9]  
+for( i in 1:dim( spp.df )[1] ){
+  ydf[ as.numeric( spp.df[i,'spp.id'] ), as.numeric(spp.df[i,'site.id']), 
+       as.numeric( spp.df[i, 'first.year.id'] ) ] <- NA
+}
 
-
+ydf[4, 1, ]
 
 
 
