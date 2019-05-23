@@ -612,15 +612,21 @@ years.occ <-years.occ[!duplicated(years.occ),]
 head( spp.df )
 head(  final_sp_df )
 head( site.occ.df )
+glimpse( site.occ.df )
 head( spp.occ)
 
 #check for duplicates
-site.occ.df[ duplicated( site.occ.df ) ] #none!
+site.occ.df[ duplicated( site.occ.df ), ] #none!
 
 #create reduced dataframe from final_sp_df
 spp.df <- final_sp_df %>% dplyr::select( sci_name, site, Year, Detected )
 #view
 head( spp.df ); dim( spp.df )
+#remove zero detections:
+spp.df <- spp.df %>% dplyr::filter( Detected == 1 )
+#view
+head( spp.df ); dim( spp.df )
+glimpse( spp.df )
 #append species data
 #first relabel first column
 colnames( spp.df )[ 1 ] <- "Species"
@@ -628,14 +634,19 @@ spp.df <- left_join( spp.df, spp.occ, by = "Species" )
 #check
 #view
 head( spp.df ); dim( spp.df ) #it didn't add columns..hooray!
-
+#check for duplicates:
+spp.df[ which( (spp.df$Species.code == 1) & ( spp.df$site == '2141_4') ),  ]
 #append siteXyear info #ensure we turn all.y=F so that sitesXyear unsurveyed are not
 # added
 spp.df <- left_join( spp.df, site.occ.df, by = c( "site", "Year" ), all.x=T, all.y=F )
 #view
 tail( spp.df ); dim( spp.df ) #row numbers stayed the same
 #did it add rows
-sum( is.na( spp.df$Detected ) )
+sum( spp.df$Detected ) 
+#check for duplicates
+spp.df[ which( (spp.df$Species.code == 1) & ( spp.df$site.code == 12) ),  ]
+
+
 #remove duplicates for species for now #you need to not do this with the new
 #final df. #####
 spp.df <- spp.df %>% group_by( Species.code, site.code, year.code ) %>%
@@ -643,7 +654,7 @@ spp.df <- spp.df %>% group_by( Species.code, site.code, year.code ) %>%
 tail( spp.df ); dim( spp.df )
 #removed ~200,000 records
 
-# set dimensions ###
+# setdimensions ###
 #total number of species
 S <- max(spp.df$Species.code)
 #total number of segments
@@ -653,19 +664,71 @@ M <- max(spp.df$rteno.code)
 #total number of sampling years
 K <- max(spp.df$year.code)
 
+
+### working out missing sampling years for a given segment:
+#we will work from site.occ.df which has all details of which segments were surveyed 
+# which year:
+#view
+tail( site.occ.df ); dim( site.occ.df )
+site.occ.df[ which( site.occ.df$site.code == 1), ]
+spp.df[ which( spp.df$site.code == 1), ]
+glimpse( site.occ.df )
+#use it to create complete dataframe
+JKdf <- site.occ.df %>% dplyr::select( site.code, year.code )
+#check for duplicates
+JKdf[ duplicated( JKdf ), ] #some duplicates present!!!!
+#remove
+JKdf <- JKdf[ !duplicated( JKdf ), ]
+#convert year code to factor
+JKdf$year.code <- as.factor( JKdf$year.code )
+#check
+levels( JKdf$year.code )
+#convert site code to factor
+JKdf$site.code <- as.factor( JKdf$site.code )
+#check
+levels( JKdf$site.code )
+#add surveyed column
+JKdf$surveyed <- 1 
+#view
+head( JKdf ); dim( JKdf )
+#add missing combinations
+JKdf <- JKdf %>% tidyr::complete( site.code, year.code )
+#view
+head( JKdf ); dim( JKdf )
+#dimensions should equal: 
+J*K
+#turn to wide format
+JKmat <- tidyr::spread( JKdf, key = year.code, value = surveyed )
+#it has to have J rows and K columns
+head( JKmat); dim( JKmat )
+#convert to matrix:
+JKmat <- as.matrix( JKmat[ ,2:dim( JKmat )[2] ] )
+# #remove column names from matrix
+colnames( JKmat ) <- NULL
+#view
+head( JKmat); dim( JKmat )
+#define how many segments were surveyed each year:
+surveyedJ <- colSums( JKmat, na.rm = TRUE )
+####### now we create the ydf ##### 
 #create observations dataframe
-ydf <- array(NA, dim = c(S, J, K) )
-ydf[1,8,32]
+ydf <- array( 0, dim = c(S, J, K) )
+ydf[ 1, , ] * JKmat
 # assigned 1 when species was detected on given year and route
 for( i in 1:dim( spp.df )[1] ){
   ydf[ as.numeric( spp.df[i,'Species.code'] ), as.numeric(spp.df[i,'site.code']),
-       as.numeric( spp.df[i,'year.code'] ) ] <- as.numeric( spp.df[i, 'Detected'] )
+       as.numeric( spp.df[i,'year.code'] ) ] <- 1 #as.numeric( spp.df[i, 'Detected'] )
 }
 
 # #check that it worked for species 1:
-table( ydf[1,,] )
-table( spp.df$Detected[ which( spp.df$Species.code == 1) ] )  #77 
+table( ydf[4,,] )
+table( spp.df$Detected[ which( spp.df$Species.code == 4) ] )  #77 
+spp.df[ which( spp.df$Species.code == 4), ]
+ydf[1,8,32]
 
+#add missing values 
+for( i in 1:S ){
+  ydf[ i, , ] <- ydf[ i, , ] * JKmat
+}
 
 
 # #total number of species
