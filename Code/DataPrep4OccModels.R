@@ -10,6 +10,10 @@ rm(list = ls())
 library(pacman)
 pacman::p_load(here, tidyverse, reshape2, ggplot2, data.table, lubridate, stringr)
 
+library( dplyr )
+# set option to see all columns and more than 10 rows
+options( dplyr.width = Inf, dplyr.print_min = 100 )
+library( tidyr )
 ##End Package Loading##
 
 ##Load in Data for Species 
@@ -394,7 +398,8 @@ spp.occ <- transform(spp.occ, Phylo.V2.code = as.numeric(interaction(Phylo.V2, d
 
 spp.occ <- spp.occ %>% mutate(Species.code = 1:n()) %>% 
            select(Species, Species.code, Phylo.V1, Phylo.V1.code, Phylo.V2, Phylo.V2.code, BodyMass)
-
+#view
+head( spp.occ)
 
 ###Write Species DF csv
 #write.csv(spp.occ, file = here::here("Data_BBS/Generated DFs/Spp.Occ.csv"), row.names = F)
@@ -479,7 +484,8 @@ time.occ$OrdinalDate <- yday(time.occ$Date)
 
 site.occ.df <- time.occ %>% select(rteno, rteno.code, site, site.code, BCR, bcr.code, Year, year.code, ObsN, ObsN.code, TOD, OrdinalDate)
 
-
+#view
+head( site.occ.df )
 
 #Assigning codes for new observers
 
@@ -527,84 +533,179 @@ years.occ <-years.occ[!duplicated(years.occ),]
 ############Spp DF that has only presence in the route for############ 
 ######################creation of the ydf#############################
 ######################################################################
-spp.df <- final_sp_df
-spp.df <- final_sp_df[!final_sp_df$Detected < 1]
-spp.df <- transform(spp.df, spp.id = as.numeric(interaction(sci_name, drop = T)))
-spp.df <- transform(spp.df, site.id = as.numeric(interaction(site, drop = T)))
-spp.df <- transform(spp.df, year.id = as.numeric(interaction(Year, drop = T)))
-spp.df <- transform(spp.df, rt.id = as.numeric(interaction(rteno.x, drop = T)))
+# spp.df <- final_sp_df
+# spp.df <- final_sp_df[!final_sp_df$Detected < 1]
+# spp.df <- transform(spp.df, spp.id = as.numeric(interaction(sci_name, drop = T)))
+# spp.df <- transform(spp.df, site.id = as.numeric(interaction(site, drop = T)))
+# spp.df <- transform(spp.df, year.id = as.numeric(interaction(Year, drop = T)))
+# spp.df <- transform(spp.df, rt.id = as.numeric(interaction(rteno.x, drop = T)))
+# 
+# spp.df <- spp.df %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
 
-spp.df <- spp.df %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
+# ###Finding Years that surveys occurred on######
+# #####So far all this code between these hashes is shit#######
+###############
+# missing.years <- spp.df
+# missing.years$rt_yr <- paste0(missing.years$site, "_", missing.years$Year)
+# 
+# ###Create a false dataframe with every site having all the years###
+# sites <- rep(unique(missing.years$site), 38)
+# sites <- rep(sites, 38)
+# sites <- as.data.frame(sites)
+# sites <- sites[order(sites$sites),]
+# sites <- as.data.frame(sites)
+# all.years <- rep(1980:2017, 312)
+# all.years <- as.data.frame(all.years)
+# perfect.world <- cbind(sites, all.years)
+# 
+# perfect.world$rt_yr <- paste0(perfect.world$sites, "_", perfect.world$all.years)
+# 
+# #Pull out the years we don't have data for 
+# missed <- anti_join(perfect.world, missing.years)
+# #Create null columns for binding 
+# missed$sci_name <- NA
+# missed$spp.id <- NA
+# missed$rteno.x <- NA
+# missed$site.id <- NA
+# missed$year.id <- NA
+# missed$rt.id <- NA
+# colnames(missed)[colnames(missed) == "sites"] <- "site"
+# colnames(missed)[colnames(missed) == "all.years"] <- "Year"
+# missed <- missed %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
+# missing.years <- missing.years %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
+# #view
+# head( missed )
+# head( missing.years )
+# rm( "ideal" )
+# #Dataframe with surveyed and non-surveyed years 
+# ideal <- rbind(missing.years, missed)
+# ideal <- ideal[!duplicated(ideal),]
+# ideal <- ideal[order(ideal$site, ideal$Year)]
+# 
+# #Assign 'JAGs' code ids
+# ideal <- transform(ideal, year.id = as.numeric(interaction(Year, drop = T)))
+# ideal <- transform(ideal, site.id = as.numeric(interaction(site, drop = T)))
+# ideal <- transform(ideal, spp.id = as.numeric(interaction(sci_name, drop = T)))
+# 
+# #view
+# head( ideal )
+# 
+# ideal[ which( ideal$site.id == 1), ]
+# #check dims
+# dim( ideal )
+# #remove species level
+# ideal <- ideal %>% dplyr::select( site, site.id, Year, year.id ) %>% #removes superfluous columns
+#           dplyr::group_by( site.id, year.id  ) %>% #groups by site and year
+#           slice( 1 ) #keep only the first row
+# #view 
+# head( ideal ); dim( ideal )
+# #check that years here were not sampled
+# unique( spp.df$Year[ which( spp.df$site.id == 1) ] )
+# ideal$Year[ which( ideal$site.id == 1)]
+# spp.df[ which( (spp.df$site.id == 1)& (spp.df$Year == 1981) ),]
+# spp.df[ which( spp.df$site.id == 1),]
+# 
+# #########
 
-###Finding Years that surveys occurred on######
-#####So far all this code between these hashes is shit#######
-missing.years <- spp.df
-missing.years$rt_yr <- paste0(missing.years$site, "_", missing.years$Year)
 
-###Create a false dataframe with every site having all the years###
-sites <- rep(unique(missing.years$site), 38)
-sites <- rep(sites, 38)
-sites <- as.data.frame(sites)
-sites <- sites[order(sites$sites),]
-sites <- as.data.frame(sites)
-all.years <- rep(1980:2017, 312)
-all.years <- as.data.frame(all.years)
-perfect.world <- cbind(sites, all.years)
+#alternative approach ## 
+head( spp.df )
+head(  final_sp_df )
+head( site.occ.df )
+head( spp.occ)
 
-perfect.world$rt_yr <- paste0(perfect.world$sites, "_", perfect.world$all.years)
+#check for duplicates
+site.occ.df[ duplicated( site.occ.df ) ] #none!
 
-#Pull out the years we don't have data for 
-missed <- anti_join(perfect.world, missing.years)
-#Create null columns for binding 
-missed$sci_name <- NA
-missed$spp.id <- NA
-missed$rteno.x <- NA
-missed$site.id <- NA
-missed$year.id <- NA
-missed$rt.id <- NA
-colnames(missed)[colnames(missed) == "sites"] <- "site"
-colnames(missed)[colnames(missed) == "all.years"] <- "Year"
-missed <- missed %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
-missing.years <- missing.years %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
+#create reduced dataframe from final_sp_df
+spp.df <- final_sp_df %>% dplyr::select( sci_name, site, Year, Detected )
+#view
+head( spp.df ); dim( spp.df )
+#append species data
+#first relabel first column
+colnames( spp.df )[ 1 ] <- "Species"
+spp.df <- left_join( spp.df, spp.occ, by = "Species" )
+#check
+#view
+head( spp.df ); dim( spp.df ) #it didn't add columns..hooray!
 
-#Dataframe with surveyed and non-surveyed years 
-ideal <- rbind(missing.years, missed)
-ideal <- ideal[!duplicated(ideal),]
-ideal <- ideal[order(ideal$site, ideal$Year)]
+#append siteXyear info #ensure we turn all.y=F so that sitesXyear unsurveyed are not
+# added
+spp.df <- left_join( spp.df, site.occ.df, by = c( "site", "Year" ), all.x=T, all.y=F )
+#view
+tail( spp.df ); dim( spp.df ) #row numbers stayed the same
+#did it add rows
+sum( is.na( spp.df$Detected ) )
+#remove duplicates for species for now #you need to not do this with the new
+#final df. #####
+spp.df <- spp.df %>% group_by( Species.code, site.code, year.code ) %>%
+  slice( 1 ) #only keeps one record for each speciesXsiteXyear
+tail( spp.df ); dim( spp.df )
+#removed ~200,000 records
 
-#Assign 'JAGs' code ids
-ideal <- transform(ideal, year.id = as.numeric(interaction(Year, drop = T)))
-ideal <- transform(ideal, site.id = as.numeric(interaction(site, drop = T)))
-ideal <- transform(ideal, spp.id = as.numeric(interaction(sci_name, drop = T)))
+# set dimensions ###
+#total number of species
+S <- max(spp.df$Species.code)
+#total number of segments
+J <- max(spp.df$site.code)
+#total number of routes
+M <- max(spp.df$rteno.code)
+#total number of sampling years
+K <- max(spp.df$year.code)
 
-
-#########
-
-
-
-S <- length(unique(spp.df$spp.id))
-J <- length(unique(spp.df$site.id))
-M <- length(unique(spp.df$rt.id))
-K <- length(unique(spp.df$year.id))
-
-ydf <- array(0, dim = c(S, J, K))
-
-#Testing with NAs
-ydf2 <- array(0, dim = c(S, J, K))
-
+#create observations dataframe
+ydf <- array(NA, dim = c(S, J, K) )
+ydf[1,8,32]
+# assigned 1 when species was detected on given year and route
 for( i in 1:dim( spp.df )[1] ){
-  ydf[ as.numeric( spp.df[i,'spp.id'] ), as.numeric(spp.df[i,'site.id']), 
-       as.numeric( spp.df[i,'year.id'] ) ] <- 1
+  ydf[ as.numeric( spp.df[i,'Species.code'] ), as.numeric(spp.df[i,'site.code']),
+       as.numeric( spp.df[i,'year.code'] ) ] <- as.numeric( spp.df[i, 'Detected'] )
 }
 
-#Testing
-for(i in 1:dim( ideal )[1]){
-  ydf2[ as.numeric( ideal[i, 'spp.id']), as.numeric(ideal[i, 'site.id']),
-       as.numeric(ideal[i, 'year.id'])] <- 1
-}
-
-ydf[4, 1, ]
+# #check that it worked for species 1:
+table( ydf[1,,] )
+table( spp.df$Detected[ which( spp.df$Species.code == 1) ] )  #77 
 
 
 
+# #total number of species
+# S <- length(unique(spp.df$spp.id))
+# #total number of segments
+# J <- length(unique(spp.df$site.id))
+# #total number of routes
+# M <- length(unique(spp.df$rt.id))
+# #total number of sampling years
+# K <- length(unique(spp.df$year.id))
+
+# #observations dataframe
+# ydf <- array(0, dim = c(S, J, K))
+# 
+# # assigned 1 when species was detected on given year and route
+# for( i in 1:dim( spp.df )[1] ){
+#   ydf[ as.numeric( spp.df[i,'spp.id'] ), as.numeric(spp.df[i,'site.id']), 
+#        as.numeric( spp.df[i,'year.id'] ) ] <- 1
+# }
+# #view
+# head(spp.df)
+# #check that it worked for species 1:
+# sum( colSums( ydf[1,,] ) ) #72
+# nrow( spp.df[ which( spp.df$spp.id == 1), ] ) #77 
+# #what is missing?
+# check <- spp.df[ which( spp.df$spp.id == 1), ]
+# #check
+# table( check$year.id )
+# colSums( ydf[1,,] )
+# #year.id =32 species 1 has 11 records in spp.df & only 6 in ydf. How?
+# #tried reruning and rechecking
+# #check year.id = 32
+# ydf[1,,32]
+# check[ which( check$year.id == 32),]
+
+############################################
+
+###########################################################################
+################################################################################
+##### save workspace and dataframes ###########################################
+#save workspace
 #save.image(file = here("R Workspace/DataPrep4OccModel5_15_2019.RData"))
+#################### end of script 3###########################################
