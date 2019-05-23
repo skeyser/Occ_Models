@@ -147,12 +147,12 @@ bbs_gom$rt_yr <- paste0(bbs_gom$rteno, "_", bbs_gom$Year)
 
 bbs_gom <- bbs_gom[, c("rteno", "rt_yr", "English_Common_Name", "StateNum", 
                        "ORDER", "Family", "Genus", "Species", "Month", "Day", 
-                       "BCR", "ObsN")]
+                       "BCR", "ObsN", "StartTime", "EndTime")]
 bbs_gom$sci_name <- paste0(bbs_gom$Genus, " ", bbs_gom$Species)
 
 #Extract Info Not Related to Species for merging 
 bbs_gom_rtinfo <- bbs_gom[, c("rteno", "rt_yr", "StateNum",
-                              "Month", "Day", "BCR", "ObsN")]
+                              "Month", "Day", "BCR", "ObsN", "StartTime", "EndTime")]
 
 #Remove duplicated rows before merging with species detection histories 
 bbs_gom_rtinfo <- bbs_gom_rtinfo[!duplicated(bbs_gom_rtinfo),]
@@ -308,7 +308,35 @@ final_sp_df$Order[final_sp_df$Order == "Gruiformes"] <- "Podicipediformes/Gruifo
 ####Remove BCR 19#####
 final_sp_df <- final_sp_df[!(final_sp_df$BCR == 19),]
 
+########################################################
+############From this point on every DF generated#######
+####should begin from the final_sp_df for consistency###
+########################################################
+final_sp_df <- plyr::rename(final_sp_df, c("Order" = "Phylo.V2", "Family_Latin" = "Phylo.V1"))
 
+#Create Phylo Class 1 (Orders + Families for Passerines)
+final_sp_df$Phylo.V1 <- ifelse(final_sp_df$Phylo.V2 != "Passeriformes", final_sp_df$Phylo.V2, final_sp_df$Phylo.V1)
+
+
+final_sp_df <- transform(final_sp_df, spp.id = as.numeric(interaction(sci_name, drop = T)))
+final_sp_df <- transform(final_sp_df, rteno.id = as.numeric(interaction(rteno.x, drop = T)))
+final_sp_df <- transform(final_sp_df, year.id = as.numeric(interaction(Year, drop = T)))
+final_sp_df <- transform(final_sp_df, site.id = as.numeric(interaction(site, drop = T)))
+final_sp_df <- transform(final_sp_df, Phylo.V1.code = as.numeric(interaction(Phylo.V1, drop = T)))
+final_sp_df <- transform(final_sp_df, Phylo.V2.code = as.numeric(interaction(Phylo.V2, drop = T)))
+final_sp_df <- transform(final_sp_df, bcr.id = as.numeric(interaction(BCR, drop = T)))
+final_sp_df <- transform(final_sp_df, ObsN.id = as.numeric(interaction(ObsN, drop = T)))
+
+final_sp_df <- final_sp_df %>% select(sci_name, English, spp.id, Detected, Phylo.V1, Phylo.V1.code,
+                                      Phylo.V2, Phylo.V2.code, rteno.x, rteno.id, rt_yr, Segment, 
+                                      Year, year.id, Day, Month, BCR, bcr.id, site, site.id, 
+                                      ObsN, ObsN.id, BodyMass, Nocturnal, Category, Inverts,
+                                      Mammal.Bird, Herps, Fish, Unknown_Verts, Fruit,
+                                      Nect, Seed, Other_plant, ForStrat_watbelowsurf, 
+                                      ForStrat_wataroundsurf, ForStrat_ground, 
+                                      ForStrat_understory, ForStrat_midhigh, 
+                                      ForStrat_canopy, ForStrat_aerial, 
+                                      PelagicSpecialist, StartTime, EndTime)  
 #Create"group" identifier for each family group or order
 
 
@@ -363,21 +391,22 @@ setDT(bcr19)[, .(count = uniqueN(sci_name)), by = Order]
 ###################################
 
 #Pull out BCRs of species detections
-bcr.detections <- final_sp_df %>% select(sci_name, BCR, Detected)
+bcr.detections.uncast <- final_sp_df %>% select(sci_name, spp.id, bcr.id, Detected)
 
 #BCR by Species Matrix for later
-bcr.detections <- dcast(bcr.detections, sci_name ~ BCR, fun.aggregate = sum, value.var = "Detected")
+bcr.detections <- dcast(bcr.detections.uncast, spp.id ~ bcr.id, fun.aggregate = sum, value.var = "Detected")
 bcr.detections <- data.frame(bcr.detections, row.names = 1)
 bcr.detections[bcr.detections > 1] <- 1
-colnames(bcr.detections)[colnames(bcr.detections) == "X36"] <- "BCR36"
-colnames(bcr.detections)[colnames(bcr.detections) == "X26"] <- "BCR26"
-colnames(bcr.detections)[colnames(bcr.detections) == "X27"] <- "BCR27"
-colnames(bcr.detections)[colnames(bcr.detections) == "X31"] <- "BCR31"
-colnames(bcr.detections)[colnames(bcr.detections) == "X37"] <- "BCR37"
-bcr.detections$Species <- rownames(bcr.detections) 
+colnames(bcr.detections)[colnames(bcr.detections) == "X1"] <- "BCR26"
+colnames(bcr.detections)[colnames(bcr.detections) == "X2"] <- "BCR27"
+colnames(bcr.detections)[colnames(bcr.detections) == "X3"] <- "BCR31"
+colnames(bcr.detections)[colnames(bcr.detections) == "X4"] <- "BCR36"
+colnames(bcr.detections)[colnames(bcr.detections) == "X5"] <- "BCR37"
+bcr.detections$spp.id <- rownames(bcr.detections) 
 rownames(bcr.detections) <- NULL
-bcr.detections <- bcr.detections %>% mutate(Species.code = 1:n())
-bcr.detections <- bcr.detections %>% select(Species, Species.code, BCR26, BCR27, BCR31, BCR36, BCR37)
+#bcr.detections <- bcr.detections %>% mutate(Species.code = 1:n())
+bcr.detections <- bcr.detections %>% select(spp.id, BCR26, BCR27, BCR31, BCR36, BCR37)
+bcr.detections$spp.id <- as.numeric(bcr.detections$spp.id)
 bcr.jags <- bcr.detections[-1:-2]
 bcr.jags <- as.matrix(bcr.jags)
 
@@ -388,21 +417,24 @@ bcr.jags <- as.matrix(bcr.jags)
 #write.csv(bcr.detections, file = here::here("Data_BBS/Generated DFs/BCR.Detections.csv"), row.names = F)
 
 #Put BCR detections with species for the species DF
-spp.occ <- final_sp_df %>% select(sci_name, Order, Family_Latin, BodyMass)
+spp.occ <- final_sp_df %>% select(sci_name, spp.id, Phylo.V1, Phylo.V1.code, 
+                                  Phylo.V2, Phylo.V2.code, BodyMass)
 spp.occ <- spp.occ[!duplicated(spp.occ),]
-spp.occ <- cbind(spp.occ, bcr.detections)
-spp.occ <- spp.occ %>% select(Species, BCR26, BCR27, BCR31, BCR36, BCR37, Order, Family_Latin, BodyMass)
-spp.occ <- plyr::rename(spp.occ, c("Order" = "Phylo.V2", "Family_Latin" = "Phylo.V1"))
+spp.occ <- merge(spp.occ, bcr.detections, by = "spp.id")
+spp.occ <- spp.occ %>% select(sci_name, spp.id, Phylo.V1, 
+                              Phylo.V1.code, Phylo.V2, 
+                              Phylo.V2.code, BodyMass)
+#spp.occ <- plyr::rename(spp.occ, c("Order" = "Phylo.V2", "Family_Latin" = "Phylo.V1"))
 
 #Create Phylo Class 1 (Orders + Families for Passerines)
-spp.occ$Phylo.V1 <- ifelse(spp.occ$Phylo.V2 != "Passeriformes", spp.occ$Phylo.V2, spp.occ$Phylo.V1)
+#spp.occ$Phylo.V1 <- ifelse(spp.occ$Phylo.V2 != "Passeriformes", spp.occ$Phylo.V2, spp.occ$Phylo.V1)
 
 #Create JAGs codes for the species IDs
-spp.occ <- transform(spp.occ, Phylo.V1.code = as.numeric(interaction(Phylo.V1, drop = T)))
-spp.occ <- transform(spp.occ, Phylo.V2.code = as.numeric(interaction(Phylo.V2, drop = T)))
+#spp.occ <- transform(spp.occ, Phylo.V1.code = as.numeric(interaction(Phylo.V1, drop = T)))
+#spp.occ <- transform(spp.occ, Phylo.V2.code = as.numeric(interaction(Phylo.V2, drop = T)))
 
-spp.occ <- spp.occ %>% mutate(Species.code = 1:n()) %>% 
-           select(Species, Species.code, Phylo.V1, Phylo.V1.code, Phylo.V2, Phylo.V2.code, BodyMass)
+#spp.occ <- spp.occ %>% mutate(Species.code = 1:n()) %>% 
+           #select(Species, Species.code, Phylo.V1, Phylo.V1.code, Phylo.V2, Phylo.V2.code, BodyMass)
 #view
 head( spp.occ)
 
@@ -426,15 +458,19 @@ colnames(bcr.occ)[colnames(bcr.occ) == "unique(final_sp_df$BCR)"] <- "BCR"
 ################################################
 
 ###Create the time component for each segment###
-time <- bbs_merge[, c("rteno", "Year", "StartTime", "EndTime", "Day", "Month", "ObsN")]
-time$rt_yr <- paste0(time$rteno, "_", time$Year)
+time <- final_sp_df[, c("rteno.x", "rteno.id", 
+                        "StartTime", "BCR", "bcr.id",
+                        "EndTime", "Day", "Month", 
+                        "ObsN", "ObsN.id", "site", 
+                        "site.id", "Year", "year.id", "Segment")]
+time$rt_yr <- paste0(time$rteno.x, "_", time$Year)
 time <- time[!duplicated(time), ]
-segments <- final_sp_df[, c("rt_yr", "Segment")]
+#segments <- final_sp_df[, c("rt_yr", "Segment")]
 
 #Getting Segments and Time of Day Data Together 
-time.occ <- merge(time, segments, by = "rt_yr")
-time.occ <- time.occ[!duplicated(time.occ), ]
-time.occ$site <- paste0(time.occ$rteno, "_", time.occ$Segment)
+#time.occ <- merge(time, segments, by = "rt_yr")
+time.occ <- time
+#time.occ$site <- paste0(time.occ$rteno, "_", time.occ$Segment)
 
 #Removes all dates exceot for the first date associated with the routes
 #time.occ <- time.occ[!duplicated(time.occ$site), ]
@@ -442,10 +478,10 @@ time.occ$site <- paste0(time.occ$rteno, "_", time.occ$Segment)
 
 #Create Site Matrix 
 #Fill in unique id code for each route_segment 
-time.occ <- transform(time.occ, site.code = as.numeric(interaction(site, drop = T))) 
+#time.occ <- transform(time.occ, site.code = as.numeric(interaction(site, drop = T))) 
 
 #Unique_id for route level 
-time.occ <- transform(time.occ, rteno.code = as.numeric(interaction(rteno, drop = T)))
+#time.occ <- transform(time.occ, rteno.code = as.numeric(interaction(rteno, drop = T)))
 
 #Time of Day for each segment calculated
 #All route segments assumed to be surveyed at consistent interval
@@ -470,35 +506,39 @@ time.occ <- time.occ %>% mutate(StrtElapsed = (StrtH * 60) + StrtMin) %>%
             mutate(SegDur = Duration / 5) %>% mutate(TOD = (SegDur * Segment) + StrtElapsed)
 
 #Create Observer Code
-time.occ <- transform(time.occ, ObsN.code = as.numeric(interaction(ObsN, drop = T)))
+#time.occ <- transform(time.occ, ObsN.code = as.numeric(interaction(ObsN, drop = T)))
 
 #Bring in the BCR
-bcr <- final_sp_df[, c("rteno.x", "BCR")]
-bcr <- bcr[!duplicated(bcr), ]
-colnames(bcr)[colnames(bcr) == "rteno.x"] <- "rteno"
-time.occ <- merge(time.occ, bcr, by = "rteno")
+#bcr <- final_sp_df[, c("rteno.x", "BCR")]
+#bcr <- bcr[!duplicated(bcr), ]
+#colnames(bcr)[colnames(bcr) == "rteno.x"] <- "rteno"
+#time.occ <- merge(time.occ, bcr, by = "rteno")
 
 #BCR Code and Year code creation
-time.occ <- transform(time.occ, bcr.code = as.numeric(interaction(BCR, drop = T)))
-time.occ <- transform(time.occ, year.code = as.numeric(interaction(Year, drop = T)))
+#time.occ <- transform(time.occ, bcr.code = as.numeric(interaction(BCR, drop = T)))
+#time.occ <- transform(time.occ, year.code = as.numeric(interaction(Year, drop = T)))
 
 #Calculate J-Date 
 time.occ$Date <- paste0(time.occ$Month, "/", time.occ$Day, "/", time.occ$Year)
 time.occ$Date <- as.Date(time.occ$Date, "%m/%d/%Y")
 time.occ$OrdinalDate <- yday(time.occ$Date)
 
-site.occ.df <- time.occ %>% select(rteno, rteno.code, site, site.code, BCR, bcr.code, Year, year.code, ObsN, ObsN.code, TOD, OrdinalDate)
+site.occ.df <- time.occ %>% select(rteno.x, rteno.id, site, 
+                                   site.id, BCR, bcr.id, 
+                                   Year, year.id, ObsN, 
+                                   ObsN.id, TOD, 
+                                   OrdinalDate)
 
 #view
 head( site.occ.df )
 
 #Assigning codes for new observers
 
-obs.change <- site.occ.df[, c("ObsN", "Year", "site", "rteno")]
-obs.change <- obs.change %>% separate(site, into = c("rteno", "segment"), by = "_")
-obs.change$site <- paste0(obs.change$rteno, "_", obs.change$segment)
-obs.change$ObsID <- paste0(obs.change$ObsN, "_", obs.change$rteno, "_", obs.change$Year)
-obs.change$rt_yr <- paste0(obs.change$rteno, "_", obs.change$Year, "_", obs.change$segment)
+obs.change <- site.occ.df[, c("ObsN", "Year", "site", "rteno.x")]
+obs.change <- obs.change %>% separate(site, into = c("rteno.x", "segment"), by = "_")
+obs.change$site <- paste0(obs.change$rteno.x, "_", obs.change$segment)
+obs.change$ObsID <- paste0(obs.change$ObsN, "_", obs.change$rteno.x, "_", obs.change$Year)
+obs.change$rt_yr <- paste0(obs.change$rteno.x, "_", obs.change$Year, "_", obs.change$segment)
 obs.change$Change <- NA
 obs.change$ObsRt <- paste0(obs.change$rteno, "_", obs.change$ObsN)
 obs.change <- transform(obs.change, RtObs.id = as.numeric(interaction(ObsRt, drop = T)))
@@ -515,17 +555,19 @@ chang.fun <- function(x, y){
 }
 
 obs.change$Change <- chang.fun(obs.change$RtObs.id, obs.change$obs.id.lag)
-obs.change$rt_yr <- paste0(obs.change$rteno, "_", obs.change$Year)
+obs.change$rt_yr <- paste0(obs.change$rteno.x, "_", obs.change$Year)
 obs.change[1, 8] <- 1
 obs.change <- obs.change %>% group_by(rt_yr) %>% mutate(ChangeD = first(Change)) %>%
               ungroup(obs.change)
 
-obs.change <- obs.change %>% select(ChangeD)
-site.occ.df <- cbind(site.occ.df, obs.change)
-
+obs.change <- obs.change %>% select(ObsID, ChangeD)
+site.occ.df$ObsID <- paste0(site.occ.df$ObsN, "_", site.occ.df$rteno.x, "_", site.occ.df$Year)
+site.occ.df <- merge(site.occ.df, obs.change, by = "ObsID")
+site.occ.df <- site.occ.df[, -1]
+site.occ.df <- site.occ.df[!duplicated(site.occ.df),]
 #write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), row.names = F)
 
-years.occ <- time.occ %>% select(Year, year.code)
+years.occ <- time.occ %>% select(Year, year.id)
 years.occ <-years.occ[!duplicated(years.occ),]
 
 #write.csv
@@ -635,12 +677,13 @@ glimpse( spp.df )
 #append species data
 #first relabel first column
 colnames( spp.df )[ 1 ] <- "Species"
+colnames( spp.occ )[ 1 ] <- "Species"
 spp.df <- left_join( spp.df, spp.occ, by = "Species" )
 #check
 #view
 head( spp.df ); dim( spp.df ) #it didn't add columns..hooray!
 #check for duplicates:
-spp.df[ which( (spp.df$Species.code == 1) & ( spp.df$site == '2141_4') ),  ]
+spp.df[ which( (spp.df$spp.id == 1) & ( spp.df$site == '2141_4') ),  ]
 #append siteXyear info #ensure we turn all.y=F so that sitesXyear unsurveyed are not
 # added
 spp.df <- left_join( spp.df, site.occ.df, by = c( "site", "Year" ), all.x=T, all.y=F )
@@ -649,25 +692,25 @@ tail( spp.df ); dim( spp.df ) #row numbers stayed the same
 #did it add rows
 sum( spp.df$Detected ) 
 #check for duplicates
-spp.df[ which( (spp.df$Species.code == 1) & ( spp.df$site.code == 12) ),  ]
+spp.df[ which( (spp.df$spp.id == 1) & ( spp.df$site.id == 12) ),  ]
 
 
 #remove duplicates for species for now #you need to not do this with the new
 #final df. #####
-spp.df <- spp.df %>% group_by( Species.code, site.code, year.code ) %>%
+spp.df <- spp.df %>% group_by( spp.id, site.id, year.id ) %>%
   slice( 1 ) #only keeps one record for each speciesXsiteXyear
 tail( spp.df ); dim( spp.df )
 #removed ~200,000 records
 
 # setdimensions ###
 #total number of species
-S <- max(spp.df$Species.code)
+S <- max(spp.df$spp.id)
 #total number of segments
-J <- max(spp.df$site.code)
+J <- max(spp.df$site.id)
 #total number of routes
-M <- max(spp.df$rteno.code)
+M <- max(spp.df$rteno.id)
 #total number of sampling years
-K <- max(spp.df$year.code)
+K <- max(spp.df$year.id)
 
 
 ### working out missing sampling years for a given segment:
