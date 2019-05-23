@@ -514,14 +514,6 @@ site.occ.df <- cbind(site.occ.df, obs.change)
 
 #write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), row.names = F)
 
-
-test <- site.occ.df
-test$rt_yr <- paste0(test$rteno, "_", test$Year)
-
-test <- merge(test, obs.change, by = "rt_yr")
-
-
-
 years.occ <- time.occ %>% select(Year, year.code)
 years.occ <-years.occ[!duplicated(years.occ),]
 
@@ -548,6 +540,8 @@ spp.df <- spp.df %>% select(sci_name, spp.id, site, site.id, Year, year.id, rten
 #####So far all this code between these hashes is shit#######
 missing.years <- spp.df
 missing.years$rt_yr <- paste0(missing.years$site, "_", missing.years$Year)
+
+###Create a false dataframe with every site having all the years###
 sites <- rep(unique(missing.years$site), 38)
 sites <- rep(sites, 38)
 sites <- as.data.frame(sites)
@@ -558,7 +552,10 @@ all.years <- as.data.frame(all.years)
 perfect.world <- cbind(sites, all.years)
 
 perfect.world$rt_yr <- paste0(perfect.world$sites, "_", perfect.world$all.years)
+
+#Pull out the years we don't have data for 
 missed <- anti_join(perfect.world, missing.years)
+#Create null columns for binding 
 missed$sci_name <- NA
 missed$spp.id <- NA
 missed$rteno.x <- NA
@@ -569,11 +566,17 @@ colnames(missed)[colnames(missed) == "sites"] <- "site"
 colnames(missed)[colnames(missed) == "all.years"] <- "Year"
 missed <- missed %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
 missing.years <- missing.years %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
+
+#Dataframe with surveyed and non-surveyed years 
 ideal <- rbind(missing.years, missed)
 ideal <- ideal[!duplicated(ideal),]
 ideal <- ideal[order(ideal$site, ideal$Year)]
+
+#Assign 'JAGs' code ids
 ideal <- transform(ideal, year.id = as.numeric(interaction(Year, drop = T)))
 ideal <- transform(ideal, site.id = as.numeric(interaction(site, drop = T)))
+ideal <- transform(ideal, spp.id = as.numeric(interaction(sci_name, drop = T)))
+
 
 #########
 
@@ -586,11 +589,19 @@ K <- length(unique(spp.df$year.id))
 
 ydf <- array(0, dim = c(S, J, K))
 
+#Testing with NAs
+ydf2 <- array(0, dim = c(S, J, K))
+
 for( i in 1:dim( spp.df )[1] ){
   ydf[ as.numeric( spp.df[i,'spp.id'] ), as.numeric(spp.df[i,'site.id']), 
        as.numeric( spp.df[i,'year.id'] ) ] <- 1
 }
 
+#Testing
+for(i in 1:dim( ideal )[1]){
+  ydf2[ as.numeric( ideal[i, 'spp.id']), as.numeric(ideal[i, 'site.id']),
+       as.numeric(ideal[i, 'year.id'])] <- 1
+}
 
 ydf[4, 1, ]
 
