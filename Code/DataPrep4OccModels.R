@@ -312,6 +312,7 @@ final_sp_df <- final_sp_df[!(final_sp_df$BCR == 19),]
 ############From this point on every DF generated#######
 ####should begin from the final_sp_df for consistency###
 ########################################################
+final_sp_df <- final_sp_df[!final_sp_df$Detected == 0,]
 final_sp_df <- plyr::rename(final_sp_df, c("Order" = "Phylo.V2", "Family_Latin" = "Phylo.V1"))
 
 #Create Phylo Class 1 (Orders + Families for Passerines)
@@ -424,17 +425,6 @@ spp.occ <- merge(spp.occ, bcr.detections, by = "spp.id")
 spp.occ <- spp.occ %>% select(sci_name, spp.id, Phylo.V1, 
                               Phylo.V1.code, Phylo.V2, 
                               Phylo.V2.code, BodyMass)
-#spp.occ <- plyr::rename(spp.occ, c("Order" = "Phylo.V2", "Family_Latin" = "Phylo.V1"))
-
-#Create Phylo Class 1 (Orders + Families for Passerines)
-#spp.occ$Phylo.V1 <- ifelse(spp.occ$Phylo.V2 != "Passeriformes", spp.occ$Phylo.V2, spp.occ$Phylo.V1)
-
-#Create JAGs codes for the species IDs
-#spp.occ <- transform(spp.occ, Phylo.V1.code = as.numeric(interaction(Phylo.V1, drop = T)))
-#spp.occ <- transform(spp.occ, Phylo.V2.code = as.numeric(interaction(Phylo.V2, drop = T)))
-
-#spp.occ <- spp.occ %>% mutate(Species.code = 1:n()) %>% 
-           #select(Species, Species.code, Phylo.V1, Phylo.V1.code, Phylo.V2, Phylo.V2.code, BodyMass)
 #view
 head( spp.occ)
 
@@ -468,20 +458,7 @@ time <- time[!duplicated(time), ]
 #segments <- final_sp_df[, c("rt_yr", "Segment")]
 
 #Getting Segments and Time of Day Data Together 
-#time.occ <- merge(time, segments, by = "rt_yr")
 time.occ <- time
-#time.occ$site <- paste0(time.occ$rteno, "_", time.occ$Segment)
-
-#Removes all dates exceot for the first date associated with the routes
-#time.occ <- time.occ[!duplicated(time.occ$site), ]
-
-
-#Create Site Matrix 
-#Fill in unique id code for each route_segment 
-#time.occ <- transform(time.occ, site.code = as.numeric(interaction(site, drop = T))) 
-
-#Unique_id for route level 
-#time.occ <- transform(time.occ, rteno.code = as.numeric(interaction(rteno, drop = T)))
 
 #Time of Day for each segment calculated
 #All route segments assumed to be surveyed at consistent interval
@@ -505,18 +482,6 @@ time.occ <- time.occ %>% mutate(StrtElapsed = (StrtH * 60) + StrtMin) %>%
             mutate(EndElapsed = (EndH * 60) + EndMin) %>% mutate(Duration = EndElapsed - StrtElapsed) %>%
             mutate(SegDur = Duration / 5) %>% mutate(TOD = (SegDur * Segment) + StrtElapsed)
 
-#Create Observer Code
-#time.occ <- transform(time.occ, ObsN.code = as.numeric(interaction(ObsN, drop = T)))
-
-#Bring in the BCR
-#bcr <- final_sp_df[, c("rteno.x", "BCR")]
-#bcr <- bcr[!duplicated(bcr), ]
-#colnames(bcr)[colnames(bcr) == "rteno.x"] <- "rteno"
-#time.occ <- merge(time.occ, bcr, by = "rteno")
-
-#BCR Code and Year code creation
-#time.occ <- transform(time.occ, bcr.code = as.numeric(interaction(BCR, drop = T)))
-#time.occ <- transform(time.occ, year.code = as.numeric(interaction(Year, drop = T)))
 
 #Calculate J-Date 
 time.occ$Date <- paste0(time.occ$Month, "/", time.occ$Day, "/", time.occ$Year)
@@ -574,87 +539,7 @@ years.occ <-years.occ[!duplicated(years.occ),]
 #write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), row.names = F)
 #write.csv(years.occ, file = here::here("Data_BBS/Generated DFs/Years.Occ.csv"), row.names = F)
 
-
-
-######################################################################
-############Spp DF that has only presence in the route for############ 
-######################creation of the ydf#############################
-######################################################################
-# spp.df <- final_sp_df
-# spp.df <- final_sp_df[!final_sp_df$Detected < 1]
-# spp.df <- transform(spp.df, spp.id = as.numeric(interaction(sci_name, drop = T)))
-# spp.df <- transform(spp.df, site.id = as.numeric(interaction(site, drop = T)))
-# spp.df <- transform(spp.df, year.id = as.numeric(interaction(Year, drop = T)))
-# spp.df <- transform(spp.df, rt.id = as.numeric(interaction(rteno.x, drop = T)))
-# 
-# spp.df <- spp.df %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
-
-# ###Finding Years that surveys occurred on######
-# #####So far all this code between these hashes is shit#######
-###############
-# missing.years <- spp.df
-# missing.years$rt_yr <- paste0(missing.years$site, "_", missing.years$Year)
-# 
-# ###Create a false dataframe with every site having all the years###
-# sites <- rep(unique(missing.years$site), 38)
-# sites <- rep(sites, 38)
-# sites <- as.data.frame(sites)
-# sites <- sites[order(sites$sites),]
-# sites <- as.data.frame(sites)
-# all.years <- rep(1980:2017, 312)
-# all.years <- as.data.frame(all.years)
-# perfect.world <- cbind(sites, all.years)
-# 
-# perfect.world$rt_yr <- paste0(perfect.world$sites, "_", perfect.world$all.years)
-# 
-# #Pull out the years we don't have data for 
-# missed <- anti_join(perfect.world, missing.years)
-# #Create null columns for binding 
-# missed$sci_name <- NA
-# missed$spp.id <- NA
-# missed$rteno.x <- NA
-# missed$site.id <- NA
-# missed$year.id <- NA
-# missed$rt.id <- NA
-# colnames(missed)[colnames(missed) == "sites"] <- "site"
-# colnames(missed)[colnames(missed) == "all.years"] <- "Year"
-# missed <- missed %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
-# missing.years <- missing.years %>% select(sci_name, spp.id, site, site.id, Year, year.id, rteno.x, rt.id)
-# #view
-# head( missed )
-# head( missing.years )
-# rm( "ideal" )
-# #Dataframe with surveyed and non-surveyed years 
-# ideal <- rbind(missing.years, missed)
-# ideal <- ideal[!duplicated(ideal),]
-# ideal <- ideal[order(ideal$site, ideal$Year)]
-# 
-# #Assign 'JAGs' code ids
-# ideal <- transform(ideal, year.id = as.numeric(interaction(Year, drop = T)))
-# ideal <- transform(ideal, site.id = as.numeric(interaction(site, drop = T)))
-# ideal <- transform(ideal, spp.id = as.numeric(interaction(sci_name, drop = T)))
-# 
-# #view
-# head( ideal )
-# 
-# ideal[ which( ideal$site.id == 1), ]
-# #check dims
-# dim( ideal )
-# #remove species level
-# ideal <- ideal %>% dplyr::select( site, site.id, Year, year.id ) %>% #removes superfluous columns
-#           dplyr::group_by( site.id, year.id  ) %>% #groups by site and year
-#           slice( 1 ) #keep only the first row
-# #view 
-# head( ideal ); dim( ideal )
-# #check that years here were not sampled
-# unique( spp.df$Year[ which( spp.df$site.id == 1) ] )
-# ideal$Year[ which( ideal$site.id == 1)]
-# spp.df[ which( (spp.df$site.id == 1)& (spp.df$Year == 1981) ),]
-# spp.df[ which( spp.df$site.id == 1),]
-# 
-# #########
-
-
+#Creation of the complete ydf matrix
 #alternative approach ## 
 head( spp.df )
 head(  final_sp_df )
@@ -718,35 +603,35 @@ K <- max(spp.df$year.id)
 # which year:
 #view
 tail( site.occ.df ); dim( site.occ.df )
-site.occ.df[ which( site.occ.df$site.code == 1), ]
-spp.df[ which( spp.df$site.code == 1), ]
+site.occ.df[ which( site.occ.df$site.id == 1), ]
+spp.df[ which( spp.df$site.id == 1), ]
 glimpse( site.occ.df )
 #use it to create complete dataframe
-JKdf <- site.occ.df %>% dplyr::select( site.code, year.code )
+JKdf <- site.occ.df %>% dplyr::select( site.id, year.id )
 #check for duplicates
 JKdf[ duplicated( JKdf ), ] #some duplicates present!!!!
 #remove
 #JKdf <- JKdf[ !duplicated( JKdf ), ]
 #convert year code to factor
-JKdf$year.code <- as.factor( JKdf$year.code )
+JKdf$year.id <- as.factor( JKdf$year.id )
 #check
-levels( JKdf$year.code )
+levels( JKdf$year.id )
 #convert site code to factor
-JKdf$site.code <- as.factor( JKdf$site.code )
+JKdf$site.id <- as.factor( JKdf$site.id )
 #check
-levels( JKdf$site.code )
+levels( JKdf$site.id )
 #add surveyed column
 JKdf$surveyed <- 1 
 #view
 head( JKdf ); dim( JKdf )
 #add missing combinations
-JKdf <- JKdf %>% tidyr::complete( site.code, year.code )
+JKdf <- JKdf %>% tidyr::complete( site.id, year.id )
 #view
 head( JKdf ); dim( JKdf )
 #dimensions should equal: 
 J*K
 #turn to wide format
-JKmat <- tidyr::spread( JKdf, key = year.code, value = surveyed )
+JKmat <- tidyr::spread( JKdf, key = year.id, value = surveyed )
 #it has to have J rows and K columns
 head( JKmat); dim( JKmat )
 #convert to matrix:
@@ -763,14 +648,14 @@ ydf <- array( 0, dim = c(S, J, K) )
 ydf[ 1, , ] * JKmat
 # assigned 1 when species was detected on given year and route
 for( i in 1:dim( spp.df )[1] ){
-  ydf[ as.numeric( spp.df[i,'Species.code'] ), as.numeric(spp.df[i,'site.code']),
-       as.numeric( spp.df[i,'year.code'] ) ] <- 1 #as.numeric( spp.df[i, 'Detected'] )
+  ydf[ as.numeric( spp.df[i,'spp.id'] ), as.numeric(spp.df[i,'site.id']),
+       as.numeric( spp.df[i,'year.id'] ) ] <- 1 #as.numeric( spp.df[i, 'Detected'] )
 }
 
 # #check that it worked for species 1:
 table( ydf[4,,] )
-table( spp.df$Detected[ which( spp.df$Species.code == 4) ] )  #77 
-spp.df[ which( spp.df$Species.code == 4), ]
+table( spp.df$Detected[ which( spp.df$spp.id == 4) ] )  #77 
+spp.df[ which( spp.df$spp.id == 4), ]
 ydf[1,8,32]
 
 #add missing values 
@@ -778,6 +663,7 @@ for( i in 1:S ){
   ydf[ i, , ] <- ydf[ i, , ] * JKmat
 }
 
+ydf[4, 2, ]
 
 # #total number of species
 # S <- length(unique(spp.df$spp.id))
