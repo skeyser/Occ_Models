@@ -39,6 +39,10 @@ bbs <- merge(bbs, species, by = "AOU")
 
 #Link BBS data with weather data
 bbs <- merge(bbs, weather, by = "RouteDataID")
+
+#Remove rows that don't meet BBS standards
+bbs[bbs$RunType == 0, ]
+
 bbs <- bbs[, -22:-26]
 
 #Remove all species records that are unidentified or hybrid
@@ -280,8 +284,9 @@ final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Turdidae"] <- "Sturnidae/T
 final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Alaudidae"] <- "Remizidae/Paridae/Alaudidae"
 final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Paridae"] <- "Remizidae/Paridae/Alaudidae"
 final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Remizidae"] <- "Remizidae/Paridae/Alaudidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Corvidae"] <- "Laniidae/Corvidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Laniidae"] <- "Laniidae/Corvidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Corvidae"] <- "Laniidae/Corvidae/Vireonidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Laniidae"] <- "Laniidae/Corvidae/Vireonidae"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Vireonidae"] <- "Laniidae/Corvidae/Vireonidae"
 final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Fringillidae"] <- "Passeridae/Cardinalidae/Fringillidae"
 final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Cardinalidae"] <- "Passeridae/Cardinalidae/Fringillidae"
 final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Passeridae"] <- "Passeridae/Cardinalidae/Fringillidae"
@@ -678,7 +683,7 @@ JKdf <- site.occ.df %>% dplyr::select( site.code, year.code )
 #check for duplicates
 JKdf[ duplicated( JKdf ), ] #some duplicates present!!!!
 #remove
-JKdf <- JKdf[ !duplicated( JKdf ), ]
+#JKdf <- JKdf[ !duplicated( JKdf ), ]
 #convert year code to factor
 JKdf$year.code <- as.factor( JKdf$year.code )
 #check
