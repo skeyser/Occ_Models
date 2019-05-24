@@ -10,10 +10,10 @@ rm(list = ls())
 library(pacman)
 pacman::p_load(here, tidyverse, reshape2, ggplot2, data.table, lubridate, stringr)
 
-library( dplyr )
+#library( dplyr )
 # set option to see all columns and more than 10 rows
 options( dplyr.width = Inf, dplyr.print_min = 100 )
-library( tidyr )
+#library( tidyr )
 ##End Package Loading##
 
 ##Load in Data for Species 
@@ -41,7 +41,7 @@ bbs <- merge(bbs, species, by = "AOU")
 bbs <- merge(bbs, weather, by = "RouteDataID")
 
 #Remove rows that don't meet BBS standards
-bbs[bbs$RunType == 0, ]
+bbs <- bbs[!bbs$RunType == 0, ]
 
 bbs <- bbs[, -22:-26]
 
@@ -251,7 +251,7 @@ bcr31 <- final_sp_df[final_sp_df$BCR == 31,]
 bcr26 <- final_sp_df[final_sp_df$BCR == 26,]
 bcr27 <- final_sp_df[final_sp_df$BCR == 27,]
 bcr37 <- final_sp_df[final_sp_df$BCR == 37,]
-bcr26 <- final_sp_df[final_sp_df$BCR == 26,]
+bcr36 <- final_sp_df[final_sp_df$BCR == 36,]
 
 #Calculate # of species in BCR, Category, and Order 
 BCR_breakdown <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = BCR]
@@ -265,8 +265,9 @@ order_breakdown$Order[order_breakdown$Order == "Falconiformes"] <- "Falconiforme
 order_breakdown$Order[order_breakdown$Order == "Psittaciformes"] <- "Falconiformes/Psittaciformes"
 order_breakdown$Order[order_breakdown$Order == "Coraciiformes"] <- "Coraciiformes/Piciformes"
 order_breakdown$Order[order_breakdown$Order == "Piciformes"] <- "Coraciiformes/Piciformes"
-order_breakdown$Order[order_breakdown$Order == "Ciconiiformes"] <- "Ciconiiformes/Pelecaniformes" 
-order_breakdown$Order[order_breakdown$Order == "Pelecaniformes"] <- "Ciconiiformes/Pelecaniformes"
+order_breakdown$Order[order_breakdown$Order == "Ciconiiformes"] <- "Ciconiiformes/Pelecaniformes/Suliformes" 
+order_breakdown$Order[order_breakdown$Order == "Pelecaniformes"] <- "Ciconiiformes/Pelecaniformes/Suliformes"
+order_breakdown$Order[order_breakdown$Order == "Suliformes"] <- "Ciconiiformes/Pelecaniformes/Suliformes"
 order_breakdown$Order[order_breakdown$Order == "Podicipediformes"] <- "Podicipediformes/Gruiformes"
 order_breakdown$Order[order_breakdown$Order == "Gruiformes"] <- "Podicipediformes/Gruiformes"
 
@@ -300,8 +301,9 @@ final_sp_df$Order[final_sp_df$Order == "Falconiformes"] <- "Falconiformes/Psitta
 final_sp_df$Order[final_sp_df$Order == "Psittaciformes"] <- "Falconiformes/Psittaciformes"
 final_sp_df$Order[final_sp_df$Order == "Coraciiformes"] <- "Coraciiformes/Piciformes"
 final_sp_df$Order[final_sp_df$Order == "Piciformes"] <- "Coraciiformes/Piciformes"
-final_sp_df$Order[final_sp_df$Order == "Ciconiiformes"] <- "Ciconiiformes/Pelecaniformes" 
-final_sp_df$Order[final_sp_df$Order == "Pelecaniformes"] <- "Ciconiiformes/Pelecaniformes"
+final_sp_df$Order[final_sp_df$Order == "Ciconiiformes"] <- "Ciconiiformes/Pelecaniformes/Suliformes" 
+final_sp_df$Order[final_sp_df$Order == "Pelecaniformes"] <- "Ciconiiformes/Pelecaniformes/Suliformes"
+final_sp_df$Order[final_sp_df$Order == "Suliformes"] <- "Ciconiiformes/Pelecaniformes/Suliformes"
 final_sp_df$Order[final_sp_df$Order == "Podicipediformes"] <- "Podicipediformes/Gruiformes"
 final_sp_df$Order[final_sp_df$Order == "Gruiformes"] <- "Podicipediformes/Gruiformes"
 
@@ -340,6 +342,8 @@ final_sp_df <- final_sp_df %>% select(sci_name, English, spp.id, Detected, Phylo
                                       PelagicSpecialist, StartTime, EndTime)  
 #Create"group" identifier for each family group or order
 
+#Write csv for final_sp_df
+#write.csv(final_sp_df, file = here::here("Data_BBS/Generated DFs/Final_Sp_Df_DetectionsOnly.csv"))
 
 ##########################
 
@@ -366,6 +370,7 @@ obs.phylo <- rbind(obs.phylo.fam, obs.phylo.order)
 #Take all of the sites where wetland >=20% from entire dataset
 #total.sp.mat <- bbs_gom_final[bbs_gom_final$site %in% wetland20.site,]
 total.sp.mat <- final_sp_df
+total.sp.mat$unique_id <- paste0(total.sp.mat$site, "_", total.sp.mat$Year)
 raw.sp.mat <- total.sp.mat[, c("unique_id", "sci_name", "Detected")]
 raw.sp.mat <- dcast(raw.sp.mat, unique_id ~ sci_name, fun.aggregate = sum, value.var = "Detected")
 #rownames(raw.sp.mat) <- raw.sp.mat$unique_id
@@ -381,8 +386,8 @@ setDT(bcr27)[, .(count = uniqueN(sci_name)), by = Category]
 setDT(bcr27)[, .(count = uniqueN(sci_name)), by = Order]
 setDT(bcr37)[, .(count = uniqueN(sci_name)), by = Category]
 setDT(bcr37)[, .(count = uniqueN(sci_name)), by = Order]
-setDT(bcr19)[, .(count = uniqueN(sci_name)), by = Category]
-setDT(bcr19)[, .(count = uniqueN(sci_name)), by = Order]
+setDT(bcr36)[, .(count = uniqueN(sci_name)), by = Category]
+setDT(bcr36)[, .(count = uniqueN(sci_name)), by = Order]
 
 #Extract a list of species for phylogenetic subset
 #spp.occ <- as.data.frame(unique(final_sp_df$sci_name))
@@ -408,7 +413,7 @@ rownames(bcr.detections) <- NULL
 #bcr.detections <- bcr.detections %>% mutate(Species.code = 1:n())
 bcr.detections <- bcr.detections %>% select(spp.id, BCR26, BCR27, BCR31, BCR36, BCR37)
 bcr.detections$spp.id <- as.numeric(bcr.detections$spp.id)
-bcr.jags <- bcr.detections[-1:-2]
+bcr.jags <- bcr.detections[-1:-1]
 bcr.jags <- as.matrix(bcr.jags)
 
 #Write csv
@@ -471,7 +476,7 @@ time.occ$StrtMin <- str_sub(time.occ$StartTime, -2)
 time.occ$EndH <- str_sub(time.occ$EndTime, 1, -3)
 time.occ$EndMin <- str_sub(time.occ$EndTime, -2)
 
-time.occ[, c("StrtH", "StrtMin", "EndH", "EndMin", "Segment")] <- sapply(time.occ[, c("StrtH", "StrtMin", "EndH", "EndMin", "Segment")], as.numeric)
+time.occ[, c("StrtH", "StrtMin", "EndH", "EndMin", "Segment")] <- lapply(time.occ[, c("StrtH", "StrtMin", "EndH", "EndMin", "Segment")], as.numeric)
 
 #Convert to time elapsed since midnight
 #Calculate duration of entire survey 
@@ -530,7 +535,6 @@ site.occ.df$ObsID <- paste0(site.occ.df$ObsN, "_", site.occ.df$rteno.x, "_", sit
 site.occ.df <- merge(site.occ.df, obs.change, by = "ObsID")
 site.occ.df <- site.occ.df[, -1]
 site.occ.df <- site.occ.df[!duplicated(site.occ.df),]
-#write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), row.names = F)
 
 years.occ <- time.occ %>% select(Year, year.id)
 years.occ <-years.occ[!duplicated(years.occ),]
@@ -539,170 +543,10 @@ years.occ <-years.occ[!duplicated(years.occ),]
 #write.csv(site.occ.df, file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), row.names = F)
 #write.csv(years.occ, file = here::here("Data_BBS/Generated DFs/Years.Occ.csv"), row.names = F)
 
-#Creation of the complete ydf matrix
-#alternative approach ## 
-head( spp.df )
-head(  final_sp_df )
-head( site.occ.df )
-glimpse( site.occ.df )
-head( spp.occ)
-
-#check for duplicates
-site.occ.df[ duplicated( site.occ.df ), ] #none!
-
-#create reduced dataframe from final_sp_df
-spp.df <- final_sp_df %>% dplyr::select( sci_name, site, Year, Detected )
-#view
-head( spp.df ); dim( spp.df )
-#remove zero detections:
-spp.df <- spp.df %>% dplyr::filter( Detected == 1 )
-#view
-head( spp.df ); dim( spp.df )
-glimpse( spp.df )
-#append species data
-#first relabel first column
-colnames( spp.df )[ 1 ] <- "Species"
-colnames( spp.occ )[ 1 ] <- "Species"
-spp.df <- left_join( spp.df, spp.occ, by = "Species" )
-#check
-#view
-head( spp.df ); dim( spp.df ) #it didn't add columns..hooray!
-#check for duplicates:
-spp.df[ which( (spp.df$spp.id == 1) & ( spp.df$site == '2141_4') ),  ]
-#append siteXyear info #ensure we turn all.y=F so that sitesXyear unsurveyed are not
-# added
-spp.df <- left_join( spp.df, site.occ.df, by = c( "site", "Year" ), all.x=T, all.y=F )
-#view
-tail( spp.df ); dim( spp.df ) #row numbers stayed the same
-#did it add rows
-sum( spp.df$Detected ) 
-#check for duplicates
-spp.df[ which( (spp.df$spp.id == 1) & ( spp.df$site.id == 12) ),  ]
-
-
-#remove duplicates for species for now #you need to not do this with the new
-#final df. #####
-spp.df <- spp.df %>% group_by( spp.id, site.id, year.id ) %>%
-  slice( 1 ) #only keeps one record for each speciesXsiteXyear
-tail( spp.df ); dim( spp.df )
-#removed ~200,000 records
-
-# setdimensions ###
-#total number of species
-S <- max(spp.df$spp.id)
-#total number of segments
-J <- max(spp.df$site.id)
-#total number of routes
-M <- max(spp.df$rteno.id)
-#total number of sampling years
-K <- max(spp.df$year.id)
-
-
-### working out missing sampling years for a given segment:
-#we will work from site.occ.df which has all details of which segments were surveyed 
-# which year:
-#view
-tail( site.occ.df ); dim( site.occ.df )
-site.occ.df[ which( site.occ.df$site.id == 1), ]
-spp.df[ which( spp.df$site.id == 1), ]
-glimpse( site.occ.df )
-#use it to create complete dataframe
-JKdf <- site.occ.df %>% dplyr::select( site.id, year.id )
-#check for duplicates
-JKdf[ duplicated( JKdf ), ] #some duplicates present!!!!
-#remove
-#JKdf <- JKdf[ !duplicated( JKdf ), ]
-#convert year code to factor
-JKdf$year.id <- as.factor( JKdf$year.id )
-#check
-levels( JKdf$year.id )
-#convert site code to factor
-JKdf$site.id <- as.factor( JKdf$site.id )
-#check
-levels( JKdf$site.id )
-#add surveyed column
-JKdf$surveyed <- 1 
-#view
-head( JKdf ); dim( JKdf )
-#add missing combinations
-JKdf <- JKdf %>% tidyr::complete( site.id, year.id )
-#view
-head( JKdf ); dim( JKdf )
-#dimensions should equal: 
-J*K
-#turn to wide format
-JKmat <- tidyr::spread( JKdf, key = year.id, value = surveyed )
-#it has to have J rows and K columns
-head( JKmat); dim( JKmat )
-#convert to matrix:
-JKmat <- as.matrix( JKmat[ ,2:dim( JKmat )[2] ] )
-# #remove column names from matrix
-colnames( JKmat ) <- NULL
-#view
-head( JKmat); dim( JKmat )
-#define how many segments were surveyed each year:
-surveyedJ <- colSums( JKmat, na.rm = TRUE )
-####### now we create the ydf ##### 
-#create observations dataframe
-ydf <- array( 0, dim = c(S, J, K) )
-ydf[ 1, , ] * JKmat
-# assigned 1 when species was detected on given year and route
-for( i in 1:dim( spp.df )[1] ){
-  ydf[ as.numeric( spp.df[i,'spp.id'] ), as.numeric(spp.df[i,'site.id']),
-       as.numeric( spp.df[i,'year.id'] ) ] <- 1 #as.numeric( spp.df[i, 'Detected'] )
-}
-
-# #check that it worked for species 1:
-table( ydf[4,,] )
-table( spp.df$Detected[ which( spp.df$spp.id == 4) ] )  #77 
-spp.df[ which( spp.df$spp.id == 4), ]
-ydf[1,8,32]
-
-#add missing values 
-for( i in 1:S ){
-  ydf[ i, , ] <- ydf[ i, , ] * JKmat
-}
-
-ydf[4, 2, ]
-
-# #total number of species
-# S <- length(unique(spp.df$spp.id))
-# #total number of segments
-# J <- length(unique(spp.df$site.id))
-# #total number of routes
-# M <- length(unique(spp.df$rt.id))
-# #total number of sampling years
-# K <- length(unique(spp.df$year.id))
-
-# #observations dataframe
-# ydf <- array(0, dim = c(S, J, K))
-# 
-# # assigned 1 when species was detected on given year and route
-# for( i in 1:dim( spp.df )[1] ){
-#   ydf[ as.numeric( spp.df[i,'spp.id'] ), as.numeric(spp.df[i,'site.id']), 
-#        as.numeric( spp.df[i,'year.id'] ) ] <- 1
-# }
-# #view
-# head(spp.df)
-# #check that it worked for species 1:
-# sum( colSums( ydf[1,,] ) ) #72
-# nrow( spp.df[ which( spp.df$spp.id == 1), ] ) #77 
-# #what is missing?
-# check <- spp.df[ which( spp.df$spp.id == 1), ]
-# #check
-# table( check$year.id )
-# colSums( ydf[1,,] )
-# #year.id =32 species 1 has 11 records in spp.df & only 6 in ydf. How?
-# #tried reruning and rechecking
-# #check year.id = 32
-# ydf[1,,32]
-# check[ which( check$year.id == 32),]
-
-############################################
 
 ###########################################################################
 ################################################################################
 ##### save workspace and dataframes ###########################################
 #save workspace
 #save.image(file = here("R Workspace/DataPrep4OccModel5_15_2019.RData"))
-#################### end of script 3###########################################
+#################### end of script 1###########################################
