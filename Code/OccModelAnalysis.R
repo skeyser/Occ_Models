@@ -40,7 +40,7 @@ lines(p, dbeta(p, 10, 1), type = "l", col = 5)
 lines(p, dbeta(p, 0, 0), type = "l", col = 6)
 
 ###########################################
-
+Hello
 
 ########Model specification###############
 sink("om1.txt")
