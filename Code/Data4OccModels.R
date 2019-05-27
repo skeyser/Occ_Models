@@ -32,6 +32,9 @@ standardise <- function(xmat, stdev = 1, marg = c(1, 2, 3)){
   retun(std.xmat)
 }
 
+scale2 <- function(x, na.rm = F) (x - mean(x, na.rm = na.rm)) / sd(x, na.rm)
+
+
 #####Standardizing Vectors#####
 standardise.vector <- function(x, stdev = 1){(x - mean(x, na.rm = T))/
     (stdev * sd(x, na.rm = T))}
@@ -44,6 +47,53 @@ final_sp_df <- read.csv(file = here::here("Data_BBS/Generated DFs/Final_Sp_Df_De
 site.occ.df <- read.csv(file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), header = T)
 spp.occ <- read.csv(file = here::here("Data_BBS/Generated DFs/Spp.Occ.csv"), header = T)
 Years.Occ <- read.csv(file = here::here("Data_BBS/Generated DFs/Years.Occ.csv"), header = T)
+bcr.occ <- read.csv(file = here::here("Data_BBS/Generated DFs/bcr.detection.raw.csv"), header = T)
+
+#Standardize variables for analysis
+
+##Long way to scale variables
+#site.occ.df <- site.occ.df %>% mutate(TOD.scaled = scale(TOD, center = T, scale = T))
+#site.occ.df$TOD.scaled <- as.numeric(site.occ.df$TOD.scaled)
+#site.occ.df <- site.occ.df %>% mutate(Ordinal.scaled = scale(OrdinalDate, center = T, scale = T))
+#site.occ.df$Ordinal.scaled <- as.numeric(site.occ.df$Ordinal.scaled)
+#site.occ.df$ChangeD.scaled <- site.occ.df$ChangeD
+
+site.occ.scaled <- site.occ.df %>% mutate_at(c("TOD", "OrdinalDate"), scale2)
+
+site.occ.scaled$ChangeD.scaled[site.occ.scaled$ChangeD.scaled == 0] <- -1
+
+spp.occ <- spp.occ %>% mutate(Mass.scaled = scale(BodyMass, center = T, scale = T))
+
+#Finished Standardizing and Centering
+
+####Create Matrices
+site.occ.ma <- site.occ.scaled %>% select(site, site.id, Year,
+                                     year.id, TOD, OrdinalDate,
+                                     ChangeD.scaled) %>%
+               arrange(site.id)
+
+##Site x Year Matrix with scaled.tod values and NAs for missing
+
+#Time of day matrix
+TOD.ma <- dcast(site.occ.ma, site.id ~ year.id, fun.aggregate = sum, 
+                value.var = "TOD", fill = NA_real_, drop = F)
+TOD.ma <- TOD.ma[, -1]
+TOD.ma <- as.matrix(TOD.ma)
+colnames(TOD.ma) <- NULL
+
+#Ordinal Date Matrix
+Ord.ma <- dcast(site.occ.ma, site.id ~ year.id, fun.aggregate = sum,
+                value.var = "OrdinalDate", fill = NA_real_, drop = F)
+Ord.ma <- Ord.ma[, -1]
+Ord.ma <- as.matrix(Ord.ma)
+colnames(Ord.ma) <- NULL
+
+#1st year observer matrix (1 new obs, -1 same observer)
+Obs.ma <- dcast(site.occ.ma, site.id ~ year.id, fun.aggregate = sum,
+                value.var = "ChangeD.scaled", fill = NA_real_, drop = F)
+Obs.ma <- Obs.ma[, -1]
+Obs.ma <- as.matrix(Obs.ma)
+colnames(Obs.ma) <- NULL
 
 
 #####Import species specific data#####
@@ -172,6 +222,25 @@ for( i in 1:S ){
 }
 
 ydf[1, 17, ]
+
+#Code below for augmented dataset
+#Taken from Zipkin et al. 2010 
+#(github.com/zipkinlab/Community_model_examples-covariate_model/blob/master/covariate%20model%20code.r)
+#Create all zero encounter histories to add to the detection array X 
+#as part of the data augmentation to account for additional 
+#species (beyond the n observed species). 
+
+#nzeroes is the number of all zero encounter histories to be added
+nzeroes = 50
+#X.zero is a matrix of zeroes, including the NAs for when a point has not been sampled  
+X.zero = matrix(0, nrow=70, ncol=4)
+X.zero[1:36,4] = NA;  X.zero[38:56,4] = NA;  
+X.zero[59:61,4] = NA;  X.zero[66:70,4] = NA; 
+
+ydf.aug <- array(0, dim=c(dim(ydf.aug)[1],dim(ydf.aug)[2],dim(ydf.aug)[3]+nzeroes))
+ydf.aug[,,(dim(ydf.aug)[3]+1):dim(ydf.aug)[3]] = rep(ydf.zero, nzeroes)
+dimnames(X)=NULL
+Xaug[,,1:dim(X)[3]] <-  X
 
 # #total number of species
 # S <- length(unique(spp.df$spp.id))
