@@ -8,9 +8,9 @@
 rm(list = ls())
 
 library(pacman)
-pacman::p_load(tidyverse, ggplot2, ggfortify, R2jags)
-
-
+#pacman::p_load(tidyverse, ggplot2, ggfortify, JagsUI)
+install.packages("jagsUI")
+library(jagsUI)
 #########Package Loading Complete########
 #########################################
 
@@ -24,7 +24,7 @@ load('Data4OccModels_6_3.RData')
 ###########################################################################
 ####################### define MCMC settings ##############################
 
-ni <- 300; nt <- 5; nb <- 100; nc <- 3 #iterations, thinning, burnin, chains
+ni <- 10; nt <- 2; nb <- 1; nc <- 3 #iterations, thinning, burnin, chains
 
 ##### end of MCMC parameters definition ##############
 ############################################################################
@@ -79,7 +79,8 @@ for (q in 1:Q){ #loop through predictors
     # 
     #   phylo.spp <- spp.id[ Phylo.V1.code == g ]
     # 
-    #     for (s in phylo.spp ){
+    
+#     for (s in phylo.spp ){
     #       delta[ phylo.spp[s] ] ~ dnorm( mu.spp[g], 
     #                               prec.spp[g] )
     #     } #s
@@ -122,21 +123,22 @@ for (q in 1:Q){ #loop through predictors
 
     #ecological model
     #for occupancy
-    for( s in 1:S ){ #loop species
-      for( j in 1:J ){ #loop segments
-        for( k in 1:K ){ #loop years
-
-          #restrict data augmentation indicator to the corresponding BCR species
-          w.bcr[ s, j, k ] <- w[ s, j, k ] * brc.occ[ s, bcr.id[ j ] ]
-          #modeling true occupancy
-          z[ s, j, k ] ~ dbern( psi[ s, j, k ] * w.bcr[ s, j, k ] )
-          #relate occupancy probability to random intercepts for route and year:
+    for( j in 1:J ){ #loop segments
+      for( k in 1:K ){ #loop years
+        #relate occupancy probability to random intercepts for route and year:
           logit( psi[ j, k ] ) <- int.psi + epsID.psi[ rteno.id[ j ] ] + 
                                   eps.psi[ k ]
 
+        for( s in 1:S ){ #loop species
+          #restrict data augmentation indicator to the corresponding BCR species
+          w.bcr[ s, j, k ] <- w[ s, j, k ] * bcr.occ[ s, bcr.id[ j ] ]
+          #modeling true occupancy
+          z[ s, j, k ] ~ dbern( psi[ j, k ] * w.bcr[ s, j, k ] )
+          
+
+}#S
 }#K
 }#J
-}#S
 
 for (s in 1:S){ #loop species
   for (j in 1:J){ #loop sites (rt_segment)
@@ -193,11 +195,11 @@ params <- c( 'int.psi' #intercept for occupancy model
 #################################################################################
 ###### alternative  variable selection variances for occupancy model ############
 str( win.data <- list( ydf = ydf, #observed occupancy 
-                       #J = J, K = K, S = S, G = G, Q =  4,
-                       J = 50, K = 5, S = S, G = 23, Q =  4,
+                       J = J, K = K, S = S, G = 23, Q =  4, M = M,
+                       #J = 10, K = 5, S = S, G = 23, Q =  4, M = M,
                        bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
                        rteno.id = jdf$rteno.id, #indicator of what route the segment belongs to
-                       bcr.occ = as.matrix( bcr.occ ), #bcr indicator for each species
+                       bcr.occ = bcr.occ, #bcr indicator for each species
                        Mass.scaled = spp.occ$Mass.scaled, #body mass
 #                       Phylo.V1.code = spp.occ$Phylo.V1.code, #phylo grouping
                        TOD.ma = TOD.ma, #time of day

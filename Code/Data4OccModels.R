@@ -47,8 +47,11 @@ final_sp_df <- read.csv(file = here::here("Data_BBS/Generated DFs/Final_Sp_Df_De
 site.occ.df <- read.csv(file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), header = T)
 spp.occ <- read.csv(file = here::here("Data_BBS/Generated DFs/Spp.Occ.csv"), header = T)
 Years.Occ <- read.csv(file = here::here("Data_BBS/Generated DFs/Years.Occ.csv"), header = T)
-bcr.occ <- read.csv(file = here::here("Data_BBS/Generated DFs/bcr.detection.raw.csv"), header = T)
+bcr.occ <- read.csv(file = here::here("Data_BBS/Generated DFs/bcr.detection.raw.csv"), header = F)
 
+###Remove column names from BCR
+colnames(bcr.occ) <- NULL
+bcr.occ <- as.matrix(bcr.occ)
 ###Fix two species body masses###
 spp.occ$BodyMass[spp.occ$sci_name == "Sitta carolinensis"] <- 20
 spp.occ$BodyMass[spp.occ$sci_name == "Auriparus flaviceps"] <- 8
@@ -109,6 +112,7 @@ jdf <- site.occ.df[, c("rteno.x", "rteno.id", "site",
                        "site.id", "BCR", "bcr.id")]
 jdf <- jdf[!duplicated(jdf),]
 
+jdf <- jdf %>% arrange(site.id)
 #####Import species specific data#####
 #Creation of the complete ydf matrix
 #alternative approach ## 
@@ -169,6 +173,8 @@ M <- max(spp.df$rteno.id)
 K <- max(spp.df$year.id)
 #number of species in each BCR vector
 B <- colSums(bcr.occ)
+#number of phylogenetic groups 
+G <- length(unique(spp.occ$Phylo.V1.code))
 
 
 ### working out missing sampling years for a given segment:
@@ -215,6 +221,9 @@ colnames( JKmat ) <- NULL
 head( JKmat); dim( JKmat )
 #define how many segments were surveyed each year:
 surveyedJ <- colSums( JKmat, na.rm = TRUE )
+
+
+
 ####### now we create the ydf ##### 
 #create observations dataframe
 ydf <- array( 0, dim = c(S, J, K) )
