@@ -5,7 +5,7 @@
 
 #####Package Loading#####
 library(pacman)
-pacman::p_load(tidyverse, reshape2, ggplot2)
+pacman::p_load(here, tidyverse, reshape2, ggplot2)
 
 #####Packages Loaded######
 
@@ -49,6 +49,10 @@ spp.occ <- read.csv(file = here::here("Data_BBS/Generated DFs/Spp.Occ.csv"), hea
 Years.Occ <- read.csv(file = here::here("Data_BBS/Generated DFs/Years.Occ.csv"), header = T)
 bcr.occ <- read.csv(file = here::here("Data_BBS/Generated DFs/bcr.detection.raw.csv"), header = T)
 
+###Fix two species body masses###
+spp.occ$BodyMass[spp.occ$sci_name == "Sitta carolinensis"] <- 20
+spp.occ$BodyMass[spp.occ$sci_name == "Auriparus flaviceps"] <- 8
+
 #Standardize variables for analysis
 
 ##Long way to scale variables
@@ -60,9 +64,12 @@ bcr.occ <- read.csv(file = here::here("Data_BBS/Generated DFs/bcr.detection.raw.
 
 site.occ.scaled <- site.occ.df %>% mutate_at(c("TOD", "OrdinalDate"), scale2)
 
+site.occ.scaled$ChangeD.scaled <- site.occ.scaled$ChangeD
+
 site.occ.scaled$ChangeD.scaled[site.occ.scaled$ChangeD.scaled == 0] <- -1
 
 spp.occ <- spp.occ %>% mutate(Mass.scaled = scale(BodyMass, center = T, scale = T))
+spp.occ$Mass.scaled <- as.numeric(spp.occ$Mass.scaled)
 
 #Finished Standardizing and Centering
 
@@ -73,7 +80,6 @@ site.occ.ma <- site.occ.scaled %>% select(site, site.id, Year,
                arrange(site.id)
 
 ##Site x Year Matrix with scaled.tod values and NAs for missing
-
 #Time of day matrix
 TOD.ma <- dcast(site.occ.ma, site.id ~ year.id, fun.aggregate = sum, 
                 value.var = "TOD", fill = NA_real_, drop = F)
@@ -154,6 +160,8 @@ J <- max(spp.df$site.id)
 M <- max(spp.df$rteno.id)
 #total number of sampling years
 K <- max(spp.df$year.id)
+#number of species in each BCR vector
+B <- colSums(bcr.occ)
 
 
 ### working out missing sampling years for a given segment:
@@ -223,6 +231,11 @@ for( i in 1:S ){
 
 ydf[1, 17, ]
 
+
+
+
+########################################################
+
 #Code below for augmented dataset
 #Taken from Zipkin et al. 2010 
 #(github.com/zipkinlab/Community_model_examples-covariate_model/blob/master/covariate%20model%20code.r)
@@ -230,17 +243,17 @@ ydf[1, 17, ]
 #as part of the data augmentation to account for additional 
 #species (beyond the n observed species). 
 
-#nzeroes is the number of all zero encounter histories to be added
-nzeroes = 50
-#X.zero is a matrix of zeroes, including the NAs for when a point has not been sampled  
-X.zero = matrix(0, nrow=70, ncol=4)
-X.zero[1:36,4] = NA;  X.zero[38:56,4] = NA;  
-X.zero[59:61,4] = NA;  X.zero[66:70,4] = NA; 
-
-ydf.aug <- array(0, dim=c(dim(ydf.aug)[1],dim(ydf.aug)[2],dim(ydf.aug)[3]+nzeroes))
-ydf.aug[,,(dim(ydf.aug)[3]+1):dim(ydf.aug)[3]] = rep(ydf.zero, nzeroes)
-dimnames(X)=NULL
-Xaug[,,1:dim(X)[3]] <-  X
+# #nzeroes is the number of all zero encounter histories to be added
+# nzeroes = 50
+# #X.zero is a matrix of zeroes, including the NAs for when a point has not been sampled  
+# X.zero = matrix(0, nrow=70, ncol=4)
+# X.zero[1:36,4] = NA;  X.zero[38:56,4] = NA;  
+# X.zero[59:61,4] = NA;  X.zero[66:70,4] = NA; 
+# 
+# ydf.aug <- array(0, dim=c(dim(ydf.aug)[1],dim(ydf.aug)[2],dim(ydf.aug)[3]+nzeroes))
+# ydf.aug[,,(dim(ydf.aug)[3]+1):dim(ydf.aug)[3]] = rep(ydf.zero, nzeroes)
+# dimnames(X)=NULL
+# Xaug[,,1:dim(X)[3]] <-  X
 
 # #total number of species
 # S <- length(unique(spp.df$spp.id))
