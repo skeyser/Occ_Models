@@ -17,7 +17,21 @@ pacman::p_load(tidyverse, ggplot2, ggfortify, R2jags)
 ###Load in the Data4OccModels Workspace###
 ##########################################
 
-load('workspace.RData')
+load('Data4OccModels_6_3.RData')
+
+
+#########################################################################################
+###########################################################################
+####################### define MCMC settings ##############################
+
+ni <- 300; nt <- 5; nb <- 100; nc <- 3 #iterations, thinning, burnin, chains
+
+##### end of MCMC parameters definition ##############
+############################################################################
+#################    run alternative models ################################
+
+####################################################################
+#
 
 ##########################################
 ##### Multi-species occ model single######
@@ -40,65 +54,162 @@ lines(p, dbeta(p, 10, 1), type = "l", col = 5)
 lines(p, dbeta(p, 0, 0), type = "l", col = 6)
 
 ###########################################
-Hello
+#Hello
 
 ########Model specification###############
-sink("om1.txt")
+sink( "om1.txt" )
 cat("
     model{
     
     #prior
-    #for occupancy model:
-    psi1 ~ dunif(0, 1)
+
+#detection model (ObsChange, Date, Time)
+#priors for detection model 
+
+#Defining the intercept prior for alpha.0
+int.p <- log(mean.p / (1 - mean.p))
+mean.p ~ dbeta(4, 4)
+
+for (q in 1:Q){ #loop through predictors
+  alpha[q] ~ dnorm(0, 0.01)
+    }
+    
+    #Priors for random species intercepts
+    # for (g in  1:G){
+    # 
+    #   phylo.spp <- spp.id[ Phylo.V1.code == g ]
+    # 
+    #     for (s in phylo.spp ){
+    #       delta[ phylo.spp[s] ] ~ dnorm( mu.spp[g], 
+    #                               prec.spp[g] )
+    #     } #s
+    #   mu.spp[g] ~ dnorm(0, 0.01)
+    #   prec.spp[g] ~ 1 / ( sigma.spp[g] * sigma.spp[g] )
+    #   sigma.spp[g] ~ dt(0, 1, 4) T(0, )
+    # } #g  
+    # 
     #define intercepts for ecological model as mean probs:
     #Log-link function below
-    int.phi <- log(mean.phi / (1 - mean.phi))
-    mean.phi ~ dbeta(4,4) #mean occupancy, beta(4,4) similar to normal
+    int.psi <- log(mean.psi / (1 - mean.psi))
+    mean.psi ~ dbeta(4,4) #mean occupancy, beta(4,4) similar to normal
 
-    #random species intercepts
-    for (s in 1:S){
-    eps.phi[s] ~ dnorm(0, prec.phi) T(-10,10)
-    } #S
+    #random year intercepts
+    for (k in 1:K){
+      eps.psi[k] ~ dnorm( 0, prec.psi ) T( -10,10 )
+    } #K loop
 
-    #associated precision of radomm species intercepts:
-    prec.phi <- 1 / (sigma.phi * sigma.phi) #variance of phi^2
-    sigma.phi ~ dt(0, 1, 4) T(0, ) #Variance of phi
-    
-    #random site effect
-    for (m in 1:M){#loop sites
-    epsID.phi[m] ~ dnorm(0, precID.phi) T(-10, 10) #wide dist
+    #associated precision of radom year intercepts:
+    prec.psi <- 1 / (sigma.psi * sigma.psi) #variance of psi^2
+    sigma.psi ~ dt(0, 1, 4) T(0, ) #Variance of ps
+
+    #random route effect
+    for (m in 1:M){#loop routes
+      epsID.psi[ m ] ~ dnorm(0, precID.psi) T(-10, 10) #wide dist
     }#M
 
-    #associated precision for site random effect
-    precID.phi <- 1 / (sigmaID.phi * sigmaID.phi)
-    sigmaID.phi ~ dt(0, 1, 4) T(0, )
+    #associated precision for random route effect
+    precID.psi <- 1 / ( sigmaID.psi * sigmaID.psi )
+    sigmaID.psi ~ dt( 0, 1, 4 ) T(0, )
 
-####Not doing random slopes?####
-    #priors for beta predictors: 
-    for(q in 1:Q){ #loop over number of predictors
-    }
-
-
-    #detection model (ObsChange, Date, Time)
-    
+    #defining data augmentation indicator prior
+    for( s in 1:S ){ #loop species
+      for( j in 1:J ){ #loop segments
+        for( k in 1:K ){ #loop years
+          w[ s, j, k ] ~ dbern( 0.5 ) 
+        } #k
+      } #j
+    } #s
 
     #ecological model
     #for occupancy
-    for(s in 1:S){ #loop species
-      for(j in 1:J){ #loop sites
-      #estimated psi[,,1]:
-        ydf[s, j, 1] ~ dbern(psi[s, j, 1])
-        psi[s, j, 1] <- psi1
-        
-        for(k in 1:K){ #loop years 1980:2017
-          #Detection corrected, p != 1
-          ydf[s, j, k] ~ dbern(psi[s, j, k])
-          #probability of occupancy starts at year 2
-          psi[s, j, k] <- ydf[s, j, k-1] * phi[s, j, k-1] *
-          p[s, j, ] #p is detection probability
-}
-        
-}
-}
-    
-    }")
+    for( s in 1:S ){ #loop species
+      for( j in 1:J ){ #loop segments
+        for( k in 1:K ){ #loop years
+
+          #restrict data augmentation indicator to the corresponding BCR species
+          w.bcr[ s, j, k ] <- w[ s, j, k ] * brc.occ[ s, bcr.id[ j ] ]
+          #modeling true occupancy
+          z[ s, j, k ] ~ dbern( psi[ s, j, k ] * w.bcr[ s, j, k ] )
+          #relate occupancy probability to random intercepts for route and year:
+          logit( psi[ j, k ] ) <- int.psi + epsID.psi[ rteno.id[ j ] ] + 
+                                  eps.psi[ k ]
+
+}#K
+}#J
+}#S
+
+for (s in 1:S){ #loop species
+  for (j in 1:J){ #loop sites (rt_segment)
+    for (k in 1:K){ #loop years 
+      logit( p[s,j,k] ) <- int.p + alpha[1] * Obs.ma[j,k] +
+                        alpha[2] * Ord.ma[j,k] + 
+                        alpha[3] * TOD.ma[j, k] + 
+                      alpha[ 4 ] * Mass.scaled[ s ] #+
+                     # delta[Phylo.V1.code[s]]
+      ydf[s, j, k] ~ dbern( z[s, j, k] * p[s, j, k] )
+      
+    }#K
+  }#J
+}#S
+
+# 
+# #derived parameters 
+#   for( k in 1:K ){
+#     for( j in 1:J ){
+#       #estimate yearly alpha diversity
+#       a.div[ j, k ] <- sum( z[ 1:S, j, k ] * JKmat[ j, k ] )
+#     } #J
+#   }#K
+# 
+
+} #model spec end
+     
+     ", fill = TRUE )
+
+sink()
+
+################ end of model specification  #####################################
+modelname <- "om1.txt"
+
+#create initial values
+zst <- ydf
+zst[is.na( zst) ] <- 1
+inits <- function(){ list( z = zst ) }
+
+#parameters monitored #only keep those relevant for model comparisons (with different variances)
+params <- c( 'int.psi' #intercept for occupancy model 
+             , 'w' #indicator variable of which species are added as augmented set
+             , 'eps.psi' #random year intercept
+             , 'epsID.psi' #random route intercept 
+             , 'sigma.psi', 'sigmaID.psi' #std dev for random intercepts
+             , 'z' #estimated true occupancy
+             , 'p' #detection probability
+             , 'int.p' #intercept for detection submodel 
+             , 'alpha' #fixed coefficients for detection submodel 
+ #            , 'delta' #random intercept for phylogenetic group
+#             , 'a.div' #alpha diversity
+)
+
+#################################################################################
+###### alternative  variable selection variances for occupancy model ############
+str( win.data <- list( ydf = ydf, #observed occupancy 
+                       #J = J, K = K, S = S, G = G, Q =  4,
+                       J = 50, K = 5, S = S, G = 23, Q =  4,
+                       bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
+                       rteno.id = jdf$rteno.id, #indicator of what route the segment belongs to
+                       bcr.occ = as.matrix( bcr.occ ), #bcr indicator for each species
+                       Mass.scaled = spp.occ$Mass.scaled, #body mass
+#                       Phylo.V1.code = spp.occ$Phylo.V1.code, #phylo grouping
+                       TOD.ma = TOD.ma, #time of day
+                       Ord.ma = Ord.ma, #day of year
+                       Obs.ma = Obs.ma #first observer year
+                       
+) )                
+#library( jagsUI )
+#call JAGS and summarize posteriors:
+fm1 <- jags( win.data, inits = inits, params, modelname, #
+             n.chains = nc, n.thin = nt, n.iter = ni, 
+             n.burnin = nb, parallel = TRUE ) 
+
+
+################ end of script ##########################################
