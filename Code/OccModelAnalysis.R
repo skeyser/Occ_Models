@@ -163,7 +163,7 @@ for (s in 1:S){ #loop species
 # 
 
 } #model spec end
-     
+      
      ", fill = TRUE )
 
 sink()
