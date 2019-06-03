@@ -86,6 +86,7 @@ TOD.ma <- dcast(site.occ.ma, site.id ~ year.id, fun.aggregate = sum,
 TOD.ma <- TOD.ma[, -1]
 TOD.ma <- as.matrix(TOD.ma)
 colnames(TOD.ma) <- NULL
+TOD.ma[is.na(TOD.ma)] <- 0
 
 #Ordinal Date Matrix
 Ord.ma <- dcast(site.occ.ma, site.id ~ year.id, fun.aggregate = sum,
@@ -93,6 +94,7 @@ Ord.ma <- dcast(site.occ.ma, site.id ~ year.id, fun.aggregate = sum,
 Ord.ma <- Ord.ma[, -1]
 Ord.ma <- as.matrix(Ord.ma)
 colnames(Ord.ma) <- NULL
+Ord.ma[is.na(Ord.ma)] <- 0
 
 #1st year observer matrix (1 new obs, -1 same observer)
 Obs.ma <- dcast(site.occ.ma, site.id ~ year.id, fun.aggregate = sum,
@@ -100,7 +102,12 @@ Obs.ma <- dcast(site.occ.ma, site.id ~ year.id, fun.aggregate = sum,
 Obs.ma <- Obs.ma[, -1]
 Obs.ma <- as.matrix(Obs.ma)
 colnames(Obs.ma) <- NULL
+Obs.ma[is.na(Obs.ma)] <- 0
 
+#Route, Segment, and BCR DF (jdf)
+jdf <- site.occ.df[, c("rteno.x", "rteno.id", "site",
+                       "site.id", "BCR", "bcr.id")]
+jdf <- jdf[!duplicated(jdf),]
 
 #####Import species specific data#####
 #Creation of the complete ydf matrix
@@ -233,7 +240,6 @@ ydf[1, 17, ]
 
 
 
-
 ########################################################
 
 #Code below for augmented dataset
@@ -290,4 +296,4 @@ ydf[1, 17, ]
 
 ############################################
 
-#save.image(file = here::here("R Workspace/Data4OccModels_5_24.RData"))
+#save.image(file = here::here("R Workspace/Data4OccModels_6_3.RData"))
