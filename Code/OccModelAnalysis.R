@@ -24,7 +24,7 @@ load('Data4OccModels_6_3.RData')
 ###########################################################################
 ####################### define MCMC settings ##############################
 
-ni <- 10; nt <- 2; nb <- 1; nc <- 3 #iterations, thinning, burnin, chains
+ni <- 2; nt <- 0; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
 
 ##### end of MCMC parameters definition ##############
 ############################################################################
@@ -61,42 +61,44 @@ sink( "om1.txt" )
 cat("
     model{
     
-    #prior
-
-#detection model (ObsChange, Date, Time)
+    #priors
 #priors for detection model 
 
 #Defining the intercept prior for alpha.0
 int.p <- log(mean.p / (1 - mean.p))
 mean.p ~ dbeta(4, 4)
 
-for (q in 1:Q){ #loop through predictors
-  alpha[q] ~ dnorm(0, 0.01)
+for(q in 1:Q){ #loop through predictors
+  alpha[q] ~ dnorm(0, 0.1)
     }
     
-    #Priors for random species intercepts
-    # for (g in  1:G){
-    # 
-    #   phylo.spp <- spp.id[ Phylo.V1.code == g ]
-    # 
-    
-#     for (s in phylo.spp ){
-    #       delta[ phylo.spp[s] ] ~ dnorm( mu.spp[g], 
-    #                               prec.spp[g] )
-    #     } #s
-    #   mu.spp[g] ~ dnorm(0, 0.01)
-    #   prec.spp[g] ~ 1 / ( sigma.spp[g] * sigma.spp[g] )
-    #   sigma.spp[g] ~ dt(0, 1, 4) T(0, )
-    # } #g  
-    # 
+    Priors for random species intercepts
+    for(g in 1:G ){
+
+      #phylo group mean response and error
+      mu.spp[g] ~ dnorm(0, 0.1)
+      prec.spp[g] ~ 1 / ( sigma.spp[g] * sigma.spp[g] )
+      sigma.spp[g] ~ dt(0, 1, 4) T(0, )
+
+      #extract phylo group species
+      phylo.spp[g] <- spp.id[ Phylo.V1.code == g ]
+
+      #loop through those species
+      for( s in phylo.spp[g] ){
+          #estimate species-specific response based on phylo group mean
+          delta[ phylo.spp[s] ] ~ dnorm( mu.spp[g], prec.spp[g] )
+        } #s
+    } #g
+
     #define intercepts for ecological model as mean probs:
-    #Log-link function below
+    #logit main intercept
     int.psi <- log(mean.psi / (1 - mean.psi))
+    #mean occupancy probability
     mean.psi ~ dbeta(4,4) #mean occupancy, beta(4,4) similar to normal
 
     #random year intercepts
-    for (k in 1:K){
-      eps.psi[k] ~ dnorm( 0, prec.psi ) T( -10,10 )
+    for( k in 1:K ){
+      eps.psi[k] ~ dnorm( 0, prec.psi ) T( -6, 6 )
     } #K loop
 
     #associated precision of radom year intercepts:
@@ -104,8 +106,8 @@ for (q in 1:Q){ #loop through predictors
     sigma.psi ~ dt(0, 1, 4) T(0, ) #Variance of ps
 
     #random route effect
-    for (m in 1:M){#loop routes
-      epsID.psi[ m ] ~ dnorm(0, precID.psi) T(-10, 10) #wide dist
+    for( m in 1:M ){#loop routes
+      epsID.psi[ m ] ~ dnorm(0, precID.psi) T(-6, 6) #wide dist
     }#M
 
     #associated precision for random route effect
@@ -114,41 +116,42 @@ for (q in 1:Q){ #loop through predictors
 
     #defining data augmentation indicator prior
     for( s in 1:S ){ #loop species
-      for( j in 1:J ){ #loop segments
-        for( k in 1:K ){ #loop years
-          w[ s, j, k ] ~ dbern( 0.5 ) 
-        } #k
-      } #j
+       for( j in 1:J ){ #loop segments
+      #   for( k in 1:K ){ #loop years
+          omega[ s, j ] ~ dbeta(4,4)
+          #restrict data augmentation indicator to the corresponding BCR species
+          w[ s, j ] ~ dbern(  omega[ s, j ] )          
+          w.bcr[ s, j ] <- w[ s, j ] * bcr.occ[ s, bcr.id[j] ]
+      #   } #k
+       } #j
     } #s
 
     #ecological model
     #for occupancy
     for( j in 1:J ){ #loop segments
-      for( k in 1:K ){ #loop years
+       for( k in 1:K ){ #loop years
         #relate occupancy probability to random intercepts for route and year:
           logit( psi[ j, k ] ) <- int.psi + epsID.psi[ rteno.id[ j ] ] + 
                                   eps.psi[ k ]
-
         for( s in 1:S ){ #loop species
-          #restrict data augmentation indicator to the corresponding BCR species
-          w.bcr[ s, j, k ] <- w[ s, j, k ] * bcr.occ[ s, bcr.id[ j ] ]
           #modeling true occupancy
-          z[ s, j, k ] ~ dbern( psi[ j, k ] * w.bcr[ s, j, k ] )
-          
-
-}#S
-}#K
-}#J
+          muz[ s, j, k ] <- psi[ j, k ] * w.bcr[ s, j ]
+          z[ s, j, k ] ~ dbern( muz[ s, j, k ] )            
+        }#S
+      }#K
+    }#J
 
 for (s in 1:S){ #loop species
   for (j in 1:J){ #loop sites (rt_segment)
     for (k in 1:K){ #loop years 
+
       logit( p[s,j,k] ) <- int.p + alpha[1] * Obs.ma[j,k] +
                         alpha[2] * Ord.ma[j,k] + 
                         alpha[3] * TOD.ma[j, k] + 
-                      alpha[ 4 ] * Mass.scaled[ s ] #+
-                     # delta[Phylo.V1.code[s]]
-      ydf[s, j, k] ~ dbern( z[s, j, k] * p[s, j, k] )
+                      alpha[ 4 ] * Mass.scaled[ s ] +
+                      delta[Phylo.V1.code[s]]
+      mup[ s, j, k ] <- z[s, j, k] * p[s, j, k]
+      ydf[s, j, k] ~ dbern( mup[ s, j, k ]  )
       
     }#K
   }#J
@@ -180,7 +183,7 @@ inits <- function(){ list( z = zst ) }
 
 #parameters monitored #only keep those relevant for model comparisons (with different variances)
 params <- c( 'int.psi' #intercept for occupancy model 
-             , 'w' #indicator variable of which species are added as augmented set
+             , 'w.bcr' #indicator variable of which species are added as augmented set
              , 'eps.psi' #random year intercept
              , 'epsID.psi' #random route intercept 
              , 'sigma.psi', 'sigmaID.psi' #std dev for random intercepts
@@ -195,7 +198,7 @@ params <- c( 'int.psi' #intercept for occupancy model
 #################################################################################
 ###### alternative  variable selection variances for occupancy model ############
 str( win.data <- list( ydf = ydf, #observed occupancy 
-                       J = J, K = K, S = S, G = 23, Q =  4, M = M,
+                       J = J, K = K, S = S, G = G, Q =  4, M = M,
                        #J = 10, K = 5, S = S, G = 23, Q =  4, M = M,
                        bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
                        rteno.id = jdf$rteno.id, #indicator of what route the segment belongs to
@@ -213,5 +216,10 @@ fm1 <- jags( win.data, inits = inits, params, modelname, #
              n.chains = nc, n.thin = nt, n.iter = ni, 
              n.burnin = nb, parallel = TRUE ) 
 
+#auto update the model
+upm1 <- autojags( win.data, inits = inits, params, modelname, 
+          n.chains = nc, n.thin = nt, n.burnin = 0,
+          iter.increment = 100, max.iter = 1000,
+          Rhat.limit = 1.1, save.all.iter=FALSE, parallel=TRUE )
 
 ################ end of script ##########################################
