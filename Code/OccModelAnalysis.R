@@ -24,7 +24,7 @@ load('Data4OccModels_6_3.RData')
 ###########################################################################
 ####################### define MCMC settings ##############################
 
-ni <- 2; nt <- 0; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
+ni <- 3; nt <- 1; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
 
 ##### end of MCMC parameters definition ##############
 ############################################################################
