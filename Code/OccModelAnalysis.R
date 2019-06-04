@@ -72,23 +72,21 @@ for(q in 1:Q){ #loop through predictors
   alpha[q] ~ dnorm(0, 0.1)
     }
     
-    Priors for random species intercepts
+    # Priors for random species intercepts
     for(g in 1:G ){
-
       #phylo group mean response and error
-      mu.spp[g] ~ dnorm(0, 0.1)
-      prec.spp[g] ~ 1 / ( sigma.spp[g] * sigma.spp[g] )
-      sigma.spp[g] ~ dt(0, 1, 4) T(0, )
-
-      #extract phylo group species
-      phylo.spp[g] <- spp.id[ Phylo.V1.code == g ]
-
-      #loop through those species
-      for( s in phylo.spp[g] ){
-          #estimate species-specific response based on phylo group mean
-          delta[ phylo.spp[s] ] ~ dnorm( mu.spp[g], prec.spp[g] )
-        } #s
+      mu.spp[ g ] ~ dnorm(0, prec.spp[ g ] )
+      prec.spp[ g ] <- 1 / ( sigma.spp[ g ] * sigma.spp[ g ] )
+      sigma.spp[ g ] ~ dt(0, 1, 4) T(0, )
     } #g
+
+      #loop through species
+      for( s in 1:S ){
+          #estimate species-specific response based on phylo group mean
+          delta[ s ] ~ dnorm( mu.spp[ Phylo.V1.code[s] ], 
+                                    prec.spp[ Phylo.V1.code[s] ] )
+        } #s
+
 
     #define intercepts for ecological model as mean probs:
     #logit main intercept
@@ -149,7 +147,7 @@ for (s in 1:S){ #loop species
                         alpha[2] * Ord.ma[j,k] + 
                         alpha[3] * TOD.ma[j, k] + 
                       alpha[ 4 ] * Mass.scaled[ s ] +
-                      delta[Phylo.V1.code[s]]
+                      delta[ s ]
       mup[ s, j, k ] <- z[s, j, k] * p[s, j, k]
       ydf[s, j, k] ~ dbern( mup[ s, j, k ]  )
       
