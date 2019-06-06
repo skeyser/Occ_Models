@@ -5,26 +5,28 @@
 ##########################################################
 
 ######Load Packages######
-rm(list = ls())
+#rm(list = ls())
 
-library(pacman)
+#library(pacman)
 #pacman::p_load(tidyverse, ggplot2, ggfortify, JagsUI)
-install.packages("jagsUI")
-library(jagsUI)
+
+#install.packages("jagsUI")
+#library("jagsUI")
+
 #########Package Loading Complete########
 #########################################
 
 ###Load in the Data4OccModels Workspace###
 ##########################################
 
-load('Data4OccModels_6_3.RData')
+#load(here::here('R Workspace/Data4OccModels_6_3.RData'))
 
 
 #########################################################################################
 ###########################################################################
 ####################### define MCMC settings ##############################
 
-ni <- 3; nt <- 1; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
+ni <- 1; nt <- 1; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
 
 ##### end of MCMC parameters definition ##############
 ############################################################################
@@ -44,22 +46,87 @@ ni <- 3; nt <- 1; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
 ##########################################
 
 #####Playing with Beta distribution#######
-p = seq(0, 1, length = 100)
-plot(p, dbeta(p, 100, 100), ylab = "density", type = "l", col = 4)
-lines(p, dbeta(p, 1, 10), type = "l", col = 1)
-lines(p, dbeta(p, 1, 1), type = "l", col = 2)
-lines(p, dbeta(p, 4, 4), type = "l", col = 3)
-lines(p, dbeta(p, 100, 100), type = "l", col = 4)
-lines(p, dbeta(p, 10, 1), type = "l", col = 5)
-lines(p, dbeta(p, 0, 0), type = "l", col = 6)
+# p = seq(0, 1, length = 100)
+# plot(p, dbeta(p, 100, 100), ylab = "density", type = "l", col = 4)
+# lines(p, dbeta(p, 1, 10), type = "l", col = 1)
+# lines(p, dbeta(p, 1, 1), type = "l", col = 2)
+# lines(p, dbeta(p, 4, 4), type = "l", col = 3)
+# lines(p, dbeta(p, 100, 100), type = "l", col = 4)
+# lines(p, dbeta(p, 10, 1), type = "l", col = 5)
+# lines(p, dbeta(p, 0, 0), type = "l", col = 6)
 
 ###########################################
 #Hello
+
+###Load in Data###
+bcr.occ <- read.csv(bcr_occ)
+
+jdf <- read.csv(jdf)
+
+spp.occ <- read.csv(spp_occ)
+
+TOD.ma <- read.csv(TOD_ma)
+TOD.ma <- as.matrix(TOD.ma)
+
+Ord.ma <- read.csv(Ord_ma)
+Ord.ma <- as.matrix(Ord.ma)
+
+Obs.ma <- read.csv(Ord_ma)
+Obs.ma <- as.matrix(Obs.ma)
+
+load(ydf)
 
 ########Model specification###############
 sink( "om1.txt" )
 cat("
     model{
+
+#ecological model
+    #for occupancy
+    for( j in 1:J ){ #loop segments
+      for( k in 1:K ){ #loop years
+    #relate occupancy probability to random intercepts for route and year:
+    logit( psi[ j, k ] ) <- int.psi + epsID.psi[ rteno.id[ j ] ] + 
+    eps.psi[ k ]
+        for( s in 1:S ){ #loop species
+    #modeling true occupancy
+    muz[ s, j, k ] <- psi[ j, k ] * w.bcr[ s, j ]
+    z[ s, j, k ] ~ dbern( muz[ s, j, k ] )            
+        }#S
+      }#K
+    }#J
+    
+  #Detection Model 
+    for (s in 1:S){ #loop species
+      for (j in 1:J){ #loop sites (rt_segment)
+        for (k in 1:K){ #loop years 
+    
+    logit( p[s,j,k] ) <- int.p + alpha[1] * Obs.ma[j,k] +
+    alpha[2] * Ord.ma[j,k] + 
+    alpha[3] * TOD.ma[j, k] + 
+    alpha[ 4 ] * Mass.scaled[ s ] +
+    delta[ s ]
+    mup[ s, j, k ] <- z[s, j, k] * p[s, j, k]
+    ydf[s, j, k] ~ dbern( mup[ s, j, k ]  )
+    
+    }#K
+      }#J
+        }#S
+
+    #defining data augmentation indicator prior
+   for( s in 1:S ){ #loop species
+    for( j in 1:J ){ #loop segments
+      #for( k in 1:K ){ #loop years
+      w.bcr[ s, j ] <- w[ s, j ] * bcr.occ[ s, bcr.id[j] ]
+      
+      w[ s, j ] ~ dbern(  omega[ s, j ] )
+      
+      omega[ s, j ] ~ dbeta(4,4)
+    #restrict data augmentation indicator to the corresponding BCR species
+       #} #k
+     } #j
+    } #s
+    
     
     #priors
 #priors for detection model 
@@ -112,48 +179,6 @@ for(q in 1:Q){ #loop through predictors
     precID.psi <- 1 / ( sigmaID.psi * sigmaID.psi )
     sigmaID.psi ~ dt( 0, 1, 4 ) T(0, )
 
-    #defining data augmentation indicator prior
-    for( s in 1:S ){ #loop species
-       for( j in 1:J ){ #loop segments
-      #   for( k in 1:K ){ #loop years
-          omega[ s, j ] ~ dbeta(4,4)
-          #restrict data augmentation indicator to the corresponding BCR species
-          w[ s, j ] ~ dbern(  omega[ s, j ] )          
-          w.bcr[ s, j ] <- w[ s, j ] * bcr.occ[ s, bcr.id[j] ]
-      #   } #k
-       } #j
-    } #s
-
-    #ecological model
-    #for occupancy
-    for( j in 1:J ){ #loop segments
-       for( k in 1:K ){ #loop years
-        #relate occupancy probability to random intercepts for route and year:
-          logit( psi[ j, k ] ) <- int.psi + epsID.psi[ rteno.id[ j ] ] + 
-                                  eps.psi[ k ]
-        for( s in 1:S ){ #loop species
-          #modeling true occupancy
-          muz[ s, j, k ] <- psi[ j, k ] * w.bcr[ s, j ]
-          z[ s, j, k ] ~ dbern( muz[ s, j, k ] )            
-        }#S
-      }#K
-    }#J
-
-for (s in 1:S){ #loop species
-  for (j in 1:J){ #loop sites (rt_segment)
-    for (k in 1:K){ #loop years 
-
-      logit( p[s,j,k] ) <- int.p + alpha[1] * Obs.ma[j,k] +
-                        alpha[2] * Ord.ma[j,k] + 
-                        alpha[3] * TOD.ma[j, k] + 
-                      alpha[ 4 ] * Mass.scaled[ s ] +
-                      delta[ s ]
-      mup[ s, j, k ] <- z[s, j, k] * p[s, j, k]
-      ydf[s, j, k] ~ dbern( mup[ s, j, k ]  )
-      
-    }#K
-  }#J
-}#S
 
 # 
 # #derived parameters 
@@ -196,8 +221,8 @@ params <- c( 'int.psi' #intercept for occupancy model
 #################################################################################
 ###### alternative  variable selection variances for occupancy model ############
 str( win.data <- list( ydf = ydf, #observed occupancy 
-                       J = J, K = K, S = S, G = G, Q =  4, M = M,
-                       #J = 10, K = 5, S = S, G = 23, Q =  4, M = M,
+                       #J = J, K = K, S = S, G = G, Q =  4, M = M,
+                       J = 50, K = 5, S = 233, G = 23, Q =  4, M = 84,
                        bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
                        rteno.id = jdf$rteno.id, #indicator of what route the segment belongs to
                        bcr.occ = bcr.occ, #bcr indicator for each species
@@ -210,9 +235,9 @@ str( win.data <- list( ydf = ydf, #observed occupancy
 ) )                
 #library( jagsUI )
 #call JAGS and summarize posteriors:
-fm1 <- jags( win.data, inits = inits, params, modelname, #
+fm1 <- jags( win.data, inits = inits, params, modelname, 
              n.chains = nc, n.thin = nt, n.iter = ni, 
-             n.burnin = nb, parallel = TRUE ) 
+             n.burnin = nb, parallel = TRUE) 
 
 #auto update the model
 upm1 <- autojags( win.data, inits = inits, params, modelname, 
