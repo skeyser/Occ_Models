@@ -113,6 +113,14 @@ jdf <- site.occ.df[, c("rteno.x", "rteno.id", "site",
 jdf <- jdf[!duplicated(jdf),]
 
 jdf <- jdf %>% arrange(site.id)
+
+#write.csv(jdf, file = here::here("Data_BBS/Generated DFs/jdf.csv"))
+#write.csv(TOD.ma, file = here::here("Data_BBS/Generated DFs/TOD_ma.csv"))
+#write.csv(Ord.ma, file = here::here("Data_BBS/Generated DFs/Ord_ma.csv"))
+#write.csv(Obs.ma, file = here::here("Data_BBS/Generated DFs/Obs_ma.csv"))
+#write.csv(spp.occ, file = here::here("Data_BBS/Generated DFs/spp_occ.csv"))
+#write.csv(bcr.occ, file = here::here("Data_BBS/Generated DFs/bcr_occ.csv"))
+
 #####Import species specific data#####
 #Creation of the complete ydf matrix
 #alternative approach ## 
@@ -247,7 +255,8 @@ for( i in 1:S ){
 
 ydf[1, 17, ]
 
-
+#save(ydf, file = here::here("Data_BBS/Generated DFs/ydf.rda"))
+#load(here::here("Data_BBS/Generated DFs/ydf.rda"))
 
 ########################################################
 
