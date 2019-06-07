@@ -26,7 +26,7 @@
 ###########################################################################
 ####################### define MCMC settings ##############################
 
-ni <- 1; nt <- 1; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
+ni <- 2; nt <- 1; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
 
 ##### end of MCMC parameters definition ##############
 ############################################################################
@@ -59,22 +59,22 @@ ni <- 1; nt <- 1; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
 #Hello
 
 ###Load in Data###
-bcr.occ <- read.csv(bcr_occ)
+#bcr.occ <- read.csv(bcr_occ)
 
-jdf <- read.csv(jdf)
+#jdf <- read.csv(jdf)
 
-spp.occ <- read.csv(spp_occ)
+#spp.occ <- read.csv(spp_occ)
 
-TOD.ma <- read.csv(TOD_ma)
-TOD.ma <- as.matrix(TOD.ma)
+#TOD.ma <- read.csv(TOD_ma)
+#TOD.ma <- as.matrix(TOD.ma)
 
-Ord.ma <- read.csv(Ord_ma)
-Ord.ma <- as.matrix(Ord.ma)
-
-Obs.ma <- read.csv(Ord_ma)
-Obs.ma <- as.matrix(Obs.ma)
-
-load(ydf)
+# Ord.ma <- read.csv(Ord_ma)
+# Ord.ma <- as.matrix(Ord.ma)
+# 
+# Obs.ma <- read.csv(Ord_ma)
+# Obs.ma <- as.matrix(Obs.ma)
+# 
+# load(ydf)
 
 ########Model specification###############
 sink( "om1.txt" )
@@ -90,7 +90,8 @@ cat("
     eps.psi[ k ]
         for( s in 1:S ){ #loop species
     #modeling true occupancy
-    muz[ s, j, k ] <- psi[ j, k ] * w.bcr[ s, j ]
+    #Commented out w.bcr, changed psi to include s
+    muz[ s, j, k ] <- psi[ s, j, k ] #* w.bcr[ s, j ]
     z[ s, j, k ] ~ dbern( muz[ s, j, k ] )            
         }#S
       }#K
@@ -114,18 +115,18 @@ cat("
         }#S
 
     #defining data augmentation indicator prior
-   for( s in 1:S ){ #loop species
-    for( j in 1:J ){ #loop segments
+   #for( s in 1:S ){ #loop species
+    #for( j in 1:J ){ #loop segments
       #for( k in 1:K ){ #loop years
-      w.bcr[ s, j ] <- w[ s, j ] * bcr.occ[ s, bcr.id[j] ]
+      #w.bcr[ s, j ] <- w[ s, j ] * bcr.occ[ s, bcr.id[j] ]
       
-      w[ s, j ] ~ dbern(  omega[ s, j ] )
+      #w[ s, j ] ~ dbern(  omega[ s, j ] )
       
-      omega[ s, j ] ~ dbeta(4,4)
+      #omega[ s, j ] ~ dbeta(4,4)
     #restrict data augmentation indicator to the corresponding BCR species
        #} #k
-     } #j
-    } #s
+     #} #j
+    #} #s
     
     
     #priors
@@ -206,7 +207,7 @@ inits <- function(){ list( z = zst ) }
 
 #parameters monitored #only keep those relevant for model comparisons (with different variances)
 params <- c( 'int.psi' #intercept for occupancy model 
-             , 'w.bcr' #indicator variable of which species are added as augmented set
+             #, 'w.bcr' #indicator variable of which species are added as augmented set
              , 'eps.psi' #random year intercept
              , 'epsID.psi' #random route intercept 
              , 'sigma.psi', 'sigmaID.psi' #std dev for random intercepts
@@ -221,11 +222,11 @@ params <- c( 'int.psi' #intercept for occupancy model
 #################################################################################
 ###### alternative  variable selection variances for occupancy model ############
 str( win.data <- list( ydf = ydf, #observed occupancy 
-                       #J = J, K = K, S = S, G = G, Q =  4, M = M,
-                       J = 50, K = 5, S = 233, G = 23, Q =  4, M = 84,
-                       bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
+                       J = J, K = K, S = S, G = G, Q =  4, M = M,
+                       #J = 50, K = 5, S = 233, G = 23, Q =  4, M = 84,
+                       #bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
                        rteno.id = jdf$rteno.id, #indicator of what route the segment belongs to
-                       bcr.occ = bcr.occ, #bcr indicator for each species
+                       #bcr.occ = bcr.occ, #bcr indicator for each species
                        Mass.scaled = spp.occ$Mass.scaled, #body mass
                        Phylo.V1.code = spp.occ$Phylo.V1.code, #phylo grouping
                        TOD.ma = TOD.ma, #time of day
