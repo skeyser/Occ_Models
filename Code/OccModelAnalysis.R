@@ -91,8 +91,8 @@ cat("
         for( s in 1:S ){ #loop species
     #modeling true occupancy
     #Commented out w.bcr, changed psi to include s
-    muz[ s, j, k ] <- psi[ s, j, k ] #* w.bcr[ s, j ]
-    z[ s, j, k ] ~ dbern( muz[ s, j, k ] )            
+    #muz[ s, j, k ] <- psi[ j, k ] * w.bcr[ s, j ]
+    z[ s, j, k ] ~ dbern( psi[j, k] )            
         }#S
       }#K
     }#J
