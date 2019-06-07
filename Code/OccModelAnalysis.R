@@ -24,7 +24,7 @@ load('Data4OccModels_6_3.RData')
 ###########################################################################
 ####################### define MCMC settings ##############################
 
-ni <- 2; nt <- 0; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
+ni <- 3; nt <- 1; nb <- 0; nc <- 1 #iterations, thinning, burnin, chains
 
 ##### end of MCMC parameters definition ##############
 ############################################################################
@@ -52,7 +52,7 @@ lines(p, dbeta(p, 4, 4), type = "l", col = 3)
 lines(p, dbeta(p, 100, 100), type = "l", col = 4)
 lines(p, dbeta(p, 10, 1), type = "l", col = 5)
 lines(p, dbeta(p, 0, 0), type = "l", col = 6)
-
+###### end ########
 ###########################################
 #Hello
 
@@ -216,8 +216,8 @@ fm1 <- jags( win.data, inits = inits, params, modelname, #
 
 #auto update the model
 upm1 <- autojags( win.data, inits = inits, params, modelname, 
-          n.chains = nc, n.thin = nt, n.burnin = 0,
-          iter.increment = 100, max.iter = 1000,
-          Rhat.limit = 1.1, save.all.iter=FALSE, parallel=TRUE )
+          n.chains = 3, n.thin = 5, n.burnin = 0,
+          iter.increment = 10, max.iter = 100,
+          Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
 
 ################ end of script ##########################################
