@@ -11,7 +11,7 @@
 #pacman::p_load(tidyverse, ggplot2, ggfortify, JagsUI)
 
 #install.packages("jagsUI")
-#library("jagsUI")
+library("jagsUI")
 
 #########Package Loading Complete########
 #########################################
@@ -49,19 +49,19 @@ ni <- 2; nt <- 1; nb <- 0; nc <- 1 #iterations, thinning, burnin, chains
 ###Load in Data###
 #bcr.occ <- read.csv(bcr_occ)
 
-#jdf <- read.csv(jdf)
-
-#spp.occ <- read.csv(spp_occ)
-
-#TOD.ma <- read.csv(TOD_ma)
-#TOD.ma <- as.matrix(TOD.ma)
-
+# jdf <- read.csv(jdf)
+# 
+# spp.occ <- read.csv(spp_occ)
+# 
+# TOD.ma <- read.csv(TOD_ma)
+# TOD.ma <- as.matrix(TOD.ma)
+# 
 # Ord.ma <- read.csv(Ord_ma)
 # Ord.ma <- as.matrix(Ord.ma)
-# 
+# # 
 # Obs.ma <- read.csv(Ord_ma)
 # Obs.ma <- as.matrix(Obs.ma)
-# 
+# # 
 # load(ydf)
 #### end data load ####
 ########Model specification###############
@@ -582,7 +582,7 @@ proc.time() - ptm
 #fm3 with delta out
 ######### from om2: commenting out different aspects ##############################
 ########Model specification###############
-sink( "om3.txt" )
+sink( "om4.txt" )
 cat("
     model{
     
