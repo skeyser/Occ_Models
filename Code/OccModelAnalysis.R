@@ -232,13 +232,16 @@ ptm <- proc.time()
 fm1 <- jags( win.data, inits = inits, params, modelname, 
              n.chains = nc, n.thin = nt, n.iter = ni, 
              n.burnin = nb, parallel = TRUE) 
-proc.time() - ptm
+fm1.time <- proc.time() - ptm
 
 # #auto update the model
 # upm1 <- autojags( win.data, inits = inits, params, modelname, 
 #           n.chains = 3, n.thin = 5, n.burnin = 0,
 #           iter.increment = 10, max.iter = 100,
 #           Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
+
+
+
 
 ##############################################################################
 ######### different data augmentation set up ##############################
@@ -405,13 +408,18 @@ ptm <- proc.time()
 fm2 <- jags( win.data, inits = inits, params, modelname, 
              n.chains = nc, n.thin = nt, n.iter = ni, 
              n.burnin = nb, parallel = TRUE) 
-proc.time() - ptm
+fm2.time <- proc.time() - ptm
 
 # #auto update the model
 # upm2 <- autojags( win.data, inits = inits, params, modelname, 
 #                   n.chains = 3, n.thin = 5, n.burnin = 0,
 #                   iter.increment = 10, max.iter = 100,
 #                   Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
+
+
+
+
+
 
 
 ##############################################################################
@@ -578,8 +586,12 @@ ptm <- proc.time()
 fm3 <- jags( win.data, inits = inits, params, modelname, 
              n.chains = nc, n.thin = nt, n.iter = ni, 
              n.burnin = nb, parallel = TRUE ) 
-proc.time() - ptm
+fm3.time <- proc.time() - ptm
 #fm3 with delta out
+
+
+
+
 ######### from om2: commenting out different aspects ##############################
 ########Model specification###############
 sink( "om4.txt" )
@@ -744,8 +756,13 @@ ptm <- proc.time()
 fm4 <- jags( win.data, inits = inits, params, modelname, 
              n.chains = nc, n.thin = nt, n.iter = ni, 
              n.burnin = nb, parallel = TRUE) 
-proc.time() - ptm
+fm4.time <- proc.time() - ptm
+
+print(fm4)
 #fm4 with data augmentation out
+
+
+
 
 
 ##############################################################################
@@ -918,7 +935,7 @@ ptm <- proc.time()
 fm5 <- jags( win.data, inits = inits, params, modelname, 
              n.chains = nc, n.thin = nt, n.iter = ni, 
              n.burnin = nb, parallel = TRUE) 
-proc.time() - ptm
+fm5.time <- proc.time() - ptm
 #fm5 trying to avoid estimation of z and y for unsampled jXk
 
 # #auto update the model
