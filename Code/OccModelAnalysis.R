@@ -286,17 +286,16 @@ cat("
     #indicator of whether undetected species should be added to j segment and k year
     w[ s, j, k ] ~ dbern(  omega.y )
     #only use omega for undetected species:
-    omega.y <- ifelse( ydf[ s, j, k ] == 1, 1, omega )
-    } #k
+    omega.y <- ifelse( det[ s, j, k ] == 1, 1, omega )
+     } #k
     } #j
     } #s
     
+    #priors
     #data augmentation prior
     omega ~ dbeta(4,4)
-    
-    #priors
+
     #priors for detection model 
-    
     #Defining the intercept prior for alpha.0
     int.p <- log(mean.p / (1 - mean.p))
     mean.p ~ dbeta(4, 4)
@@ -387,6 +386,7 @@ params <- c( 'int.psi' #intercept for occupancy model
 #################################################################################
 ###### alternative  variable selection variances for occupancy model ############
 str( win.data <- list( ydf = ydf, #observed occupancy 
+                       det = ydf, #to avoid cyclic error
                        J = J, K = K, S = S, G = G, Q =  4, M = M,
                        #J = 50, K = 5, S = 233, G = 23, Q =  4, M = 84,
                        bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
@@ -426,7 +426,7 @@ cat("
     for( k in 1:K ){ #loop years
     #relate occupancy probability to random intercepts for route and year:
     logit( psi[ j, k ] ) <- int.psi + epsID.psi[ rteno.id[ j ] ] + 
-    eps.psi[ k ]
+                            eps.psi[ k ]
     for( s in 1:S ){ #loop species
     #modeling true occupancy
     muz[ s, j, k ] <- psi[ j, k ] * w.bcr[ s, j, k ]
@@ -461,7 +461,7 @@ cat("
     #indicator of whether undetected species should be added to j segment and k year
     w[ s, j, k ] ~ dbern(  omega.y )
     #only use omega for undetected species:
-    omega.y <- ifelse( y[ s, j, k ] == 1, 1, omega )
+    omega.y <- ifelse( det[ s, j, k ] == 1, 1, omega )
     } #k
     } #j
     } #s
@@ -469,7 +469,7 @@ cat("
     #priors
     #data augmentation prior
     omega ~ dbeta(4,4)
-    
+
     #priors for detection model 
     #Defining the intercept prior for alpha.0
     int.p <- log(mean.p / (1 - mean.p))
@@ -560,6 +560,7 @@ params <- c( 'int.psi' #intercept for occupancy model
 #################################################################################
 ###### alternative  variable selection variances for occupancy model ############
 str( win.data <- list( ydf = ydf, #observed occupancy 
+                       det = ydf, #to avoid cyclic error
                        J = J, K = K, S = S, G = G, Q =  4, M = M,
                        #J = 50, K = 5, S = 233, G = 23, Q =  4, M = 84,
                        bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
@@ -582,7 +583,7 @@ proc.time() - ptm
 #fm3 with delta out
 ######### from om2: commenting out different aspects ##############################
 ########Model specification###############
-sink( "om3.txt" )
+sink( "om4.txt" )
 cat("
     model{
     
@@ -711,7 +712,7 @@ inits <- function(){ list( z = zst ) }
 
 #parameters monitored #only keep those relevant for model comparisons (with different variances)
 params <- c( 'int.psi' #intercept for occupancy model 
-             #             , 'w.bcr' #indicator variable of which species are added as augmented set
+             , 'w.bcr' #indicator variable of which species are added as augmented set
              , 'eps.psi' #random year intercept
              , 'epsID.psi' #random route intercept 
              , 'sigma.psi', 'sigmaID.psi' #std dev for random intercepts
@@ -765,7 +766,7 @@ cat("
     #modeling true occupancy
     muz[ s, j, k ] <- psi[ j, k ] * w.bcr[ s, j, k ]
     #only estimate z for surveyed sites and segments
-    muzsurv[ s, j, k ] <- ifelse( ydf[ s, j, k ] >= 0, muz[ s, j, k ], 0 )
+    muzsurv[ s, j, k ] <- ifelse( det[ s, j, k ] >= 0, muz[ s, j, k ], 0 )
     z[ s, j, k ] ~ dbern( muz[ s, j, k ] )            
     }#S
     }#K
@@ -782,7 +783,7 @@ cat("
     alpha[ 4 ] * Mass.scaled[ s ] +
     delta[ s ]
     #only use p for surveyed sites
-    psurv[ s, j, k ] <- ifelse( ydf[ s, j, k ] >= 0, p[ s, j, k ], 0 )
+    psurv[ s, j, k ] <- ifelse( det[ s, j, k ] >= 0, p[ s, j, k ], 0 )
     mup[ s, j, k ] <- z[s, j, k] * psurv[s, j, k]
     
     ydf[s, j, k] ~ dbern( mup[ s, j, k ]  )
@@ -799,7 +800,7 @@ cat("
     #indicator of whether undetected species should be added to j segment and k year
     w[ s, j, k ] ~ dbern(  omega.y )
     #only use omega for undetected species:
-    omega.y <- ifelse( ydf[ s, j, k ] == 1, 1, omega )
+    omega.y <- ifelse( det[ s, j, k ] == 1, 1, omega )
     } #k
     } #j
     } #s
@@ -900,6 +901,7 @@ params <- c( 'int.psi' #intercept for occupancy model
 #################################################################################
 ###### alternative  variable selection variances for occupancy model ############
 str( win.data <- list( ydf = ydf, #observed occupancy 
+                       det = ydf, #to avoid cyclic error
                        J = J, K = K, S = S, G = G, Q =  4, M = M,
                        #J = 50, K = 5, S = 233, G = 23, Q =  4, M = 84,
                        bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
