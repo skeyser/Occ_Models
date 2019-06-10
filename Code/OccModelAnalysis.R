@@ -252,46 +252,46 @@ cat("
     
     #ecological model
     for( j in 1:J ){ #loop segments
-    for( k in 1:K ){ #loop years
-    #relate occupancy probability to random intercepts for route and year:
-    logit( psi[ j, k ] ) <- int.psi + epsID.psi[ rteno.id[ j ] ] + 
-    eps.psi[ k ]
-    for( s in 1:S ){ #loop species
-    #modeling true occupancy
-    muz[ s, j, k ] <- psi[ j, k ] * w.bcr[ s, j, k ]
-    z[ s, j, k ] ~ dbern( muz[ s, j, k ] )            
-    }#S
-    }#K
+      for( k in 1:K ){ #loop years
+        #relate occupancy probability to random intercepts for route and year:
+        logit( psi[ j, k ] ) <- int.psi + epsID.psi[ rteno.id[ j ] ] + 
+                            eps.psi[ k ]
+        for( s in 1:S ){ #loop species
+          #modeling true occupancy
+          muz[ s, j, k ] <- psi[ j, k ] * w.bcr[ s, j, k ]
+          z[ s, j, k ] ~ dbern( muz[ s, j, k ] )            
+        }#S
+      }#K
     }#J
     
     #Detection Model 
     for (s in 1:S){ #loop species
-    for (j in 1:J){ #loop sites (rt_segment)
-    for (k in 1:K){ #loop years 
-    #relate p to predictors
-    logit( p[s,j,k] ) <- int.p + alpha[1] * Obs.ma[j,k] +
-    alpha[2] * Ord.ma[j,k] + 
-    alpha[3] * TOD.ma[j, k] + 
-    alpha[ 4 ] * Mass.scaled[ s ] +
-    delta[ s ]
-    mup[ s, j, k ] <- z[s, j, k] * p[s, j, k]
-    ydf[s, j, k] ~ dbern( mup[ s, j, k ]  )
-    }#K
-    }#J
+      for (j in 1:J){ #loop sites (rt_segment)
+        for (k in 1:K){ #loop years 
+          #relate p to predictors
+          logit( p[s,j,k] ) <- int.p + alpha[1] * Obs.ma[j,k] +
+                                alpha[2] * Ord.ma[j,k] + 
+                                alpha[3] * TOD.ma[j, k] + 
+                                alpha[ 4 ] * Mass.scaled[ s ] +
+                                delta[ s ]
+          mup[ s, j, k ] <- z[s, j, k] * p[s, j, k]
+          ydf[s, j, k] ~ dbern( mup[ s, j, k ]  )
+        }#K
+      }#J
     }#S
     
     #defining data augmentation indicator prior
     for( s in 1:S ){ #loop species
-    for( j in 1:J ){ #loop segments
-    for( k in 1:K ){ #loop years
-    #restrict data augmentation only if undetected species is found in BCR      
-    w.bcr[ s, j, k ] <- w[ s, j, k ] * bcr.occ[ s, bcr.id[j] ]
-    #indicator of whether undetected species should be added to j segment and k year
-    w[ s, j, k ] ~ dbern(  omega.y )
-    #only use omega for undetected species:
-    omega.y <- ifelse( det[ s, j, k ] == 1, 1, omega )
-     } #k
-    } #j
+      for( j in 1:J ){ #loop segments
+        for( k in 1:K ){ #loop years
+          #restrict data augmentation only if undetected species is found in BCR      
+          w.bcr[ s, j, k ] <- w[ s, j, k ] * bcr.occ[ s, bcr.id[j] ]
+          #indicator of whether undetected species should be added to j segment and k year
+          w[ s, j, k ] ~ dbern(  omega.y )
+          #only use omega for undetected species:
+          omega.y <- ifelse( det[ s, j, k ] == 1, 1, omega )
+        } #k
+      } #j
     } #s
     
     #priors
