@@ -289,7 +289,7 @@ cat("
           #indicator of whether undetected species should be added to j segment and k year
           w[ s, j, k ] ~ dbern(  omega.y )
           #only use omega for undetected species:
-          omega.y <- ifelse( det[ s, j, k ] == 1, 1, omega )
+          omega.y[ s, j, k ] <- ifelse( det[ s, j, k ] == 1, 1, omega )
         } #k
       } #j
     } #s
@@ -469,7 +469,7 @@ cat("
     #indicator of whether undetected species should be added to j segment and k year
     w[ s, j, k ] ~ dbern(  omega.y )
     #only use omega for undetected species:
-    omega.y <- ifelse( det[ s, j, k ] == 1, 1, omega )
+    omega.y[ s, j, k ] <- ifelse( det[ s, j, k ] == 1, 1, omega )
     } #k
     } #j
     } #s
@@ -639,7 +639,7 @@ cat("
     #      #indicator of whether undetected species should be added to j segment and k year
     #      w[ s, j, k ] ~ dbern(  omega.y )
     #      #only use omega for undetected species:
-    #      omega.y <- ifelse( y[ s, j, k ] == 1, 1, omega )
+    #      omega.y[ s, j, k ] <- ifelse( det[ s, j, k ] == 1, 1, omega )
     #     } #k
     #   } #j
     #  } #s
@@ -817,7 +817,7 @@ cat("
     #indicator of whether undetected species should be added to j segment and k year
     w[ s, j, k ] ~ dbern(  omega.y )
     #only use omega for undetected species:
-    omega.y <- ifelse( det[ s, j, k ] == 1, 1, omega )
+    omega.y[ s, j, k ] <- ifelse( det[ s, j, k ] == 1, 1, omega )
     } #k
     } #j
     } #s
