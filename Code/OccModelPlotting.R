@@ -11,12 +11,12 @@ rm(list = ls())
 
 #Package Loading 
 library(pacman)
-pacman::p_load(pacman, tidyverse, here, jagsUI)
+pacman::p_load(pacman, tidyverse, here, jagsUI, MCMCvis)
 
 ### Finish loading packages ###
 
 ### Load in Workspace from occ model run ###
-load(workspace)
+output <- readRDS("E:/MSI_Research/MCMC Output/PelicaniformesSummaryMat.rds")
 
 #############################################
 ############Model visualization##############
@@ -24,10 +24,10 @@ load(workspace)
 
 #Assign model output to an object
 
-mod <- "model_output"
+mod <- output
 
 ### Trace plots ###
-par(mfrow = c(), ask = F, mar = c())
+par(mfrow = c(3, 3), ask = F, mar = c(3, 4, 2, 2))
 
 traceplot(mod, parameters = c( 'int.p' ))
 traceplot(mod, parameters = c( 'alpha' ))
