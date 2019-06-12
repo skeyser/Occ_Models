@@ -158,11 +158,32 @@ cat("
     precID.psi <- 1 / ( sigmaID.psi * sigmaID.psi )
     sigmaID.psi ~ dt( 0, 1, 4 ) T(0, )
 
-    #Summary Stats for models
+    ###Summary Stats for models###
+    #Mean detection across species 
     for( s in 1:S ){
-    p.sp <- mean( p[ j, k ] * JKmat[ j, k ])
-    }
-
+    p.sp[ s ] <- mean( p[ 1:J, 1:K ] * JKmat[ 1:J, 1:K ])
+    }#S
+    
+    #Mean detection of all species within each site
+    for ( j in 1:J ) {
+    p.site[ j ] <- mean( p[ 1:S, 1:K ] * JKmat[ j, 1:K])
+    }#J
+    
+    #Generate a corrected z-matrix based on the mean z[ s, j, k]
+    for (s in 1:S){
+      for (j in 1:J){
+        for (k in 1:K){
+        z.prime <- ifelse(mean$z[s, j, k] >= 0.50, 1, 0)
+        }#K
+      }#J
+    }#S
+    
+    #Find yearly alpha diversity
+    for (j in 1:J){
+      for ( k in  1:K){
+      a.div <- sum( z[ 1:S, j, k ] * JKmat[ j, k ])
+    }#K
+  }#J
 
     } #model spec end
     
@@ -180,7 +201,7 @@ inits <- function(){ list( z = zst ) }
 
 #parameters monitored #only keep those relevant for model comparisons (with different variances)
 params <- c( 'int.psi' #intercept for occupancy model 
-             , 'w.bcr' #indicator variable of which species are added as augmented set
+             #, 'w.bcr' #indicator variable of which species are added as augmented set
              , 'eps.psi' #random year intercept
              , 'epsID.psi' #random route intercept 
              , 'sigma.psi', 'sigmaID.psi' #std dev for random intercepts
