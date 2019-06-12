@@ -253,7 +253,7 @@ fm1.time <- proc.time() - ptm
 ####Model 1 with species random effects###
 
 ########Model specification###############
-sink( "om1.txt" )
+sink( "om2.txt" )
 cat("
     model{
     
@@ -361,7 +361,7 @@ cat("
 sink()
 
 ################ end of model specification  #####################################
-modelname <- "om1.txt"
+modelname <- "om2.txt"
 
 #create initial values
 zst <- ydf
@@ -398,11 +398,11 @@ str( win.data <- list( ydf = ydf, #observed occupancy
 #library( jagsUI )
 #call JAGS and summarize posteriors:
 ptm <- proc.time()
-fm1 <- jags( win.data, inits = inits, params, modelname, 
+fm2 <- jags( win.data, inits = inits, params, modelname, 
              n.chains = nc, n.thin = nt, n.iter = ni, 
              n.burnin = nb, parallel = TRUE) 
 
-fm1.time <- proc.time() - ptm
+fm2.time <- proc.time() - ptm
 
 # #auto update the model
 # upm1 <- autojags( win.data, inits = inits, params, modelname, 
@@ -418,7 +418,7 @@ fm1.time <- proc.time() - ptm
 ##############################################################################
 ######### different data augmentation set up ##############################
 ########Model specification###############
-sink( "om5.txt" )
+sink( "om3.txt" )
 cat("
     model{
     
@@ -536,7 +536,7 @@ cat("
 sink()
 
 ################ end of model specification  #####################################
-modelname <- "om5.txt"
+modelname <- "om3.txt"
 
 #create initial values
 zst <- ydf
@@ -575,10 +575,10 @@ str( win.data <- list( ydf = ydf, #observed occupancy
 #library( jagsUI )
 #call JAGS and summarize posteriors:
 ptm <- proc.time()
-fm5 <- jags( win.data, inits = inits, params, modelname, 
+fm3 <- jags( win.data, inits = inits, params, modelname, 
              n.chains = nc, n.thin = nt, n.iter = ni, 
              n.burnin = nb, parallel = TRUE) 
-fm5.time <- proc.time() - ptm
+fm3.time <- proc.time() - ptm
 #fm5 trying to avoid estimation of z and y for unsampled jXk
 
 # #auto update the model
