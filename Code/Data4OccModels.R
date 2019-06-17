@@ -230,7 +230,12 @@ head( JKmat); dim( JKmat )
 #define how many segments were surveyed each year:
 surveyedJ <- colSums( JKmat, na.rm = TRUE )
 
-
+#create indicator for calculating summary statistics
+JKsurv <- JKmat
+JKsurv[ is.na(JKsurv) ] <- 0 
+#check
+JKmat[1:5,1:10]
+JKsurv[1:5,1:10]
 
 ####### now we create the ydf ##### 
 #create observations dataframe
