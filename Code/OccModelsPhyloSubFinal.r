@@ -18,7 +18,7 @@ pacman::p_load(jagsUI, MCMCvis)
 
 #load(here::here('R Workspace/Data4OccModels_6_3.RData'))
 
-####Hello github####
+##Hello github##
 
 
 #########################################################################################
