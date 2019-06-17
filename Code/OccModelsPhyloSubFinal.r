@@ -8,7 +8,7 @@
 #rm(list = ls())
 install.packages("pacman")
 library("pacman")
-pacman::p_load(jagsUI, MCMCvis)
+pacman::p_load(jagsUI, MCMCvis, here)
 
 #########Package Loading Complete########
 #########################################
@@ -16,7 +16,7 @@ pacman::p_load(jagsUI, MCMCvis)
 ###Load in the Data4OccModels Workspace###
 ##########################################
 
-#load(here::here('R Workspace/Data4OccModels_6_3.RData'))
+load(here::here('R Workspace/Data4OccModels_6_3.RData'))
 
 ##Hello github##
 
