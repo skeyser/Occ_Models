@@ -3,7 +3,8 @@
 ###############Created by Spencer R Keyser##############
 ########################################################
 
-rm(list = ls()) 
+rm(list = ls())
+  
 
 ##Package Loading## 
 
@@ -321,7 +322,8 @@ family.count <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Family_L
 ########################################################
 ############Creation of phylogenetic subgroup###########
 
-final_sp_df <- final_sp_df[final_sp_df$Family_Latin == "Passeridae/Cardinalidae/Fringillidae",]
+#final_sp_df <- final_sp_df[final_sp_df$Family_Latin == "",]
+#final_sp_df <- final_sp_df[final_sp_df$Order == "Columbiformes",]
 
 ########################################################
 
@@ -360,17 +362,17 @@ final_sp_df <- final_sp_df %>% select(sci_name, English, spp.id, Detected, Phylo
 ##########################
 
 
-#Compute total # of detections per Family and Order
-obs.phylo.fam <- aggregate(Detected ~ Family_Latin + Order, final_sp_df, FUN = sum)
-obs.phylo.fam <- obs.phylo.fam[obs.phylo.fam$Order == "Passeriformes",]
-
-obs.phylo.order <- aggregate(Detected ~ Order, final_sp_df, FUN = sum)
-obs.phylo.order$Family_Latin <- NA
-
-#Rearrange and bind order data and family data
-obs.phylo.fam <- obs.phylo.fam %>% select(Order, Family_Latin, Detected)
-obs.phylo.order <- obs.phylo.order %>% select(Order, Family_Latin, Detected)
-obs.phylo <- rbind(obs.phylo.fam, obs.phylo.order)
+# #Compute total # of detections per Family and Order
+# obs.phylo.fam <- aggregate(Detected ~ Family_Latin + Order, final_sp_df, FUN = sum)
+# obs.phylo.fam <- obs.phylo.fam[obs.phylo.fam$Order == "Passeriformes",]
+# 
+# obs.phylo.order <- aggregate(Detected ~ Order, final_sp_df, FUN = sum)
+# obs.phylo.order$Family_Latin <- NA
+# 
+# #Rearrange and bind order data and family data
+# obs.phylo.fam <- obs.phylo.fam %>% select(Order, Family_Latin, Detected)
+# obs.phylo.order <- obs.phylo.order %>% select(Order, Family_Latin, Detected)
+# obs.phylo <- rbind(obs.phylo.fam, obs.phylo.order)
 
 
 
@@ -459,8 +461,18 @@ colnames(bcr.occ)[colnames(bcr.occ) == "unique(final_sp_df$BCR)"] <- "BCR"
 
 bcr.occ <- bcr.detections
 rownames(bcr.occ) <- bcr.occ$spp.id
-bcr.occ <- bcr.occ[, -1]
+
+bcr.occ <- subset(bcr.occ, select = -c(spp.id))
+
+#This depends on the species group being used
+# bcr.occ$BCR26 <- 0
+# bcr.occ$BCR27 <- 0
+# bcr.occ$BCR31 <- 0
+# bcr.occ$BCR36 <- 0
+#bcr.occ$BCR37 <- 0
+
 colnames(bcr.occ) <- c(1, 2, 3, 4, 5)
+
 
 #Write csv
 #write.csv(bcr.occ, file = here("Data_BBS/Generated DFs/BCR.occ.csv"))
@@ -823,12 +835,13 @@ for( i in 1:S ){
   ydf[ i, , ] <- ydf[ i, , ] * JKmat
 }
 
-ydf[6, 26, ]
+ydf[9, 25, ]
 
 
 
 #####Workspace for testing subsetted groupings######
 rm(list = setdiff(ls(), c("ydf", "jdf", "bcr.occ", 
                           "spp.occ", "TOD.ma", "Ord.ma",
-                          "Obs.ma", "JKmat")))
-save.image(here::here("R Workspace/CardinalsFinchesSubgroup.RData"))
+                          "Obs.ma", "JKmat", "JKsurv", "final_sp_df")))
+
+save.image(here::here("R Workspace/FullData6_17_19.RData"))
