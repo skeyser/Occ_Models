@@ -18,7 +18,7 @@ pacman::p_load(jagsUI, MCMCvis, here)
 ###Load in the Data4OccModels Workspace###
 ##########################################
 
-load(here::here('R Workspace/Data4OccModels_6_3.RData'))
+load(here::here('R Workspace/CuckoosSubgroup.RData'))
 
 ##Hello github##
 
@@ -28,7 +28,7 @@ load(here::here('R Workspace/Data4OccModels_6_3.RData'))
 ####################### define MCMC settings ##############################
 
 #ni <- 20000; nt <- 10; nb <- 5000; nc <- 3 #iterations, thinning, burnin, chains
-ni <- 2; nt <- 1; nb <- 0; nc <- 1 #iterations, thinning, burnin, chains
+ni <- 5000; nt <- 10; nb <- 1000; nc <- 3 #iterations, thinning, burnin, chains
 
 #do these need to be on this script?
 J <- length(unique(jdf$site.id))
@@ -231,16 +231,17 @@ str( win.data <- list( ydf = ydf, #observed occupancy
 #library( jagsUI )
 #call JAGS and summarize posteriors:
 ptm <- proc.time()
-fm1 <- jags( win.data, inits = inits, params, modelname, 
-             n.chains = nc, n.thin = nt, n.iter = ni, 
-             n.burnin = nb, parallel = TRUE) 
-fm1.time <- proc.time() - ptm
+# fm1 <- jags( win.data, inits = inits, params, modelname, 
+#              n.chains = nc, n.thin = nt, n.iter = ni, 
+#              n.burnin = nb, parallel = TRUE) 
 
-# #auto update the model
-# upm1 <- autojags( win.data, inits = inits, params, modelname, 
-#           n.chains = 3, n.thin = 5, n.burnin = 0,
-#           iter.increment = 10, max.iter = 100,
-#           Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
+#auto update the model
+upm1 <- autojags( win.data, inits = inits, params, modelname,
+          n.chains = 3, n.thin = 5, n.burnin = 0,
+          iter.increment = 10, max.iter = 100,
+          Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
+
+fm1.time <- proc.time() - ptm
 
 
 ##########################################
@@ -378,6 +379,8 @@ params <- c( 'int.psi' #intercept for occupancy model
              , 'int.p' #intercept for detection submodel 
              , 'alpha' #fixed coefficients for detection submodel 
              , 'delta', 'sigma.delta' #random species intercept in detection model
+             , 'z'
+             , 'p'
              #### need to add summary stats to the model ####
              # , 'z.prime' #only summary for estimated true occupancy
              # , 'mean.p.sp' #only mean summary for detection probability
@@ -402,14 +405,15 @@ str( win.data <- list( ydf = ydf, #observed occupancy
 #library( jagsUI )
 #call JAGS and summarize posteriors:
 ptm <- proc.time()
-fm2 <- jags( win.data, inits = inits, params, modelname, 
-             n.chains = nc, n.thin = nt, n.iter = ni, 
-             n.burnin = nb, parallel = TRUE) 
+# fm2 <- jags( win.data, inits = inits, params, modelname, 
+#              n.chains = nc, n.thin = nt, n.iter = ni, 
+#              n.burnin = nb, parallel = TRUE) 
+
+
+#auto update the model
+upm1 <- autojags( win.data, inits = inits, params, modelname,
+          n.chains = 3, n.thin = 10, n.burnin = 2000,
+          iter.increment = 10000, max.iter = 50000,
+          Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
 
 fm2.time <- proc.time() - ptm
-
-# #auto update the model
-# upm1 <- autojags( win.data, inits = inits, params, modelname, 
-#           n.chains = 3, n.thin = 5, n.burnin = 0,
-#           iter.increment = 10, max.iter = 100,
-#           Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
