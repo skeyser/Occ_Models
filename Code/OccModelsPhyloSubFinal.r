@@ -417,3 +417,52 @@ upm1 <- autojags( win.data, inits = inits, params, modelname,
           Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
 
 fm2.time <- proc.time() - ptm
+
+surveyedJ <- colSums( JKmat, na.rm = TRUE )
+
+###Summary Stats for models###
+#Mean detection across species 
+mean.p.sp <- data.frame(matrix(NA, nrow = 5, ncol = 1))
+names(mean.p.sp) <- c("mean.p")
+
+for( s in 1:length(unique(spp.occ$spp.id)) ){ 
+  #the mean needs to be calculated manually when trying to exclude segments
+  #p.sp[ s ] <- mean( p[ s, 1:J, 1:K ] * JKsurv[ 1:J, 1:K ])
+  #sum p values only for sampled segments
+  p.sp.mat <- (upm1$mean$p[ s, 1:J, 1:K ]  * JKsurv[ 1:J, 1:K ])
+  p.sp.mat <- apply(p.sp.mat, 2, sum)
+  p.sp <-  p.sp.mat[ 1:K ] / surveyedJ[ 1:K ]
+  #divide by total number of sampled segments each year
+
+##then following from your code below
+  mean.p.sp [s,] <- mean(p.sp)
+}#S
+
+#I'm not sure this one makes sense to summarise that way across species    
+# #Mean detection of all species within each site
+# for ( j in 1:J ) {
+# p.site[ j ] <- mean( p[ 1:S, j, 1:K ] * JKmat[ j, 1:K ] )
+# }#J
+
+#CAN YOU DO THIS INSIDE? WOW
+#Generate a corrected z-matrix based on the mean z[ s, j, k]
+for (s in 1:S){
+  for (j in 1:J){
+    for (k in 1:K){
+      #z.prime <- ifelse( mean$z[s, j, k] >= 0.50, 1, 0) 
+      #round function rounds to nearest interger so it would do the same as above line
+      z.prime[s, j, k] <- round( upm1$mean$z[s, j, k] ) 
+    }#K
+  }#J
+}#S
+
+#Find yearly alpha diversity
+for (j in 1:J){
+  for ( k in  1:K){
+    #zeros those z for unsampled segments
+    a.div[ j, k ] <- sum( z[ 1:S, j, k ] * JKsurv[ j, k ] )
+    #keep only average estimate
+    mean.a.div[ j, k ] <- mean$a.div[ j, k ]
+  }#K
+}#J
+
