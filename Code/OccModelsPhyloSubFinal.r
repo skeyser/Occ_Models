@@ -28,7 +28,7 @@ load(here::here('R Workspace/CuckoosSubgroup.RData'))
 ####################### define MCMC settings ##############################
 
 #ni <- 20000; nt <- 10; nb <- 5000; nc <- 3 #iterations, thinning, burnin, chains
-ni <- 5000; nt <- 10; nb <- 1000; nc <- 3 #iterations, thinning, burnin, chains
+#ni <- 5000; nt <- 10; nb <- 1000; nc <- 3 #iterations, thinning, burnin, chains
 
 #do these need to be on this script?
 J <- length(unique(jdf$site.id))
@@ -412,11 +412,36 @@ ptm <- proc.time()
 
 #auto update the model
 upm1 <- autojags( win.data, inits = inits, params, modelname,
-          n.chains = 3, n.thin = 10, n.burnin = 2000,
-          iter.increment = 10000, max.iter = 50000,
+          n.chains = 3, n.thin = 10, n.burnin = 5000,
+          iter.increment = 20000, max.iter = 60000,
           Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
 
 fm2.time <- proc.time() - ptm
+
+#Pull out non-converging parameters 
+bad.params <- unlist(upm1$Rhat)
+bad.params <- bad.params[bad.params > 1.1]
+bad.params <- bad.params[complete.cases(bad.params)]
+bad.params
+
+#####################################################
+#################Visualize traceplots################
+#####################################################
+MCMCtrace(upm1, params = 'delta', Rhat = T, pdf = F)
+MCMCtrace(upm1, params = 'alpha', Rhat = T, pdf = F)
+MCMCtrace(upm1, params = 'epsID.psi', Rhat = T, pdf = F)
+MCMCtrace(upm1, params = 'eps.psi', Rhat = T, pdf = F)
+MCMCtrace(upm1, params = 'int.p', Rhat = T, pdf = F)
+MCMCtrace(upm1, params = 'int.psi', Rhat = T, pdf = F)
+MCMCtrace(upm1, params = 'sigma.psi', Rhat = T, pdf = F)
+MCMCtrace(upm1, params = 'sigmaID.psi', Rhat = T, pdf = F)
+MCMCtrace(upm1, params = 'sigma.delta', Rhat = T, pdf = F)
+
+
+
+#####################################################
+################End traceplots#######################
+#####################################################
 
 surveyedJ <- colSums( JKmat, na.rm = TRUE )
 
@@ -446,6 +471,8 @@ for( s in 1:length(unique(spp.occ$spp.id)) ){
 
 #CAN YOU DO THIS INSIDE? WOW
 #Generate a corrected z-matrix based on the mean z[ s, j, k]
+z.prime <- upm1$mean$z
+
 for (s in 1:S){
   for (j in 1:J){
     for (k in 1:K){
@@ -456,13 +483,17 @@ for (s in 1:S){
   }#J
 }#S
 
-#Find yearly alpha diversity
+
+#Find yearly alpha diversity per subgroup
+group.a.div <- matrix(NA, 215, 38)
+
 for (j in 1:J){
   for ( k in  1:K){
     #zeros those z for unsampled segments
-    a.div[ j, k ] <- sum( z[ 1:S, j, k ] * JKsurv[ j, k ] )
+    group.a.div[ j, k ] <- sum( z.prime[ 1:S, j, k ] * JKsurv[ j, k ] )
     #keep only average estimate
-    mean.a.div[ j, k ] <- mean$a.div[ j, k ]
+    #mean.a.div[ j, k ] <- mean(a.div[ j, k ])
   }#K
 }#J
+
 
