@@ -12,8 +12,9 @@ rm(list = ls())
 #Package Loading
 #install.packages("pacman")
 library("pacman")
-pacman::p_load("sjPlot", "sjstats", "nlme","reshape2", "effects","vegan", "lmerTest", "tidyverse", 
-				"lsr", "cowplot", "here", "purrr", "lme4", "car", "MASS", "MuMIn")
+pacman::p_load("sjPlot", "sjstats", "nlme","reshape2", "effects","vegan", 
+               "lmerTest", "tidyverse", "lsr", "cowplot", "here", "purrr", 
+               "lme4", "car", "MASS", "MuMIn")
 #When I updated R in the console, it wiped some packages like yaml and stringi from the computer
 #Code below allowed me to get stringi back
 #install.packages("stringi", repos="http://cran.rstudio.com/", dependencies=TRUE)
@@ -85,7 +86,7 @@ bbs_fl <- merge(bbs_fl, rts_fl, "rteno")
 fl <- bbs_fl[, c("rteno", "statenum", "rtename", "Year", 
                  "SpeciesTotal", "Aou", "latitude", 
                  "longitude", "count10", "count20",
-				 "count30", "count40", "count50")]
+				         "count30", "count40", "count50")]
 colnames(fl) <- tolower(colnames(fl))
 
 #Alabama data slightly different 
@@ -98,9 +99,9 @@ bbs_al <- merge(bbs_al, rts_al, "rteno")
 bbs_al$BCR <- 27
 colnames(bbs_al) <- tolower(colnames(bbs_al))
 al <- bbs_al[, c("rteno", "statenum", "rtename", "year", 
-				 "speciestotal", "aou", "latitude", 
-				 "longitude", "count10", "count20",
-				 "count30", "count40", "count50")]
+                 "speciestotal", "aou", "latitude", 
+                 "longitude", "count10", "count20",
+                 "count30", "count40", "count50")]
 
 rts_tx <- rts_final %>% filter(str_detect(rteno, "^83"))
 rts_tx$state <- 83
@@ -108,9 +109,9 @@ bbs_tx <- mutate(bbs_tx, proxy = StateNum * 1000) %>% mutate(rteno = proxy + Rou
 bbs_tx <- merge(bbs_tx, rts_tx, "rteno")
 colnames(bbs_tx) <- tolower(colnames(bbs_tx))
 tx <- bbs_tx[, c("rteno", "statenum", "rtename", "year", 
-				 "speciestotal", "aou", "latitude", 
-				 "longitude", "count10", "count20",
-				 "count30", "count40", "count50")]
+                 "speciestotal", "aou", "latitude", 
+                 "longitude", "count10", "count20",
+                 "count30", "count40", "count50")]
 
 rts_la <- rts_final %>% filter(str_detect(rteno, "^42"))
 rts_la$state <- 42
@@ -118,9 +119,9 @@ bbs_la <- mutate(bbs_la, proxy = statenum * 1000) %>% mutate(rteno = proxy + Rou
 bbs_la <- merge(bbs_la, rts_la, "rteno")
 colnames(bbs_la) <- tolower(colnames(bbs_la))
 la <- bbs_la[, c("rteno", "statenum", "rtename", "year", 
-				 "speciestotal", "aou", "latitude", 
-				 "longitude", "count10", "count20",
-				 "count30", "count40", "count50")]
+                 "speciestotal", "aou", "latitude", 
+                 "longitude", "count10", "count20",
+                 "count30", "count40", "count50")]
 
 rts_ms <-rts_final %>% filter(str_detect(rteno, "^51"))
 rts_ms$state <- 51
@@ -128,16 +129,16 @@ bbs_ms <- mutate(bbs_ms, proxy = statenum * 1000) %>% mutate(rteno = proxy + Rou
 bbs_ms <- merge(bbs_ms, rts_ms, "rteno")
 colnames(bbs_ms) <- tolower(colnames(bbs_ms)) 
 ms <- bbs_ms[, c("rteno", "statenum", "rtename", "year", 
-				 "speciestotal", "aou", "latitude", 
-				 "longitude", "count10", "count20",
-				 "count30", "count40", "count50")]
+                 "speciestotal", "aou", "latitude", 
+                 "longitude", "count10", "count20",
+                 "count30", "count40", "count50")]
 
 #Join all states together 
 bbs_total <- rbind(tx, al, ms, fl, la)
 
 
 #Creation of species scientific name 
-species$Linnean <- paste0(species$Genus, " ", species$Species)
+species$linnean <- paste0(species$Genus, " ", species$Species)
 
 #Merge species names with AOU
 colnames(species)[2] <- "Aou"
@@ -157,6 +158,49 @@ bbs_total$state[bbs_total$statenum == 42] <- "LA"
 
 bbs_total$unique_id <- paste0(bbs_total$state, "_", bbs_total$rteno, "_", bbs_total$year)
 bbs_total$abbrev <- paste0(bbs_total$state, "_", bbs_total$rteno)
+
+birds <- bbs_total[, c("rteno", "year", "linnean",
+                       "count10", "count20", "count30",
+                       "count40", "count50")]
+#Melt the DF to create segment level information 
+birds.melt <- melt(birds, 
+                   id.vars = c("rteno", "year", "linnean"), 
+                   measure.vars = c("count10",
+                                    "count20",
+                                    "count30",
+                                    "count40",
+                                    "count50"))
+
+#Change "variable" or "count #" into a character objects
+birds.melt[, 4] <- sapply(birds.melt[, 4], as.character)
+
+birds.melt$unique_id <- paste0(birds.melt$rteno, "_", birds.melt$year)
+
+#Count Numbers are now Segments 
+birds.melt[birds.melt$variable == "count10", 4] <- 1
+birds.melt[birds.melt$variable == "count20", 4] <- 2
+birds.melt[birds.melt$variable == "count30", 4] <- 3
+birds.melt[birds.melt$variable == "count40", 4] <- 4
+birds.melt[birds.melt$variable == "count50", 4] <- 5
+
+#Make ID for route + year + segment detection histories 
+birds.melt$unique_id <- paste0(birds.melt$unique_id, "_", birds.melt$variable)
+colnames(birds.melt)[colnames(birds.melt) == "value"] <- "Detected"
+colnames(birds.melt)[colnames(birds.melt) == "variable"] <- "Segment"
+birds.melt$rt_yr <- paste0(birds.melt$rteno, "_", birds.melt$year)
+
+
+#Create rt_yr id for BBS_total
+bbs_total$rt_yr <- paste0(bbs_total$rteno, "_", bbs_total$year)
+
+#Remove the species detection and info from birds.melt 
+bbs_total <- bbs_total[, !names(bbs_total) %in% c("count10", "count20", "count30", 
+                                                  "count40", "count50", "linnean")]
+
+birds.melt <- birds.melt[, !names(birds.melt) %in% c("year", "rteno")]
+
+#Merge melted df with the observations  
+bbs_seg <- merge(bbs_total, birds.melt, by = "rt_yr")
 
 #Create a spp by site matrix
 #Keep only the columns we need
