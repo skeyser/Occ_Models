@@ -412,8 +412,8 @@ ptm <- proc.time()
 
 #auto update the model
 upm1 <- autojags( win.data, inits = inits, params, modelname,
-          n.chains = 3, n.thin = 10, n.burnin = 5000,
-          iter.increment = 20000, max.iter = 60000,
+          n.chains = 3, n.thin = 10, n.burnin = 10000,
+          iter.increment = 10000, max.iter = 30000,
           Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
 
 fm2.time <- proc.time() - ptm
@@ -478,11 +478,18 @@ for (s in 1:S){
     for (k in 1:K){
       #z.prime <- ifelse( mean$z[s, j, k] >= 0.50, 1, 0) 
       #round function rounds to nearest interger so it would do the same as above line
-      z.prime[s, j, k] <- ifelse(upm1$mean$z[s, j, k] > .7, 1, 0) 
+      z.prime[s, j, k] <- ifelse(upm1$mean$z[s, j, k] > .5, 1, 0) 
     }#K
   }#J
 }#S
 
+for( i in 1:S ){
+  z.prime[ i, , ] <- z.prime[ i, , ] * JKmat
+}
+
+z.prime[1,,]
+z.prime[2,,]
+sum(is.na(z.prime[1,,]))
 
 #Find yearly alpha diversity per subgroup
 group.a.div <- matrix(NA, 215, 38)
@@ -496,4 +503,22 @@ for (j in 1:J){
   }#K
 }#J
 
+
+cliff <- ydf[3,,]
+yearly.cliff <- colSums(cliff, 1:J)
+total.cliff <- sum(yearly.cliff)
+
+#Quick function to calculate total observations of each species
+total <- function(x, y){
+  df <- x[y,,]
+  yr.sums <- colSums(df, 1:length(nrow))
+  sum(yr.sums)
+}
+
+#View All non-converged parameters 
+bad.params <- function(x) {
+  rhats <- unlist(x$Rhat)
+  buggers <- rhats[rhats > 1.1]
+  buggers[complete.cases(buggers)]
+}
 
