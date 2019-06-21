@@ -322,8 +322,16 @@ family.count <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Family_L
 ########################################################
 ############Creation of phylogenetic subgroup###########
 
-#final_sp_df <- final_sp_df[final_sp_df$Family_Latin == "",]
-#final_sp_df <- final_sp_df[final_sp_df$Order == "Columbiformes",]
+#Keep a full dataset available for data augmentation
+#subgroup_df <- final_sp_df[final_sp_df$Family_Latin == "",]
+#subgroup_df <- final_sp_df[final_sp_df$Order == "Columbiformes",]
+
+#This is the new "creation of the phylo group"
+#Group of interest will be placed at the front of the df
+#This allows for easy subsetting of the ydf matrix at the end
+
+final_sp_df <- final_sp_df %>% arrange(match(Order, "Strigiformes"), 
+                                       sci_name)
 
 ########################################################
 
@@ -335,7 +343,11 @@ final_sp_df <- plyr::rename(final_sp_df, c("Order" = "Phylo.V2", "Family_Latin" 
 final_sp_df$Phylo.V1 <- ifelse(final_sp_df$Phylo.V2 != "Passeriformes", final_sp_df$Phylo.V2, final_sp_df$Phylo.V1)
 
 
-final_sp_df <- transform(final_sp_df, spp.id = as.numeric(interaction(sci_name, drop = T)))
+#Function retains species ID order and assigns ID
+grpid = function(x) match(x, unique(x))
+final_sp_df <- final_sp_df %>% mutate(spp.id = group_indices(., sci_name) %>% grpid)
+
+#final_sp_df <- transform(final_sp_df, spp.id = as.numeric(interaction(sci_name, drop = T)))
 final_sp_df <- transform(final_sp_df, rteno.id = as.numeric(interaction(rteno.x, drop = T)))
 final_sp_df <- transform(final_sp_df, year.id = as.numeric(interaction(Year, drop = T)))
 final_sp_df <- transform(final_sp_df, site.id = as.numeric(interaction(site, drop = T)))
@@ -654,7 +666,7 @@ spp.occ$Mass.scaled <- as.numeric(spp.occ$Mass.scaled)
 site.occ.ma <- site.occ.scaled %>% select(site, site.id, Year,
                                           year.id, TOD, OrdinalDate,
                                           ChangeD.scaled) %>%
-  arrange(site.id)
+                                          arrange(site.id)
 
 ##Site x Year Matrix with scaled.tod values and NAs for missing
 #Time of day matrix
@@ -824,18 +836,27 @@ for( i in 1:dim( spp.df )[1] ){
        as.numeric( spp.df[i,'year.id'] ) ] <- 1 #as.numeric( spp.df[i, 'Detected'] )
 }
 
+
 # #check that it worked for species 1:
 table( ydf[4,,] )
 table( spp.df$Detected[ which( spp.df$spp.id == 4) ] )  #77 
 spp.df[ which( spp.df$spp.id == 4), ]
 ydf[1,8,32]
 
+#Restrict the spp.occ to the subgroup that is being used
+spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Strigiformes",]
+
+#Reallocate S so that it's cycling through the 
+#group of interest
+S <- max(spp.occ$spp.id)
+
 #add missing values 
 for( i in 1:S ){
   ydf[ i, , ] <- ydf[ i, , ] * JKmat
 }
 
-ydf[9, 25, ]
+#Create the restricted ydf DF 
+ydf <- ydf[length(S), , ]
 
 
 
