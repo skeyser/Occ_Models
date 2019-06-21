@@ -18,7 +18,7 @@ pacman::p_load(jagsUI, MCMCvis, here)
 ###Load in the Data4OccModels Workspace###
 ##########################################
 
-load(here::here('R Workspace/CuckoosSubgroup.RData'))
+load(here::here('R Workspace/SwallowsSubgroup.RData'))
 
 ##Hello github##
 
@@ -478,7 +478,7 @@ for (s in 1:S){
     for (k in 1:K){
       #z.prime <- ifelse( mean$z[s, j, k] >= 0.50, 1, 0) 
       #round function rounds to nearest interger so it would do the same as above line
-      z.prime[s, j, k] <- round( upm1$mean$z[s, j, k] ) 
+      z.prime[s, j, k] <- ifelse(upm1$mean$z[s, j, k] > .7, 1, 0) 
     }#K
   }#J
 }#S
