@@ -27,7 +27,7 @@ load(here::here('R Workspace/SwallowsSubgroup.RData'))
 ###########################################################################
 ####################### define MCMC settings ##############################
 
-#ni <- 20000; nt <- 10; nb <- 5000; nc <- 3 #iterations, thinning, burnin, chains
+ni <- 30000; nt <- 20; nb <- 20000; nc <- 3 #iterations, thinning, burnin, chains
 #ni <- 5000; nt <- 10; nb <- 1000; nc <- 3 #iterations, thinning, burnin, chains
 
 #do these need to be on this script?
@@ -405,16 +405,16 @@ str( win.data <- list( ydf = ydf, #observed occupancy
 #library( jagsUI )
 #call JAGS and summarize posteriors:
 ptm <- proc.time()
-# fm2 <- jags( win.data, inits = inits, params, modelname, 
-#              n.chains = nc, n.thin = nt, n.iter = ni, 
-#              n.burnin = nb, parallel = TRUE) 
+fm2 <- jags( win.data, inits = inits, params, modelname,
+             n.chains = nc, n.thin = nt, n.iter = ni,
+             n.burnin = nb, parallel = TRUE)
 
 
 #auto update the model
-upm1 <- autojags( win.data, inits = inits, params, modelname,
-          n.chains = 3, n.thin = 10, n.burnin = 10000,
-          iter.increment = 10000, max.iter = 30000,
-          Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
+# upm1 <- autojags( win.data, inits = inits, params, modelname,
+#           n.chains = 3, n.thin = 20, n.burnin = 10000,
+#           iter.increment = 30000, max.iter = 40000,
+#           Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
 
 fm2.time <- proc.time() - ptm
 
