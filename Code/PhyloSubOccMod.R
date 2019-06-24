@@ -330,7 +330,7 @@ family.count <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Family_L
 #Group of interest will be placed at the front of the df
 #This allows for easy subsetting of the ydf matrix at the end
 
-final_sp_df <- final_sp_df %>% arrange(match(Order, "Strigiformes"), 
+final_sp_df <- final_sp_df %>% arrange(match(Family_Latin, "Hirundinidae"), 
                                        sci_name)
 
 ########################################################
@@ -844,7 +844,7 @@ spp.df[ which( spp.df$spp.id == 4), ]
 ydf[1,8,32]
 
 #Restrict the spp.occ to the subgroup that is being used
-spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Strigiformes",]
+spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Hirundinidae",]
 
 #Reallocate S so that it's cycling through the 
 #group of interest
@@ -856,13 +856,14 @@ for( i in 1:S ){
 }
 
 #Create the restricted ydf DF 
-ydf <- ydf[length(S), , ]
+ydf <- ydf[1:length(unique(spp.occ$Species)), , ]
 
 
 
 #####Workspace for testing subsetted groupings######
 rm(list = setdiff(ls(), c("ydf", "jdf", "bcr.occ", 
                           "spp.occ", "TOD.ma", "Ord.ma",
-                          "Obs.ma", "JKmat", "JKsurv", "final_sp_df")))
+                          "Obs.ma", "JKmat", "JKsurv", "final_sp_df", 
+                          "surveyedJ")))
 
-save.image(here::here("R Workspace/FullData6_17_19.RData"))
+save.image(here::here("R Workspace/SwallowsFull.RData"))
