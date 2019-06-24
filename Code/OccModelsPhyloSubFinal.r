@@ -6,7 +6,7 @@
 
 ######Load Packages######
 #rm(list = ls())
-install.packages("pacman")
+#install.packages("pacman")
 library("pacman")
 pacman::p_load(jagsUI, MCMCvis, here)
 
@@ -18,7 +18,7 @@ pacman::p_load(jagsUI, MCMCvis, here)
 ###Load in the Data4OccModels Workspace###
 ##########################################
 
-load(here::here('R Workspace/SwallowsSubgroup.RData'))
+load(here::here('R Workspace/SwallowsFull.RData'))
 
 ##Hello github##
 
@@ -405,120 +405,18 @@ str( win.data <- list( ydf = ydf, #observed occupancy
 #library( jagsUI )
 #call JAGS and summarize posteriors:
 ptm <- proc.time()
-fm2 <- jags( win.data, inits = inits, params, modelname,
-             n.chains = nc, n.thin = nt, n.iter = ni,
-             n.burnin = nb, parallel = TRUE)
+# fm2 <- jags( win.data, inits = inits, params, modelname,
+#              n.chains = nc, n.thin = nt, n.iter = ni,
+#              n.burnin = nb, parallel = TRUE)
 
 
 #auto update the model
-# upm1 <- autojags( win.data, inits = inits, params, modelname,
-#           n.chains = 3, n.thin = 20, n.burnin = 10000,
-#           iter.increment = 30000, max.iter = 40000,
-#           Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
+upm1 <- autojags( win.data, inits = inits, params, modelname,
+          n.chains = 3, n.thin = 20, n.burnin = 10000,
+          iter.increment = 20000, max.iter = 100000,
+          Rhat.limit = 1.15, save.all.iter=FALSE, parallel = TRUE )
 
 fm2.time <- proc.time() - ptm
 
-#Pull out non-converging parameters 
-bad.params <- unlist(upm1$Rhat)
-bad.params <- bad.params[bad.params > 1.1]
-bad.params <- bad.params[complete.cases(bad.params)]
-bad.params
 
-#####################################################
-#################Visualize traceplots################
-#####################################################
-MCMCtrace(upm1, params = 'delta', Rhat = T, pdf = F)
-MCMCtrace(upm1, params = 'alpha', Rhat = T, pdf = F)
-MCMCtrace(upm1, params = 'epsID.psi', Rhat = T, pdf = F)
-MCMCtrace(upm1, params = 'eps.psi', Rhat = T, pdf = F)
-MCMCtrace(upm1, params = 'int.p', Rhat = T, pdf = F)
-MCMCtrace(upm1, params = 'int.psi', Rhat = T, pdf = F)
-MCMCtrace(upm1, params = 'sigma.psi', Rhat = T, pdf = F)
-MCMCtrace(upm1, params = 'sigmaID.psi', Rhat = T, pdf = F)
-MCMCtrace(upm1, params = 'sigma.delta', Rhat = T, pdf = F)
-
-
-
-#####################################################
-################End traceplots#######################
-#####################################################
-
-surveyedJ <- colSums( JKmat, na.rm = TRUE )
-
-###Summary Stats for models###
-#Mean detection across species 
-mean.p.sp <- data.frame(matrix(NA, nrow = 5, ncol = 1))
-names(mean.p.sp) <- c("mean.p")
-
-for( s in 1:length(unique(spp.occ$spp.id)) ){ 
-  #the mean needs to be calculated manually when trying to exclude segments
-  #p.sp[ s ] <- mean( p[ s, 1:J, 1:K ] * JKsurv[ 1:J, 1:K ])
-  #sum p values only for sampled segments
-  p.sp.mat <- (upm1$mean$p[ s, 1:J, 1:K ]  * JKsurv[ 1:J, 1:K ])
-  p.sp.mat <- apply(p.sp.mat, 2, sum)
-  p.sp <-  p.sp.mat[ 1:K ] / surveyedJ[ 1:K ]
-  #divide by total number of sampled segments each year
-
-##then following from your code below
-  mean.p.sp [s,] <- mean(p.sp)
-}#S
-
-#I'm not sure this one makes sense to summarise that way across species    
-# #Mean detection of all species within each site
-# for ( j in 1:J ) {
-# p.site[ j ] <- mean( p[ 1:S, j, 1:K ] * JKmat[ j, 1:K ] )
-# }#J
-
-#CAN YOU DO THIS INSIDE? WOW
-#Generate a corrected z-matrix based on the mean z[ s, j, k]
-z.prime <- upm1$mean$z
-
-for (s in 1:S){
-  for (j in 1:J){
-    for (k in 1:K){
-      #z.prime <- ifelse( mean$z[s, j, k] >= 0.50, 1, 0) 
-      #round function rounds to nearest interger so it would do the same as above line
-      z.prime[s, j, k] <- ifelse(upm1$mean$z[s, j, k] > .5, 1, 0) 
-    }#K
-  }#J
-}#S
-
-for( i in 1:S ){
-  z.prime[ i, , ] <- z.prime[ i, , ] * JKmat
-}
-
-z.prime[1,,]
-z.prime[2,,]
-sum(is.na(z.prime[1,,]))
-
-#Find yearly alpha diversity per subgroup
-group.a.div <- matrix(NA, 215, 38)
-
-for (j in 1:J){
-  for ( k in  1:K){
-    #zeros those z for unsampled segments
-    group.a.div[ j, k ] <- sum( z.prime[ 1:S, j, k ] * JKsurv[ j, k ] )
-    #keep only average estimate
-    #mean.a.div[ j, k ] <- mean(a.div[ j, k ])
-  }#K
-}#J
-
-
-cliff <- ydf[3,,]
-yearly.cliff <- colSums(cliff, 1:J)
-total.cliff <- sum(yearly.cliff)
-
-#Quick function to calculate total observations of each species
-total <- function(x, y){
-  df <- x[y,,]
-  yr.sums <- colSums(df, 1:length(nrow))
-  sum(yr.sums)
-}
-
-#View All non-converged parameters 
-bad.params <- function(x) {
-  rhats <- unlist(x$Rhat)
-  buggers <- rhats[rhats > 1.1]
-  buggers[complete.cases(buggers)]
-}
 
