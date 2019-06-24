@@ -5,29 +5,34 @@ model.sum <- upm1$summary
 
 #rm("upm1")
 
-J <- 236
+J <- 274
 K <- 38
 S <- max(spp.occ$spp.id)
-#Mean detection across species 
-mean.p.sp <- data.frame(Species = 1:length(unique(spp.occ$Species)), "Mean p No RE" = NA,
-                        "Mean p RE" = NA)
 
-mean.p.sp$Species <- spp.occ$Species
-#Loop throug all species
-for( s in 1:length(unique(spp.occ$spp.id)) ){ 
-  #Pull out one species matrix * by non-surveyed sites and years
-  p.sp.mat <- (means1$p[ s, 1:J, 1:K ]  * JKmat[ 1:J, 1:K ])
-  p.sp.mat2 <- (means2$p[ s, 1:J, 1:K ]  * JKmat[ 1:J, 1:K ])
-  #Sum across sites for each year
-  p.sp.mat <- apply(p.sp.mat, 2, sum, na.rm = T)
-  p.sp.mat2 <- apply(p.sp.mat2, 2, sum, na.rm = T)
-  #divide by total number of sampled segments each year
-  p.sp <-  p.sp.mat[ 1:K ] / surveyedJ[ 1:K ]
-  p.sp2 <-  p.sp.mat2[ 1:K ] / surveyedJ[ 1:K ]
-  #Put values into empty DF
-  mean.p.sp [s, 2] <- mean(p.sp)
-  mean.p.sp [s, 3] <- mean(p.sp2)
-}#S
+# #Mean detection across species 
+# mean.p.sp <- data.frame(Species = 1:length(unique(spp.occ$Species)), "Mean p No RE" = NA,
+#                         "Mean p RE" = NA)
+# 
+# mean.p.sp$Species <- spp.occ$Species
+# 
+# #Loop throug all species
+# for( s in 1:length(unique(spp.occ$spp.id)) ){ 
+#   #Pull out one species matrix * by non-surveyed sites and years
+#   p.sp.mat <- (means.output$p[ s, 1:J, 1:K ]  * JKmat[ 1:J, 1:K ])
+#   p.sp.mat2 <- (means2$p[ s, 1:J, 1:K ]  * JKmat[ 1:J, 1:K ])
+#   
+#   #Sum across sites for each year
+#   p.sp.mat <- apply(p.sp.mat, 2, sum, na.rm = T)
+#   p.sp.mat2 <- apply(p.sp.mat2, 2, sum, na.rm = T)
+#   
+#   #divide by total number of sampled segments each year
+#   p.sp <-  p.sp.mat[ 1:K ] / surveyedJ[ 1:K ]
+#   p.sp2 <-  p.sp.mat2[ 1:K ] / surveyedJ[ 1:K ]
+#   
+#   #Put values into empty DF
+#   mean.p.sp [s, 2] <- mean(p.sp)
+#   mean.p.sp [s, 3] <- mean(p.sp2)
+# }#S
 
 #Pull out just the z matrix
 z.prime1 <- means1$z
@@ -123,5 +128,4 @@ MCMCplot(upm1, params = c("delta", "sigma.delta"), main = "Swallows Species RE",
 
 #Save workspace
 #save.image(file = here::here("R Workspace/SwallowModelOut.RData"))
-
          
