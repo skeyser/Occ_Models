@@ -27,7 +27,7 @@ load(here::here('R Workspace/SwallowsFull.RData'))
 ###########################################################################
 ####################### define MCMC settings ##############################
 
-ni <- 30000; nt <- 20; nb <- 20000; nc <- 3 #iterations, thinning, burnin, chains
+ni <- 100; nt <- 1; nb <- 0; nc <- 3 #iterations, thinning, burnin, chains
 #ni <- 5000; nt <- 10; nb <- 1000; nc <- 3 #iterations, thinning, burnin, chains
 
 #do these need to be on this script?
@@ -146,46 +146,23 @@ cat("
     precID.psi <- 1 / ( sigmaID.psi * sigmaID.psi )
     sigmaID.psi ~ dt( 0, 1, 4 ) T(0, )
 
-    ###Summary Stats for models###
-    #Mean detection across species 
-    for( s in 1:S ){
-      #the mean needs to be calculated manually when trying to exclude segments
-      #p.sp[ s ] <- mean( p[ s, 1:J, 1:K ] * JKsurv[ 1:J, 1:K ])
-                  #sum p values only for sampled segments
-      p.sp[ s ] <- sum( p[ s, 1:J, 1:K ] ) * JKsurv[ 1:J, 1:K ] ) /
-                  #divide by total number of sampled segments each year
-                    surveyedJ[ 1:K ]
-
-      ##then following from your code below
-      mean.p.sp[ s ] <- mean$p.sp[ s ]
-    }#S
-    #I'm not sure this one makes sense to summarise that way across species    
-    # #Mean detection of all species within each site
-    # for ( j in 1:J ) {
-    # p.site[ j ] <- mean( p[ 1:S, j, 1:K ] * JKmat[ j, 1:K ] )
-    # }#J
+    for( s in 1:S ){ 
+      #for (k in 1:K){
+    #Pull out one species matrix * by non-surveyed sites and years
+    p.sp.mat[s] <- sum(p[ s, 1:J, 1:K ]  * JKsurv[ 1:J, 1:K ])
+    #p.sp.mat2 <- (means2$p[ s, 1:J, 1:K ]  * JKmat[ 1:J, 1:K ])
     
-    #CAN YOU DO THIS INSIDE? WOW
-    #Generate a corrected z-matrix based on the mean z[ s, j, k]
-    for (s in 1:S){
-      for (j in 1:J){
-        for (k in 1:K){
-          #z.prime <- ifelse( mean$z[s, j, k] >= 0.50, 1, 0) 
-          #round function rounds to nearest interger so it would do the same as above line
-          z.prime <- round( mean$z[s, j, k] ) 
-        }#K
-      }#J
-    }#S
+    #Sum across sites for each year
+    #p.sp.mat <- apply(p.sp.mat, 2, sum, na.rm = T)
+    #p.sp.mat2 <- apply(p.sp.mat2, 2, sum, na.rm = T)
     
-    #Find yearly alpha diversity
-    for (j in 1:J){
-      for ( k in  1:K){
-      #zeros those z for unsampled segments
-      a.div[ j, k ] <- sum( z[ 1:S, j, k ] * JKsurv[ j, k ] )
-      #keep only average estimate
-      mean.a.div[ j, k ] <- mean$a.div[ j, k ]
-    }#K
-  }#J
+    #divide by total number of sampled segments each year
+    p.sp[s] <-  p.sp.mat[ s ] / sum(surveyedJ[ 1:K ])
+    #p.mean[s] <- sum(p.sp[s, 1:K])
+    #p.sp2 <-  p.sp.mat2[ 1:K ] / surveyedJ[ 1:K ]
+    
+      #}#K
+    }#S
 
     } #model spec end
     
@@ -208,9 +185,9 @@ params <- c( 'int.psi' #intercept for occupancy model
              , 'sigma.psi', 'sigmaID.psi' #std dev for random intercepts
              , 'int.p' #intercept for detection submodel 
              , 'alpha' #fixed coefficients for detection submodel 
-             , 'z.prime' #only summary for estimated true occupancy
-             , 'mean.p.sp' #only mean summary for detection probability
-             , 'mean.a.div' #summary mean alpha diversity 
+             , 'z' #only summary for estimated true occupancy
+             , 'p.sp' #only mean summary for detection probability
+             #, 'mean.a.div' #summary mean alpha diversity 
 )
 
 #################################################################################
@@ -225,21 +202,21 @@ str( win.data <- list( ydf = ydf, #observed occupancy
                        Mass.scaled = spp.occ$Mass.scaled, #body mass
                        TOD.ma = TOD.ma, #time of day
                        Ord.ma = Ord.ma, #day of year
-                       Obs.ma = Obs.ma #first observer year
-                       
+                       Obs.ma = Obs.ma, #first observer year
+                       surveyedJ = surveyedJ
 ) )                
 #library( jagsUI )
 #call JAGS and summarize posteriors:
 ptm <- proc.time()
-# fm1 <- jags( win.data, inits = inits, params, modelname, 
-#              n.chains = nc, n.thin = nt, n.iter = ni, 
-#              n.burnin = nb, parallel = TRUE) 
+#fm1 <- jags( win.data, inits = inits, params, modelname,
+#             n.chains = nc, n.thin = nt, n.iter = ni,
+#             n.burnin = nb, parallel = TRUE)
 
 #auto update the model
 upm1 <- autojags( win.data, inits = inits, params, modelname,
-          n.chains = 3, n.thin = 5, n.burnin = 0,
-          iter.increment = 10, max.iter = 100,
-          Rhat.limit = 1.1, save.all.iter=FALSE, parallel = TRUE )
+          n.chains = 3, n.thin = 10, n.burnin = 1000,
+          iter.increment = 1000, max.iter = 100000,
+          Rhat.limit = 1.15, save.all.iter=FALSE, parallel = TRUE )
 
 fm1.time <- proc.time() - ptm
 
@@ -357,6 +334,23 @@ cat("
     precID.psi <- 1 / ( sigmaID.psi * sigmaID.psi )
     sigmaID.psi ~ dt( 0, 1, 4 ) T(0, )
     
+    for( s in 1:S ){ 
+      #for (k in 1:K){
+    #Pull out one species matrix * by non-surveyed sites and years
+    p.sp.mat[s] <- sum(p[ s, 1:J, 1:K ]  * JKsurv[ 1:J, 1:K ])
+    #p.sp.mat2 <- (means2$p[ s, 1:J, 1:K ]  * JKmat[ 1:J, 1:K ])
+    
+    #Sum across sites for each year
+    #p.sp.mat <- apply(p.sp.mat, 2, sum, na.rm = T)
+    #p.sp.mat2 <- apply(p.sp.mat2, 2, sum, na.rm = T)
+    
+    #divide by total number of sampled segments each year
+    p.sp[s] <-  p.sp.mat[ s ] / sum(surveyedJ[ 1:K ])
+    #p.mean[s] <- sum(p.sp[s, 1:K])
+    #p.sp2 <-  p.sp.mat2[ 1:K ] / surveyedJ[ 1:K ]
+    
+      #}#K
+    }#S
     
     } #model spec end
     
@@ -380,7 +374,8 @@ params <- c( 'int.psi' #intercept for occupancy model
              , 'alpha' #fixed coefficients for detection submodel 
              , 'delta', 'sigma.delta' #random species intercept in detection model
              , 'z'
-             , 'p'
+             #, 'p'
+             , 'p.sp'
              #### need to add summary stats to the model ####
              # , 'z.prime' #only summary for estimated true occupancy
              # , 'mean.p.sp' #only mean summary for detection probability
@@ -392,14 +387,15 @@ params <- c( 'int.psi' #intercept for occupancy model
 str( win.data <- list( ydf = ydf, #observed occupancy 
                        J = J, K = K, S = S, Q =  4, M = M,
                        #J = 50, K = 5, S = 233, G = 23, Q =  4, M = 84,
-#                       JKsurv = JKsurv, #indicator of segments sampled (1) and not (0)
+                       JKsurv = JKsurv, #indicator of segments sampled (1) and not (0)
                        bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
                        rteno.id = jdf$rteno.id, #indicator of what route the segment belongs to
                        bcr.occ = bcr.occ, #bcr indicator for each species
                        Mass.scaled = spp.occ$Mass.scaled, #body mass
                        TOD.ma = TOD.ma, #time of day
                        Ord.ma = Ord.ma, #day of year
-                       Obs.ma = Obs.ma #first observer year
+                       Obs.ma = Obs.ma, #first observer year
+                       surveyedJ = surveyedJ
                        
 ) )                
 #library( jagsUI )
@@ -411,12 +407,11 @@ ptm <- proc.time()
 
 
 #auto update the model
-upm1 <- autojags( win.data, inits = inits, params, modelname,
-          n.chains = 3, n.thin = 20, n.burnin = 10000,
-          iter.increment = 20000, max.iter = 100000,
+upm2 <- autojags( win.data, inits = inits, params, modelname,
+          n.chains = 3, n.thin = 10, n.burnin = 1000,
+          iter.increment = 1000, max.iter = 100000,
           Rhat.limit = 1.15, save.all.iter=FALSE, parallel = TRUE )
 
 fm2.time <- proc.time() - ptm
-
 
 
