@@ -119,10 +119,10 @@ birds$sci_name <- paste0(birds$Genus, " ", birds$Species)
 
 #Melt the data to get observations to link with segments
 birds.melt <- melt(birds, id.vars = c("rteno", "Year", "sci_name"), measure.vars = c("Count10",
-                                                                         "Count20",
-                                                                         "Count30",
-                                                                         "Count40",
-                                                                         "Count50"))
+                                                                                     "Count20",
+                                                                                     "Count30",
+                                                                                     "Count40",
+                                                                                     "Count50"))
 
 #Change from factor to character
 birds.melt[, 4] <- sapply(birds.melt[, 4], as.character)
