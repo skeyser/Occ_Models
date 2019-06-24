@@ -1,5 +1,13 @@
 ###Summary Stats for models###
+means.output <- upm1$mean
+Rhats <- upm1$Rhat
+model.sum <- upm1$summary
 
+#rm("upm1")
+
+J <- 274
+K <- 38
+S <- max(spp.occ$spp.id)
 #Mean detection across species 
 mean.p.sp <- data.frame(matrix(NA, nrow = 5, ncol = 1))
 names(mean.p.sp) <- c("mean.p")
@@ -7,7 +15,7 @@ names(mean.p.sp) <- c("mean.p")
 #Loop throug all species
 for( s in 1:length(unique(spp.occ$spp.id)) ){ 
   #Pull out one species matrix * by non-surveyed sites and years
-  p.sp.mat <- (upm1$mean$p[ s, 1:J, 1:K ]  * JKsurv[ 1:J, 1:K ])
+  p.sp.mat <- (means.output$p[ s, 1:J, 1:K ]  * JKsurv[ 1:J, 1:K ])
   #Sum across sites for each year
   p.sp.mat <- apply(p.sp.mat, 2, sum)
   #divide by total number of sampled segments each year
@@ -17,7 +25,7 @@ for( s in 1:length(unique(spp.occ$spp.id)) ){
 }#S
 
 #Pull out just the z matrix
-z.prime <- upm1$mean$z
+z.prime <- means.output$z
 
 #Loop through each species, site, and year to set 0s and 1s 
 #manually using cut-off values
@@ -27,7 +35,7 @@ for (s in 1:S){
     for (k in 1:K){
       #z.prime <- ifelse( mean$z[s, j, k] >= 0.50, 1, 0) 
       #round function rounds to nearest interger so it would do the same as above line
-      z.prime[s, j, k] <- ifelse(upm1$mean$z[s, j, k] > .5, 1, 0) 
+      z.prime[s, j, k] <- ifelse(means.output$z[s, j, k] > .5, 1, 0) 
     }#K
   }#J
 }#S
@@ -63,13 +71,12 @@ total <- function(x, y){
 
 #View All non-converged parameters 
 bad.params <- function(x) {
-  rhats <- unlist(x$Rhat)
+  rhats <- unlist(Rhats)
   buggers <- rhats[rhats > 1.15]
   buggers[complete.cases(buggers)]
 }
 
-noconverge <- bad.params(upm1)
-
+noconverge <- bad.params(Rhats)
 
 ###########################################################################
 ####################################Plotting###############################
@@ -93,5 +100,9 @@ MCMCplot(upm1, params = c("eps.psi", "sigma.psi"), main = "Swallows Phylo Group 
 MCMCplot(upm1, params = c("delta", "sigma.delta"), main = "Swallows Species RE", labels = c("BASW", "CASW", "CLSW", 
                                                                                             "PUMA", "BASW", "NRWS", 
                                                                                             "Sigma Delta"))
+
+
+#Save workspace
+#save.image(file = here::here("R Workspace/SwallowModelOut.RData"))
 
          
