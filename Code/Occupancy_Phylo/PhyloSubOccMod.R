@@ -345,7 +345,7 @@ family.count <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Family_L
 ##########################################################
 
 #Trying to subset using BCR to test model runtime using reduced sites
-final_sp_df <- final_sp_df[final_sp_df$BCR == 31, ]
+#final_sp_df <- final_sp_df[final_sp_df$BCR == 31, ]
 
 
 
