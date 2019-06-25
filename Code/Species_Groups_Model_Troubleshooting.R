@@ -55,5 +55,11 @@ species.info$RA[species.info$Detected.y >= 50 & species.info$Detected.y < 200] <
 species.info$RA[species.info$Detected.y >= 200 & species.info$Detected.y < 1000] <- 3
 species.info$RA[species.info$Detected.y >= 1000] <- 4
 
+sp.bcr <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = BCR]
+site.bcr <- setDT(final_sp_df)[, .(count = uniqueN(site)), by = BCR]
+rt.bcr <- setDT(final_sp_df)[, .(count = uniqueN(rteno.x)), by = BCR]
+yr.bcr <- setDT(final_sp_df)[, .(count = uniqueN(Year)), by = BCR]
+
+
 #save.image(here::here("R Workspace/SpeciesGroupsModTroubleShooting.RData"))
 
