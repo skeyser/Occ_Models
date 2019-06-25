@@ -13,7 +13,7 @@ pacman::p_load(jagsUI, MCMCvis, here)
 #########Package Loading Complete########
 #########################################
 
-#Always checking github
+#As per usual. Always checking github
 
 ###Load in the Data4OccModels Workspace###
 ##########################################
