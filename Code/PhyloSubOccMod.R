@@ -489,6 +489,8 @@ bcr.occ <- reshape2::dcast(final_sp_df, spp.id ~ BCR, value.var = "Detected", fu
 bcr.occ <- bcr.occ[, -1]
 bcr.occ[bcr.occ > 1] <- 1  
 bcr.occ <- as.data.frame(bcr.occ)
+bcr.occ <- as.matrix(bcr.occ)
+
 #This depends on the species group being used
 # bcr.occ$BCR26 <- 0
 # bcr.occ$BCR27 <- 0
