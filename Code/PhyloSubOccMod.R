@@ -330,10 +330,17 @@ family.count <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Family_L
 #Group of interest will be placed at the front of the df
 #This allows for easy subsetting of the ydf matrix at the end
 
-final_sp_df <- final_sp_df %>% arrange(match(Family_Latin, "Hirundinidae"), 
-                                       sci_name)
 
-########################################################
+
+##########################################################
+# final_sp_df <- final_sp_df %>% arrange(match(Family_Latin, "Hirundinidae"), 
+#                                        sci_name)
+
+##########################################################
+
+#Trying to subset using BCR to test model runtime using reduced sites
+final_sp_df <- final_sp_df[final_sp_df$BCR == 31, ]
+
 
 
 final_sp_df <- final_sp_df[!final_sp_df$Detected == 0,]
@@ -342,12 +349,14 @@ final_sp_df <- plyr::rename(final_sp_df, c("Order" = "Phylo.V2", "Family_Latin" 
 #Create Phylo Class 1 (Orders + Families for Passerines)
 final_sp_df$Phylo.V1 <- ifelse(final_sp_df$Phylo.V2 != "Passeriformes", final_sp_df$Phylo.V2, final_sp_df$Phylo.V1)
 
-
+###################################################
 #Function retains species ID order and assigns ID
-grpid = function(x) match(x, unique(x))
-final_sp_df <- final_sp_df %>% mutate(spp.id = group_indices(., sci_name) %>% grpid)
+#grpid = function(x) match(x, unique(x))
+#final_sp_df <- final_sp_df %>% mutate(spp.id = group_indices(., sci_name) %>% grpid)
+###################################################
 
-#final_sp_df <- transform(final_sp_df, spp.id = as.numeric(interaction(sci_name, drop = T)))
+
+final_sp_df <- transform(final_sp_df, spp.id = as.numeric(interaction(sci_name, drop = T)))
 final_sp_df <- transform(final_sp_df, rteno.id = as.numeric(interaction(rteno.x, drop = T)))
 final_sp_df <- transform(final_sp_df, year.id = as.numeric(interaction(Year, drop = T)))
 final_sp_df <- transform(final_sp_df, site.id = as.numeric(interaction(site, drop = T)))
@@ -476,6 +485,10 @@ rownames(bcr.occ) <- bcr.occ$spp.id
 
 bcr.occ <- subset(bcr.occ, select = -c(spp.id))
 
+bcr.occ <- reshape2::dcast(final_sp_df, spp.id ~ BCR, value.var = "Detected", fun.aggregate = sum)
+bcr.occ <- bcr.occ[, -1]
+bcr.occ[bcr.occ > 1] <- 1  
+bcr.occ <- as.data.frame(bcr.occ)
 #This depends on the species group being used
 # bcr.occ$BCR26 <- 0
 # bcr.occ$BCR27 <- 0
@@ -838,13 +851,13 @@ for( i in 1:dim( spp.df )[1] ){
 
 
 # #check that it worked for species 1:
-table( ydf[4,,] )
+table( ydf[1,,] )
 table( spp.df$Detected[ which( spp.df$spp.id == 4) ] )  #77 
 spp.df[ which( spp.df$spp.id == 4), ]
 ydf[1,8,32]
-
+ydf[1,,]
 #Restrict the spp.occ to the subgroup that is being used
-spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Hirundinidae",]
+#spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Hirundinidae",]
 
 #Reallocate S so that it's cycling through the 
 #group of interest
@@ -855,9 +868,10 @@ for( i in 1:S ){
   ydf[ i, , ] <- ydf[ i, , ] * JKmat
 }
 
+##################################################
 #Create the restricted ydf DF 
-ydf <- ydf[1:length(unique(spp.occ$Species)), , ]
-
+#ydf <- ydf[1:length(unique(spp.occ$Species)), , ]
+##################################################
 
 
 #####Workspace for testing subsetted groupings######
@@ -866,4 +880,4 @@ rm(list = setdiff(ls(), c("ydf", "jdf", "bcr.occ",
                           "Obs.ma", "JKmat", "JKsurv", "final_sp_df", 
                           "surveyedJ")))
 
-save.image(here::here("R Workspace/SwallowsFull.RData"))
+save.image(here::here("R Workspace/BCR31.RData"))
