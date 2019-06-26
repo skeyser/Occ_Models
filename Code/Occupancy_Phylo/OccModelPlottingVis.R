@@ -8,7 +8,7 @@
 
 #Load in packages
 library(pacman)
-pacman::p_load("MCMCvis", "LaplacesDemon")
+pacman::p_load("MCMCvis", "LaplacesDemon", "truncnorm")
 
 #Package loading complete 
 
@@ -59,11 +59,11 @@ bad.params <- function(x) {
   buggers[complete.cases(buggers)]
 }
 
-nonconverge <- bad.params(Rhats)
+non.converge <- bad.params(Rhats)
 
 
 #Pull out just the z matrix
-z.prime <- means1$z
+z.prime <- means.output$z
 #z.prime2 <-means2$z
 
 #Loop through each species, site, and year to set 0s and 1s 
@@ -117,6 +117,7 @@ for (i in 1:max(spp.occ$spp.id)){
 
 #Find yearly alpha diversity per subgroup
 #Generate empty matrices
+group.a.div <- matrix(NA, 274, 38)
 group.a.div.5 <- matrix(NA, 274, 38)
 group.a.div.65 <- matrix(NA, 274, 38)
 group.a.div.75 <- matrix(NA, 274, 38)
@@ -124,6 +125,7 @@ group.a.div.75 <- matrix(NA, 274, 38)
 for (j in 1:J){
   for ( k in  1:K){
     #zeros those z for unsampled segments
+    group.a.div[ j, k ] <- sum(ydf[1:S, j, k ])
     group.a.div.5[ j, k ] <- sum( z.prime.5[ 1:S, j, k ] * JKsurv[ j, k ] )
     group.a.div.65[ j, k ] <- sum( z.prime.65[ 1:S, j, k ] * JKsurv[ j, k ] )
     group.a.div.75[ j, k ] <- sum( z.prime.75[ 1:S, j, k ] * JKsurv[ j, k ] )
@@ -132,7 +134,8 @@ for (j in 1:J){
   }#K
 }#J
 
-
+alpha.div <- list(group.a.div, group.a.div.5, group.a.div.65,
+                  group.a.div.75)
 
 
 
@@ -151,7 +154,7 @@ sigma.dt <- rhalft(1000, scale = 1, nu = 4)
 prec.df <- 1 / (sigma.dt * sigma.dt)
 
 #Conditional normal for random effects
-PR.norm.cond <- rnorm(1000, 0, prec.dt)
+PR.norm.cond <- rtruncnorm(1000, a = -6, b = 6, 0, prec.dt)
 
 #Random intercepts prior 
 PR.beta <- rbeta(1000, 4, 4)
@@ -200,8 +203,11 @@ MCMCplot(upm1, params = c("eps.psi", "sigma.psi"), main = "Phylo Group Year Effe
 MCMCplot(upm1, params = c("delta", "sigma.delta"), main = "Species RE", labels = c("BASW", "CASW", "CLSW", 
                                                                                             "PUMA", "BASW", "NRWS", 
                                                                                             "Sigma Delta"))
-
+rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum",
+                          "z.prime", "z.prime.5", "z.prime.65",
+                          "z.prime.75", "total.observed", 
+                          "alpha.div", "non.converge")))
 
 #Save workspace
-#save.image(file = here::here("R Workspace/SwallowModelOut.RData"))
+#save.image(file = here::here("R Workspace/ModelOut.RData"))
          
