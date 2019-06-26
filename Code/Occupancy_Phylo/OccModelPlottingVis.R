@@ -154,7 +154,7 @@ sigma.dt <- rhalft(1000, scale = 1, nu = 4)
 prec.df <- 1 / (sigma.dt * sigma.dt)
 
 #Conditional normal for random effects
-PR.norm.cond <- rtruncnorm(1000, a = -6, b = 6, 0, prec.dt)
+PR.norm.cond <- rtruncnorm(1000, a = -6, b = 6, 0, sigma.dt)
 
 #Random intercepts prior 
 PR.beta <- rbeta(1000, 4, 4)
