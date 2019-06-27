@@ -12,12 +12,12 @@ pacman::p_load("sjPlot", "sjstats", "nlme","reshape2", "effects","vegan", "lmerT
 
 
 #Read in all the data for bird obs.
-bbs_tx <- read.csv(here("Data_BBS/States_GoM/States/Texas.csv"))
-bbs_al <- read.csv(here("Data_BBS/States_GoM/Alabama_New.csv"))
-bbs_ms <- read.csv(here("Data_BBS/States_GoM/States/Mississ.csv"))
-bbs_fl <- read.csv(here("Data_BBS/States_GoM/States/Florida.csv"))
-bbs_la <- read.csv(here("Data_BBS/States_GoM/States/Louisia.csv"))
-species <- read.csv(here("Data_BBS/States_GoM/SpeciesList.csv"))
+bbs_tx <- read.csv(here::here("Data_BBS/States_GoM/States/Texas.csv"))
+bbs_al <- read.csv(here::here("Data_BBS/States_GoM/Alabama_New.csv"))
+bbs_ms <- read.csv(here::here("Data_BBS/States_GoM/States/Mississ.csv"))
+bbs_fl <- read.csv(here::here("Data_BBS/States_GoM/States/Florida.csv"))
+bbs_la <- read.csv(here::here("Data_BBS/States_GoM/States/Louisia.csv"))
+species <- read.csv(here::here("Data_BBS/States_GoM/SpeciesList.csv"))
 
 #These were the data for the original script
 #routes <- read.csv(here("Data_BBS/States_GoM/bbsrtes_gom_final_refined.csv"))
@@ -26,8 +26,8 @@ species <- read.csv(here("Data_BBS/States_GoM/SpeciesList.csv"))
 
 #Now the script will use the new points, which is the midpoint of each route
 #The 1966 and 1999 routes have only 6 routes from 1999 that are not used in 1999
-routes.99 <- read.csv(here("Data_BBS/States_GoM/bbsrts_1999_GoM_xy_mid.csv")) 
-routes.66 <- read.csv(here("Data_BBS/States_GoM/bbsrts_1966_GoM_xy_mid.csv"))
+routes.99 <- read.csv(here::here("Data_BBS/States_GoM/bbsrts_1999_GoM_xy_mid.csv")) 
+routes.66 <- read.csv(here::here("Data_BBS/States_GoM/bbsrts_1966_GoM_xy_mid.csv"))
 
 ##Using the PRISM data where the envi data is from to get the used routes
 routes.66$RTENAME <- as.character(routes.66$RTENAME)
@@ -119,7 +119,9 @@ rts_fl <- rts_final %>% filter(str_detect(rteno, "^25"))
 rts_fl$state <- 25
 bbs_fl <- bbs_fl %>% mutate(proxy = statenum * 1000) %>% mutate(rteno = proxy + Route)
 bbs_fl <- merge(bbs_fl, rts_fl, "rteno")
-fl <- bbs_fl[, c("rteno", "statenum", "rtename", "Year", "SpeciesTotal", "Aou", "latitude", "longitude")]
+fl <- bbs_fl[, c("rteno", "statenum", "rtename", "Year", 
+                 "SpeciesTotal", "Aou", "latitude", 
+                 "longitude")]
 colnames(fl) <- tolower(colnames(fl))
 
 #Alabama data slightly different 
@@ -596,14 +598,14 @@ box4
 
 #Environmental Data Loading and Cleaning 
 #PRISM Data Script 
-prism.1 <- read.csv(here("Data_Envi/PRISM Data/PRISM_1966_GoM_mid_198001_199412.csv"))
-prism.2 <- read.csv(here("Data_Envi/PRISM Data/PRISM_1966_GoM_mid_199501_200912.csv"))
-prism.3 <- read.csv(here("Data_Envi/PRISM Data/PRISM_1966_GoM_mid_201001_201712.csv"))
-prism.4 <- read.csv(here("Data_Envi/PRISM Data/PRISM_1999_GoM_mid_198001_199412.csv"))
-prism.5 <- read.csv(here("Data_Envi/PRISM Data/PRISM_1999_GoM_mid_199501_200912.csv"))
-prism.6 <- read.csv(here("Data_Envi/PRISM Data/PRISM_1999_GoM_mid_201001_201712.csv"))
-prism.1.monthly <- read.csv(here("Data_Envi/PRISM Data/PRISM_1966_GoM_mids_monthly_normals.csv")) 
-prism.2.monthly <- read.csv(here("Data_Envi/PRISM Data/PRISM_1999_GoM_mid_monthly_normals.csv"))
+prism.1 <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1966_GoM_mid_198001_199412.csv"))
+prism.2 <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1966_GoM_mid_199501_200912.csv"))
+prism.3 <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1966_GoM_mid_201001_201712.csv"))
+prism.4 <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1999_GoM_mid_198001_199412.csv"))
+prism.5 <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1999_GoM_mid_199501_200912.csv"))
+prism.6 <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1999_GoM_mid_201001_201712.csv"))
+prism.1.monthly <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1966_GoM_mids_monthly_normals.csv")) 
+prism.2.monthly <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1999_GoM_mid_monthly_normals.csv"))
 
 #Bind the datasets together 
 prism.1966 <- do.call("rbind", list(prism.1, prism.2, prism.3))
@@ -1112,7 +1114,7 @@ ggplotRegression <- function (fit) {
 
 
 ##Extracting BCR for figures
-bcr <- read.csv(here("Data_BBS/States_GoM/bbsrts_bcr.csv"))
+bcr <- read.csv(here::here("Data_BBS/States_GoM/bbsrts_bcr.csv"))
 bcr <- bcr[, c("RTENO", "BCR")]
 bcr$RTENO <- as.numeric(bcr$RTENO)
 bcr$BCR <- as.numeric(bcr$BCR)
@@ -1122,13 +1124,13 @@ test <- merge(test, bcr, by = "RTENO")
 
 
 #Table of output 
-tab_model(mod.fix, p.val = "wald", dv.labels = "Beta Diversity", pred.labels = c("Intercept", "Temperature Anomalies", "Precipitation Anomalies", "Alpha Diversity"), title = "Linear Mixed-Effects Model Output", digits = 4, digits.p = 4, p.style = "asterisk", file = here("Figures and Tables"))
+tab_model(mod.fix, p.val = "wald", dv.labels = "Beta Diversity", pred.labels = c("Intercept", "Temperature Anomalies", "Precipitation Anomalies", "Alpha Diversity"), title = "Linear Mixed-Effects Model Output", digits = 4, digits.p = 4, p.style = "asterisk", file = here::here("Figures and Tables"))
 
 #Getting Dataset to make a map for route locations 
 climate.map <- separate(slopes, site.list, c("State", "rteno"), sep = "_")
 climate.map <- merge(climate.mao, rts, by = "rteno")
 
-write.csv(climate.map, file = here("climate.map.csv"))
+write.csv(climate.map, file = here::here("climate.map.csv"))
 
 
 
