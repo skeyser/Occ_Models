@@ -215,6 +215,7 @@ str( win.data <- list( ydf = ydf, #observed occupancy
                        J = J, K = K, S = S, Q =  4, M = M,
                        #J = 50, K = 5, S = 233, G = 23, Q =  4, M = 84,
                        JKsurv = JKsurv, #indicator of segments sampled (1) and not (0)
+                       surveyedJ = surveyedJ, #how many segments were sampled each year
                        bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
                        rteno.id = jdf$rteno.id, #indicator of what route the segment belongs to
                        bcr.occ = bcr.occ, #bcr indicator for each species
@@ -361,7 +362,6 @@ sink()
 
 ################ end of model specification  #####################################
 modelname <- "pm2.txt" #changed model name to phylomodel2 
-
 #create initial values
 zst <- ydf
 zst[is.na( zst) ] <- 1
@@ -696,7 +696,6 @@ sink()
 
 ################ end of model specification  #####################################
 modelname <- "pm4.txt"
-
 #create initial values
 zst <- ydf
 zst[is.na( zst) ] <- 1
