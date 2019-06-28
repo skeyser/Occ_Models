@@ -52,6 +52,7 @@ means.output <- upm1$mean
 Rhats <- upm1$Rhat
 model.sum <- upm1$summary
 
+
 #View All non-converged parameters 
 bad.params <- function(x) {
   rhats <- unlist(Rhats)
@@ -209,5 +210,10 @@ rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum",
                           "alpha.div", "non.converge")))
 
 #Save workspace
-#save.image(file = here::here("R Workspace/ModelOut.RData"))
+what.dir <- "R Workspace/Output"
+phylo.group <- as.character(unique(spp.occ$Phylo.V1))
+phylo.group <- gsub("/", "_", phylo.group)
+phylo.group <- paste0(phylo.group, "", ".RData")
+
+#save.image(file = here::here(paste0(what.dir, "/", phylo.group)))
          
