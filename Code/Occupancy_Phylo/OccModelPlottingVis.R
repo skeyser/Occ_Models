@@ -62,7 +62,48 @@ bad.params <- function(x) {
 
 non.converge <- bad.params(Rhats)
 
+###summaries of model parameters ########
+###here is an example if we actually want to estimate & plot #
+# relationships between alpha and detection prob #
+# we could also save mean and CIs for the random effects as a #
+# separate dataframe exported elsewhere # 
 
+#define range for important covariates in models
+#intercept for covariate matrix 
+int <- rep( 1, 100 )
+#cbind( int, sclegl)
+#annual eagle abundance
+sclegl <- seq( min( XK[ , 'EglAbund'], na.rm = TRUE ), max( XK[ , 'EglAbund'], na.rm = TRUE ), 
+               length.out = 100 )
+egl <- seq( min( Kcovs[ , 'EglAbund' ], na.rm = TRUE ), 
+            max( Kcovs[ , 'EglAbund' ], na.rm = TRUE ), length.out = 100 )
+#estimate mean relationship with predictor while keeping all other covs constant at their mean
+#multiply coefficient matrix (for all iterations) against transposed covariate matrix using matrix algebra
+phi.egl <- cbind( mr$sims.list$int.phi, mr$sims.list$beta.phi[,2] ) %*% 
+  t(cbind( int, sclegl ) ) 
+#calculate its mean and get inverse logit
+phi.eglm <- expit( apply( phi.egl, MARGIN = 2, FUN = mean ) )
+#calculate its 95% CIs and get its inverse logit:
+phi.eglCI <- expit( apply( phi.egl, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.975) ) )
+
+### you can then save output into dataframe and save it so #
+# we can then plot it elsewhere#
+#combine predicted estimates into a dataframe
+predrships <- data.frame( sclegl, egl,  #standardise and not standardised covariates
+                          phi.eglm, t( phi.eglCI ) #predicted response
+)
+# to plot:
+predp <- ggplot( data = predrships ) + theme_classic() +
+  theme( legend.position = "none", 
+         text = element_text( size = 18 ), 
+         axis.line = element_line( size = 1.3 ) ) + ylim( 0.0,1.0 ) 
+
+ap <- predp +  xlab( "Bald eagle abundance" ) +
+  geom_line( aes( x = egl, y = phi.eglm ), size = 1.2 ) +
+  geom_ribbon( alpha = 0.4, aes( x = egl, ymin = X2.5. , ymax = X97.5. ) ) + #, 
+  ylab( "Probability of persistence" )            
+##### end #########
+#################################################################
 #Pull out just the z matrix
 z.prime <- means.output$z
 #z.prime2 <-means2$z
@@ -84,9 +125,9 @@ for (s in 1:S){
 
 #Multiply each species matrix by the NA df for species totals
 for( i in 1:S ){
-  z.prime.5[ i, , ] <- z.prime.5[ i, , ] * JKsurv
-  z.prime.65[ i, , ] <- z.prime.65[ i, , ] * JKsurv
-  z.prime.75[ i, , ] <- z.prime.75[ i, , ] * JKsurv
+  z.prime.5[ i, , ] <- z.prime.5[ i, , ] * JKmat #JKsurv
+  z.prime.65[ i, , ] <- z.prime.65[ i, , ] * JKmat#JKsurv
+  z.prime.75[ i, , ] <- z.prime.75[ i, , ] * JKmat #JKsurv
 }
 
 #Check differences
@@ -97,9 +138,10 @@ z.prime.75[1,,]
 
 #Quick function to calculate total observations of each species
 total <- function(x, y){
-  df <- x[y,,]
-  yr.sums <- colSums(df, 1:length(nrow))
-  sum(yr.sums)
+  df <- x[y,,] 
+  #did I just break your function by using JKmat instead?
+  yr.sums <- colSums(df, 1:length(nrow), na.rm = TRUE)
+  sum(yr.sums, na.rm = TRUE)
 }
 
 #Create empty DF for storing values 
@@ -109,7 +151,7 @@ total <- function(x, y){
 total.observed <- data.frame("Observed" = 1:max(spp.occ$spp.id), "Estimated 0.5" = NA, 
                              "Estimated 0.65" = NA, "Estimated 0.75" = NA)
 
-for (i in 1:max(spp.occ$spp.id)){
+for (i in 1:S){#max(spp.occ$spp.id)){
   total.observed[i, 1] <- total(ydf, i)
   total.observed[i, 2] <- total(z.prime.5, i)
   total.observed[i, 3] <- total(z.prime.65, i)
@@ -118,18 +160,19 @@ for (i in 1:max(spp.occ$spp.id)){
 
 #Find yearly alpha diversity per subgroup
 #Generate empty matrices
-group.a.div <- matrix(NA, 274, 38)
-group.a.div.5 <- matrix(NA, 274, 38)
-group.a.div.65 <- matrix(NA, 274, 38)
-group.a.div.75 <- matrix(NA, 274, 38)
+group.a.div <- matrix(NA, J, K )#274, 38)
+group.a.div.5 <- matrix(NA, J, K )# 274, 38)
+group.a.div.65 <- matrix(NA, J, K )#274, 38)
+group.a.div.75 <- matrix(NA, J, K )#274, 38)
 
 for (j in 1:J){
   for ( k in  1:K){
     #zeros those z for unsampled segments
-    group.a.div[ j, k ] <- sum(ydf[1:S, j, k ])
-    group.a.div.5[ j, k ] <- sum( z.prime.5[ 1:S, j, k ] * JKsurv[ j, k ] )
-    group.a.div.65[ j, k ] <- sum( z.prime.65[ 1:S, j, k ] * JKsurv[ j, k ] )
-    group.a.div.75[ j, k ] <- sum( z.prime.75[ 1:S, j, k ] * JKsurv[ j, k ] )
+    group.a.div[ j, k ] <- sum( ydf[1:S, j, k ], na.rm = TRUE )
+    ## we timed it by JKmat above so don't need to do it again right?
+    group.a.div.5[ j, k ] <- sum( z.prime.5[ 1:S, j, k ], na.rm = TRUE)# * JKsurv[ j, k ] )
+    group.a.div.65[ j, k ] <- sum( z.prime.65[ 1:S, j, k ], na.rm = TRUE)# * JKsurv[ j, k ] )
+    group.a.div.75[ j, k ] <- sum( z.prime.75[ 1:S, j, k ], na.rm = TRUE)# * JKsurv[ j, k ] )
     #keep only average estimate
     #mean.a.div[ j, k ] <- mean(a.div[ j, k ])
   }#K
@@ -162,6 +205,17 @@ PR.beta <- rbeta(1000, 4, 4)
 
 
 #Plotting 
+#can we extract part of the workspace name so that we can use that to #
+# label the files saved...that way it can be done automatically instead of manually?
+#
+#path where i get the name of the workspace I am running:
+extpath <- getwd()
+# extract name of file to use: 
+workname <-  dir( extpath, pattern = '\\.RData', full.names = FALSE )
+workname <- gsub(".RData", "", workname )
+#does that work? we may need to have separate folders for each phylogroup so that 
+# or there may be a way easier way of doing it?
+
 MCMCtrace(upm1, params = 'alpha', priors = PR.norm, ind = T, Rhat = T, 
           n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
 
