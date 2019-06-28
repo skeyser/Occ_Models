@@ -339,8 +339,8 @@ family.count <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Family_L
 
 
 ##########################################################
-# final_sp_df <- final_sp_df %>% arrange(match(Family_Latin, "Hirundinidae"), 
-#                                        sci_name)
+final_sp_df <- final_sp_df %>% arrange(match(Order, "Falconiformes/Psittaciformes"),
+                                       sci_name)
 
 ##########################################################
 
@@ -357,12 +357,12 @@ final_sp_df$Phylo.V1 <- ifelse(final_sp_df$Phylo.V2 != "Passeriformes", final_sp
 
 ###################################################
 #Function retains species ID order and assigns ID
-#grpid = function(x) match(x, unique(x))
-#final_sp_df <- final_sp_df %>% mutate(spp.id = group_indices(., sci_name) %>% grpid)
+grpid = function(x) match(x, unique(x))
+final_sp_df <- final_sp_df %>% mutate(spp.id = group_indices(., sci_name) %>% grpid)
 ###################################################
 
 
-final_sp_df <- transform(final_sp_df, spp.id = as.numeric(interaction(sci_name, drop = T)))
+#final_sp_df <- transform(final_sp_df, spp.id = as.numeric(interaction(sci_name, drop = T)))
 final_sp_df <- transform(final_sp_df, rteno.id = as.numeric(interaction(rteno.x, drop = T)))
 final_sp_df <- transform(final_sp_df, year.id = as.numeric(interaction(Year, drop = T)))
 final_sp_df <- transform(final_sp_df, site.id = as.numeric(interaction(site, drop = T)))
@@ -865,7 +865,10 @@ spp.df[ which( spp.df$spp.id == 4), ]
 ydf[1,8,32]
 ydf[1,,]
 #Restrict the spp.occ to the subgroup that is being used
-#spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Hirundinidae",]
+spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Falconiformes/Psittaciformes",]
+
+#Rescale masses for groups
+spp.occ$Mass.scaled <- scale2(spp.occ$BodyMass)
 
 #Reallocate S so that it's cycling through the 
 #group of interest
@@ -878,9 +881,13 @@ for( i in 1:S ){
 
 ##################################################
 #Create the restricted ydf DF 
-#ydf <- ydf[1:length(unique(spp.occ$Species)), , ]
+ydf <- ydf[1:length(unique(spp.occ$Species)), , ]
 ##################################################
 
+#Check appropriate dimensions and check ydf
+#dim = x, 274, 38
+dim(ydf)
+ydf[1,8,]
 
 #####Workspace for testing subsetted groupings######
 rm(list = setdiff(ls(), c("ydf", "jdf", "bcr.occ", 
@@ -888,4 +895,4 @@ rm(list = setdiff(ls(), c("ydf", "jdf", "bcr.occ",
                           "Obs.ma", "JKmat", "JKsurv", "final_sp_df", 
                           "surveyedJ")))
 
-save.image(here::here("R Workspace/BCR31.RData"))
+save.image(here::here("R Workspace/Phylo_Subs/FalconsAndParrots.RData"))
