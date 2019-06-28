@@ -263,7 +263,7 @@ rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum",
                           "z.prime.75", "total.observed", 
                           "alpha.div", "non.converge")))
 
-#Save workspace
+##Save workspace
 what.dir <- "R Workspace/Output"
 phylo.group <- as.character(unique(spp.occ$Phylo.V1))
 phylo.group <- gsub("/", "_", phylo.group)
