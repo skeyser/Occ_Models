@@ -36,6 +36,9 @@ M <- length(unique(jdf$rteno.id))
 S <- length(unique(spp.occ$spp.id))
 K <- 38
 
+#Correcting the dimensions of the bcr.occ
+bcr.occ <- bcr.occ[1:S, ]
+
 ##### end of MCMC parameters definition ##############
 ############################################################################
 #################    run alternative models ################################
