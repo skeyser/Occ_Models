@@ -4,6 +4,7 @@
 ###############Created by : Spencer R Keyser#######################
 ###################################################################
 
+#rm(list = ls())
 #rm("upm1")
 
 #Load in packages
@@ -73,13 +74,14 @@ non.converge <- bad.params(Rhats)
 int <- rep( 1, 100 )
 #cbind( int, sclegl)
 #annual eagle abundance
-sclegl <- seq( min( XK[ , 'EglAbund'], na.rm = TRUE ), max( XK[ , 'EglAbund'], na.rm = TRUE ), 
+sclegl <- seq( min( [ , 'EglAbund'], na.rm = TRUE ), max( XK[ , 'EglAbund'], na.rm = TRUE ), 
                length.out = 100 )
+
 egl <- seq( min( Kcovs[ , 'EglAbund' ], na.rm = TRUE ), 
             max( Kcovs[ , 'EglAbund' ], na.rm = TRUE ), length.out = 100 )
 #estimate mean relationship with predictor while keeping all other covs constant at their mean
 #multiply coefficient matrix (for all iterations) against transposed covariate matrix using matrix algebra
-phi.egl <- cbind( mr$sims.list$int.phi, mr$sims.list$beta.phi[,2] ) %*% 
+phi.egl <- cbind( upm1$sims.list$int.psi, mr$sims.list$beta.phi[,2] ) %*% 
   t(cbind( int, sclegl ) ) 
 #calculate its mean and get inverse logit
 phi.eglm <- expit( apply( phi.egl, MARGIN = 2, FUN = mean ) )
@@ -104,9 +106,14 @@ ap <- predp +  xlab( "Bald eagle abundance" ) +
   ylab( "Probability of persistence" )            
 ##### end #########
 #################################################################
-#Pull out just the z matrix
+
+
+
+#Pull out just the z matrix and initilize for the loop
 z.prime <- means.output$z
-#z.prime2 <-means2$z
+z.prime.5 <- means.output$z
+z.prime.65 <- means.output$z
+z.prime.75 <- means.output$z
 
 #Loop through each species, site, and year to set 0s and 1s 
 #manually using cut-off values
@@ -115,10 +122,9 @@ for (s in 1:S){
   for (j in 1:J){
     for (k in 1:K){
       #Generate multiple "cut-offs" for sensitivity analyses
-      z.prime.5[s, j, k] <- ifelse(means1$z[s, j, k] > 0.5, 1, 0)
-      z.prime.65[s, j, k] <- ifelse(means1$z[s, j, k] > 0.65, 1, 0)
-      z.prime.75[s, j, k] <- ifelse(means1$z[s, j, k] > 0.75, 1, 0)
-      #z.prime2[s, j, k] <- ifelse(means2$z[s, j, k] > .5, 1, 0) 
+      z.prime.5[s, j, k] <- ifelse(z.prime.5[s, j, k] > 0.5, 1, 0)
+      z.prime.65[s, j, k] <- ifelse(z.prime.65[s, j, k] > 0.65, 1, 0)
+      z.prime.75[s, j, k] <- ifelse(z.prime.75[s, j, k] > 0.75, 1, 0)
     }#K
   }#J
 }#S
@@ -191,57 +197,51 @@ alpha.div <- list(group.a.div, group.a.div.5, group.a.div.65,
 
 #Priors used for plotting
 #Alpha params
-PR.norm <- rnorm(1000, 0, 3.126)
+PR.norm <- rnorm(300, 0, 3.126)
 
 #Random effects precision
-sigma.dt <- rhalft(1000, scale = 1, nu = 4)
+sigma.dt <- rhalft(300, scale = 1, nu = 4)
 prec.df <- 1 / (sigma.dt * sigma.dt)
 
 #Conditional normal for random effects
-PR.norm.cond <- rtruncnorm(1000, a = -6, b = 6, 0, sigma.dt)
+PR.norm.cond <- rtruncnorm(300, a = -6, b = 6, 0, sigma.dt)
 
 #Random intercepts prior 
-PR.beta <- rbeta(1000, 4, 4)
+PR.beta <- rbeta(300, 4, 4)
+
+#Trace plots
+#Automating Traceplots Saves
+phylo.plot <- as.character(unique(spp.occ$Phylo.V1))
+phylo.plot <- gsub("/", "_", phylo.plot)
 
 
-#Plotting 
-#can we extract part of the workspace name so that we can use that to #
-# label the files saved...that way it can be done automatically instead of manually?
-#
-#path where i get the name of the workspace I am running:
-extpath <- getwd()
-# extract name of file to use: 
-workname <-  dir( extpath, pattern = '\\.RData', full.names = FALSE )
-workname <- gsub(".RData", "", workname )
-#does that work? we may need to have separate folders for each phylogroup so that 
-# or there may be a way easier way of doing it?
 
 MCMCtrace(upm1, params = 'alpha', priors = PR.norm, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceAlpha", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'sigma.delta', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaDelta", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'delta', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceDelta", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'int.p', priors = PR.beta, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceIntP", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'int.psi', priors = PR.beta, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceIntPsi", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'epsID.psi', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceEpsID", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'eps.psi', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceEps", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'sigmaID.psi', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaID", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'sigma.psi', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here("Figures and Tables/TraceSwallows"))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaEps", "_", phylo.plot)))
 
 
 
@@ -256,8 +256,8 @@ MCMCplot(upm1, params = c("epsID.psi", "sigmaID.psi"), main = "Phylo Group Site 
 MCMCplot(upm1, params = c("eps.psi", "sigma.psi"), main = "Phylo Group Year Effects")
 
 MCMCplot(upm1, params = c("delta", "sigma.delta"), main = "Species RE", labels = c("BASW", "CASW", "CLSW", 
-                                                                                            "PUMA", "BASW", "NRWS", 
-                                                                                            "Sigma Delta"))
+                                                                                   "PUMA", "BASW", "NRWS", 
+                                                                                   "Sigma Delta"))
 rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum",
                           "z.prime", "z.prime.5", "z.prime.65",
                           "z.prime.75", "total.observed", 
@@ -269,5 +269,5 @@ phylo.group <- as.character(unique(spp.occ$Phylo.V1))
 phylo.group <- gsub("/", "_", phylo.group)
 phylo.group <- paste0(phylo.group, "", ".RData")
 
-#save.image(file = here::here(paste0(what.dir, "/", phylo.group)))
+save.image(file = here::here(paste0(what.dir, "/", phylo.group)))
          
