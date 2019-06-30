@@ -867,6 +867,9 @@ ydf[1,,]
 #Restrict the spp.occ to the subgroup that is being used
 spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Falconiformes/Psittaciformes",]
 
+#Restrict BCR 
+bcr.occ <- bcr.occ[1:max(spp.occ$spp.id), ]
+
 #Rescale masses for groups
 spp.occ$Mass.scaled <- scale2(spp.occ$BodyMass)
 
