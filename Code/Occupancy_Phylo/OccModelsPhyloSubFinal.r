@@ -18,7 +18,7 @@ pacman::p_load(jagsUI, MCMCvis, here)
 ###Load in the Data4OccModels Workspace###
 ##########################################
 
-load(here::here('R Workspace/SwallowsFull.RData'))
+load(here::here('R Workspace/Phylo_Subs/Blackbirds.RData'))
 
 ##Hello github##
 
@@ -35,6 +35,9 @@ J <- length(unique(jdf$site.id))
 M <- length(unique(jdf$rteno.id))
 S <- length(unique(spp.occ$spp.id))
 K <- 38
+
+#Correcting the dimensions of the bcr.occ
+bcr.occ <- bcr.occ[1:S, ]
 
 ##### end of MCMC parameters definition ##############
 ############################################################################
@@ -409,7 +412,7 @@ ptm <- proc.time()
 #auto update the model
 upm1 <- autojags( win.data, inits = inits, params, modelname,
           n.chains = 3, n.thin = 10, n.burnin = 1000,
-          iter.increment = 1000, max.iter = 100000,
+          iter.increment = 1000, max.iter = 50000,
           Rhat.limit = 1.15, save.all.iter=FALSE, parallel = TRUE )
 
 fm1.time <- proc.time() - ptm
