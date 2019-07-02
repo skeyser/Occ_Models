@@ -12,7 +12,7 @@ rm(list = ls())
 #Package Loading
 #install.packages("pacman")
 library("pacman")
-pacman::p_load("tidyverse", "reshape2", "vegan", "data.table")
+pacman::p_load("tidyverse", "reshape2", "vegan", "data.table", "cowplot")
 # pacman::p_load("sjPlot", "sjstats", "nlme","reshape2", "effects","vegan", 
 #                "lmerTest", "tidyverse", "lsr", "cowplot", "here", "purrr", 
 #                "lme4", "car", "MASS", "MuMIn")
@@ -826,6 +826,14 @@ tempmod <- lm(temp.avgs$anomalies ~ temp.avgs$yr_bin)
 summary(tempmod)
 
 
+##Create df to link diversity, climate, and LULC data together## 
+
+true.sites <- final_sp_df[, c("rteno.x", "site")]
+true.sites <- true.sites[!duplicated(true.sites),]
+true.sites <- true.sites$site
+true.sites <- wetland.link[wetland.link$rteno.segment %in% true.sites,]
+
+#write.csv(true.sites, here::here("Data_BBS/Generated DFs/LULC_Final_Sites_DF.csv"))
 
 ######################################################################
 ##############Script cleaned to here 7/1/2019#########################
