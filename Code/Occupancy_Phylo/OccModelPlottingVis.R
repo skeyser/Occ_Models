@@ -62,7 +62,7 @@ bad.params <- function(x) {
 }
 
 non.converge <- bad.params(Rhats)
-
+non.converge[non.converge > 1.3]
 ###summaries of model parameters ########
 ###here is an example if we actually want to estimate & plot #
 # relationships between alpha and detection prob #
@@ -217,13 +217,13 @@ phylo.plot <- gsub("/", "_", phylo.plot)
 
 
 MCMCtrace(upm1, params = 'alpha', priors = PR.norm, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceAlpha", "_", phylo.plot)))
+          n.eff = T, pdf = F) #file = here::here(paste0("Figures/TraceAlpha", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'sigma.delta', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaDelta", "_", phylo.plot)))
+          n.eff = T, pdf = F)#file = here::here(paste0("Figures/TraceSigmaDelta", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'delta', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceDelta", "_", phylo.plot)))
+          n.eff = T, pdf = F) #file = here::here(paste0("Figures/TraceDelta", "_", phylo.plot)))
 
 MCMCtrace(upm1, params = 'int.p', priors = PR.beta, ind = T, Rhat = T, 
           n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceIntP", "_", phylo.plot)))
