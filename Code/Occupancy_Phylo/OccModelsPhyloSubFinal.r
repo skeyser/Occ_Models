@@ -425,12 +425,12 @@ str( win.data <- list( ydf = ydf, #observed occupancy
 
 ptm2 <- proc.time()
 
-# upm2 <- autojags( win.data, inits = inits, params, modelname, 
-#                   n.chains = 3, n.thin = 10, n.burnin = 0, 
-#                   iter.increment = 1000, max.iter = 200000,
-#                   Rhat.limit = 1.15, save.all.iter = F, parallel = T)
+upm2 <- autojags( win.data, inits = inits, params, modelname,
+                  n.chains = 3, n.thin = 10, n.burnin = 0,
+                  iter.increment = 1000, max.iter = 200000,
+                  Rhat.limit = 1.15, save.all.iter = F, parallel = T)
 
-upm2 <- update( upm1, n.iter = 50000, n.thin = 10)
+#upm2 <- update( upm1, n.iter = 50000, n.thin = 10)
 
 fm2.time <- proc.time() - ptm2
 
@@ -617,7 +617,7 @@ ptm3 <- proc.time()
 #auto update the model
 upm3 <- autojags( win.data, inits = inits, params, modelname,
                   n.chains = 3, n.thin = 10, n.burnin = 0,
-                  iter.increment = 1000, max.iter = 200000,
+                  iter.increment = 1000, max.iter = 150000,
                   Rhat.limit = 1.15, save.all.iter=FALSE, parallel = TRUE )
 
 fm3.time <- proc.time() - ptm3
