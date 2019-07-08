@@ -266,7 +266,7 @@ cat("
       logit( p[s,j,k] ) <- int.p + alpha[1] * Obs.ma[j,k] +
                           alpha[2] * Ord.ma[j,k] + 
                           alpha[3] * TOD.ma[j, k] + 
-                          alpha[ 4 ] * Mass.scaled[ s ] +
+               #           alpha[ 4 ] * Mass.scaled[ s ] +
                           delta[ s ]
     mup[ s, j, k ] <- z[s, j, k] * p[s, j, k]
     ydf[s, j, k] ~ dbern( mup[ s, j, k ]  )
@@ -388,13 +388,13 @@ params <- c( 'int.psi' #intercept for occupancy model
 #################################################################################
 ###### alternative  variable selection variances for occupancy model ############
 str( win.data <- list( ydf = ydf, #observed occupancy 
-                       J = J, K = K, S = S, Q =  4, M = M,
+                       J = J, K = K, S = S, Q =  3, M = M,
                        #J = 50, K = 5, S = 233, G = 23, Q =  4, M = 84,
                        JKsurv = JKsurv, #indicator of segments sampled (1) and not (0)
                        bcr.id = jdf$bcr.id, #indicator of what BCR the segment belongs to
                        rteno.id = jdf$rteno.id, #indicator of what route the segment belongs to
                        bcr.occ = bcr.occ, #bcr indicator for each species
-                       Mass.scaled = spp.occ$Mass.scaled, #body mass
+                      # Mass.scaled = spp.occ$Mass.scaled, #body mass
                        TOD.ma = TOD.ma, #time of day
                        Ord.ma = Ord.ma, #day of year
                        Obs.ma = Obs.ma, #first observer year
@@ -412,7 +412,7 @@ ptm <- proc.time()
 #auto update the model
 upm1 <- autojags( win.data, inits = inits, params, modelname,
           n.chains = 3, n.thin = 10, n.burnin = 1000,
-          iter.increment = 1000, max.iter = 100000,
+          iter.increment = 1000, max.iter = 150000,
           Rhat.limit = 1.15, save.all.iter=FALSE, parallel = TRUE )
 
 fm1.time <- proc.time() - ptm
