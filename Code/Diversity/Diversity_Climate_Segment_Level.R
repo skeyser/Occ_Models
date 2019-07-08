@@ -159,6 +159,9 @@ bbs_total$state[bbs_total$statenum == 42] <- "LA"
 bbs_total$unique_id <- paste0(bbs_total$state, "_", bbs_total$rteno, "_", bbs_total$year)
 bbs_total$abbrev <- paste0(bbs_total$state, "_", bbs_total$rteno)
 
+#write.csv(bbs_total, here::here("Data_BBS/Generated DFs/BBS_Total_DF.csv"))
+
+
 birds <- bbs_total[, c("rteno", "year", "linnean",
                        "count10", "count20", "count30",
                        "count40", "count50")]

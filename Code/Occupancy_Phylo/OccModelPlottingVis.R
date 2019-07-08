@@ -49,9 +49,9 @@ S <- max(spp.occ$spp.id)
 ##################################
 
 #Extract subsets of the full model for saving the workspace 
-means.output <- upm1$mean
-Rhats <- upm1$Rhat
-model.sum <- upm1$summary
+means.output <- upm3$mean
+Rhats <- upm3$Rhat
+model.sum <- upm3$summary
 
 
 #View All non-converged parameters 
@@ -62,7 +62,7 @@ bad.params <- function(x) {
 }
 
 non.converge <- bad.params(Rhats)
-
+non.converge[non.converge > 1.3]
 ###summaries of model parameters ########
 ###here is an example if we actually want to estimate & plot #
 # relationships between alpha and detection prob #
@@ -216,32 +216,32 @@ phylo.plot <- gsub("/", "_", phylo.plot)
 
 
 
-MCMCtrace(upm1, params = 'alpha', priors = PR.norm, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceAlpha", "_", phylo.plot)))
+MCMCtrace(upm3, params = 'alpha', priors = PR.norm, ind = T, Rhat = T, 
+          n.eff = T, pdf = F) #file = here::here(paste0("Figures/TraceAlpha", "_", phylo.plot)))
 
-MCMCtrace(upm1, params = 'sigma.delta', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaDelta", "_", phylo.plot)))
+MCMCtrace(upm3, params = 'sigma.delta', priors = sigma.dt, ind = T, Rhat = T, 
+          n.eff = T, pdf = F)#file = here::here(paste0("Figures/TraceSigmaDelta", "_", phylo.plot)))
 
-MCMCtrace(upm1, params = 'delta', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceDelta", "_", phylo.plot)))
+MCMCtrace(upm3, params = 'delta', priors = PR.norm.cond, ind = T, Rhat = T, 
+          n.eff = T, pdf = F) #file = here::here(paste0("Figures/TraceDelta", "_", phylo.plot)))
 
-MCMCtrace(upm1, params = 'int.p', priors = PR.beta, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceIntP", "_", phylo.plot)))
+MCMCtrace(upm3, params = 'int.p', priors = PR.beta, ind = T, Rhat = T, 
+          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceIntP", "_", phylo.plot)))
 
-MCMCtrace(upm1, params = 'int.psi', priors = PR.beta, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceIntPsi", "_", phylo.plot)))
+MCMCtrace(upm3, params = 'int.psi', priors = PR.beta, ind = T, Rhat = T, 
+          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceIntPsi", "_", phylo.plot)))
 
-MCMCtrace(upm1, params = 'epsID.psi', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceEpsID", "_", phylo.plot)))
+MCMCtrace(upm3, params = 'epsID.psi', priors = PR.norm.cond, ind = T, Rhat = T, 
+          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceEpsID", "_", phylo.plot)))
 
-MCMCtrace(upm1, params = 'eps.psi', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceEps", "_", phylo.plot)))
+MCMCtrace(upm3, params = 'eps.psi', priors = PR.norm.cond, ind = T, Rhat = T, 
+          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceEps", "_", phylo.plot)))
 
-MCMCtrace(upm1, params = 'sigmaID.psi', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaID", "_", phylo.plot)))
+MCMCtrace(upm3, params = 'sigmaID.psi', priors = sigma.dt, ind = T, Rhat = T, 
+          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceSigmaID", "_", phylo.plot)))
 
-MCMCtrace(upm1, params = 'sigma.psi', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaEps", "_", phylo.plot)))
+MCMCtrace(upm3, params = 'sigma.psi', priors = sigma.dt, ind = T, Rhat = T, 
+          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceSigmaEps", "_", phylo.plot)))
 
 
 
