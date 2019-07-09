@@ -11,11 +11,13 @@ rm(list = ls())
 
 #Package Loading
 #install.packages("pacman")
-library("pacman")
-pacman::p_load("tidyverse", "reshape2", "vegan", "data.table", "cowplot")
-# pacman::p_load("sjPlot", "sjstats", "nlme","reshape2", "effects","vegan", 
-#                "lmerTest", "tidyverse", "lsr", "cowplot", "here", "purrr", 
-#                "lme4", "car", "MASS", "MuMIn")
+#library("pacman")
+pacman::p_load("here", "tidyverse", "reshape2", "vegan", "data.table", "cowplot", "lme4", "sjplot", 
+               "sjstats", "car")
+
+#Packages to call in the function without loading
+#pacman::p_load(MASS, effects, nlme, lsr, lmerTest, MUMIn)
+
 
 # #Load in cleaned spp x site DF
 # final_sp_df <- read.csv(here::here("Data_BBS/Generated DFs/Final_Sp_Df_DetectionsOnly.csv"))
@@ -643,6 +645,7 @@ ggdraw() +
 
 #Environmental Data Loading and Cleaning 
 #PRISM Data Script 
+#Read in all the prism data years
 prism.1 <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1966_GoM_mid_198001_199412.csv"))
 prism.2 <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1966_GoM_mid_199501_200912.csv"))
 prism.3 <- read.csv(here::here("Data_Envi/PRISM Data/PRISM_1966_GoM_mid_201001_201712.csv"))
@@ -671,7 +674,7 @@ colnames(prism.total)[colnames(prism.total) == "tmax..degrees.F."] <- "tmax"
 colnames(prism.total)[colnames(prism.total) == "tmin..degrees.F."] <- "tmin"
 colnames(prism.total)[colnames(prism.total) == "tmean..degrees.F."] <- "tmean"
 
-#Year bins for analysis 
+#Create tear bins for analysis 
 prism.total$Year <- as.numeric(prism.total$Year)
 prism.total$yr_bin <- 1
 prism.total$yr_bin[prism.total$Year >= 1980 & prism.total$Year <= 1984] <- 1
@@ -683,7 +686,7 @@ prism.total$yr_bin[prism.total$Year >= 2005 & prism.total$Year <= 2009] <- 6
 prism.total$yr_bin[prism.total$Year >= 2010 & prism.total$Year <= 2014] <- 7
 prism.total$yr_bin[prism.total$Year >= 2015 & prism.total$Year <= 2018] <- 8
 
-#Bin months for seasons
+#Bin months for season (use only spring and summer)
 prism.total$Month <- as.numeric(prism.total$Month)
 prism.total$season <- "Winter"
 prism.total$season[prism.total$Month >= 03 & prism.total$Month <= 05] <- "Spring"
@@ -694,8 +697,11 @@ prism.total$season[prism.total$Month >= 12 & prism.total$Month <= 02] <- "Winter
 #Reduce data for just Spring and Summer seasons
 prism.total <- prism.total[prism.total$season == "Spring" | prism.total$season == "Summer", ]
 
+#Remove elevation and dates
 prism.simple <- prism.total[, -4:-6]
 colnames(prism.simple)[colnames(prism.simple) == "Name"] <- "Site"
+
+#DF with sites, lat/long, yr, month, precip, min, max, avg tmp, yr_bin, season
 prism.simple$Site <- as.character(prism.simple$Site)
 
 #Calculate Monthly Averages in Temperature for bins
@@ -710,6 +716,8 @@ avg.min <- as.data.frame(avg.min)
 precipitation <- aggregate(precip ~ Site + Month + yr_bin, prism.simple, FUN = "mean")
 precipitation <- precipitation[, "precip"]
 precipitation <- as.data.frame(precipitation)
+
+#Bind all the averges together in one DF "avgs"
 avgs <- do.call("cbind", list(avgs, avg.max, avg.min, precipitation))
 avgs$site.mo.yr <- paste0(avgs$Site, "_", avgs$Month, "_", avgs$yr_bin)
 
@@ -733,10 +741,15 @@ betas$Yr_bin[betas$year >= 2015 & betas$year <= 2018] <- 8
 #climate data to the first year bin with a beta value
 min.betas <- aggregate(Yr_bin ~ site, betas, FUN = "min")
 
+
+#Beta.mod at this point has a beta for each site and year combination
 betas.mod <- betas
+
 
 #Calculate Mean Beta for each year-bin 
 betas.mod <- aggregate(beta ~ site + Yr_bin, betas, FUN = "mean")
+
+#BBS site DF (rteno, site, site name, rt_yr combo)
 bbs_site_temp <- bbs_total[, c("rteno.x", "rtename", "site", "rt_yr")]
 bbs_site_temp$rtename <- as.character(bbs_site_temp$rtename)
 bbs_site_temp <- bbs_site_temp[!duplicated(bbs_site_temp$site), ]
@@ -758,9 +771,8 @@ site.merge[site.merge$Site == "ALABAMA_PORT", 2] <- "DAUPHIN_IS_2"
 
 
 
-
+#Merges the first year bin that data exists for each rt to the site descriptions 
 min.betas <- merge(min.betas, site.merge, by = "site")
-
 colnames(min.betas)[colnames(min.betas) == "Yr_bin"] <- "min.yr.bin"
 
 #Merge the climate averages with the site data for ref
@@ -773,12 +785,17 @@ avgs[avgs$Site == "SEMINOLE_HLS", 1] <- "SEMINOLE_HILLS"
 avgs[avgs$Site == "ALABAMA_PORT", 1] <- "DAUPHIN_IS_2"
 avgs[avgs$Site == "FORKED_ISLAN", 1] <- "FORKED_ISLAND"
 
+#Merging climate averages with DF that has the site info (rteno, etc.)
 avgs <- merge(avgs, site.merge, by = "Site")
 avgs$unique_id <- paste0(avgs$site, "_", avgs$yr_bin)
+
+#Putting the first year data with the averages to subset by the first 
+#year the survey was conducted 
 avgs <- merge(avgs, min.betas, by = "site")
 avgs <- avgs[avgs$yr_bin >= avgs$min.yr.bin,]
 
-avgs <- avgs %>% select(site, Site.x, Month, yr_bin, tmean, avg.max, avg.min,
+#Pull out info we want 
+avgs <- avgs %>% dplyr::select(site, Site.x, Month, yr_bin, tmean, avg.max, avg.min,
                         precipitation, site.mo.yr, rteno.x.x, min.yr.bin)
 
 avgs$site_bin <- paste0(avgs$site, "_", avgs$yr_bin)
@@ -814,8 +831,11 @@ betas.mod$unique_id <- paste0(betas.mod$site, "_", betas.mod$Yr_bin)
 temp.avgs$unique_id <- paste0(temp.avgs$site, "_", temp.avgs$yr_bin)
 
 #Put betas with temperature data 
+#DF contains unique_id, site, yr_bin, raw climate, and anomalies
 lmer.df <- merge(temp.avgs, betas.mod, by = "unique_id")
 test <- lmer.df
+test <- separate(test, site.y, into = c("rteno", "segment"), by = "_")
+
 
 ggplotRegression(tempmod)
 
@@ -859,16 +879,16 @@ alpha.1980$yr_bin[alpha.1980$Year >= 2015 & alpha.1980$Year <= 2020] <- 8
 #alpha.1980 <- separate(alpha.1980, unique_id, c("State", "rteno"), sep = "_")
 rownames(alpha.1980) <- c()
 colnames(alpha.1980)[colnames(alpha.1980) == "abbrev"] <- "site"
-alpha.1980 <- alpha.1980[, c("site", "yr_bin", "Year", "Total_Abundance", "Total_SR", "rarefied.alpha")]
+alpha.1980 <- alpha.1980[, c("site", "yr_bin", "Site_div")]
 alpha.agg <- aggregate(. ~ site + yr_bin, alpha.1980, FUN = "mean")
 alpha.agg$unique_id <- paste0(alpha.agg$site, "_", alpha.agg$yr_bin)
 
 test <- merge(test, alpha.agg, "unique_id")
 test <- test %>% group_by(site) %>% arrange(Yr_bin) %>% 
-  mutate(p.change.alpha = (rarefied.alpha - first(rarefied.alpha)) / first(rarefied.alpha) * 100) %>%
+  mutate(p.change.alpha = (Site_div - first(Site_div)) / first(Site_div) * 100) %>%
   ungroup(test)
 colnames(test)[colnames(test) == "site.x"] <- "Site"
-test <- test[, c("unique_id", "Site", "Yr_bin", "Year", "rarefied.alpha", 
+test <- test[, c("unique_id", "Site", "Yr_bin", "Site_div", 
                  "p.change.alpha", "anomalies", "max.anomalies", "min.anomalies", "precip.anomalies", 
                  "beta")]
 
@@ -890,7 +910,7 @@ r.squaredGLMM(mod.alpha)
 plot(test1$precip.anomalies, test1$p.change.alpha)
 abline(lm(test1$p.change.alpha ~ test1$precip.anomalies))
 
-mod.beta <- lmer(beta ~ anomalies + rarefied.alpha + precip.anomalies + (1|Rteno), data = test)
+mod.beta <- lmer(beta ~ anomalies + Site_div + precip.anomalies + (1|Rteno), data = test)
 summary(mod.beta)
 tab_model(mod.beta)
 
