@@ -416,9 +416,9 @@ ptm3 <- proc.time()
 
 #auto update the model
 upm3 <- autojags( win.data, inits = inits, params, modelname,
-                  n.chains = 3, n.thin = 10, n.burnin = 0,
+                  n.chains = 3, n.thin = 10, n.burnin = 5000,
                   iter.increment = 10000, max.iter = 500000,
-                  Rhat.limit = 1.5, save.all.iter=FALSE, parallel = TRUE )
+                  Rhat.limit = 1.4, save.all.iter=FALSE, parallel = TRUE )
 
 fm3.time <- proc.time() - ptm3
 

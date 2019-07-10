@@ -10,13 +10,15 @@
 #Load in packages
 library(pacman)
 pacman::p_load("MCMCvis", "LaplacesDemon", "truncnorm")
-
+library( gridExtra) #to combine plots
 #Package loading complete 
 
 J <- 274
 K <- 38
 S <- max(spp.occ$spp.id)
-
+#read in predictors 
+Site.Occ <- read.csv( file = 'Site.Occ.csv', header = TRUE )  
+head( Site.Occ )
 ###################################
 #This bit is in the model body now#
 ###################################
@@ -47,12 +49,12 @@ S <- max(spp.occ$spp.id)
 # }#S
 
 ##################################
-
+#whole model summary for p vs predictor plotting
+mr <- upm3
 #Extract subsets of the full model for saving the workspace 
-means.output <- upm3$mean
-Rhats <- upm3$Rhat
-model.sum <- upm3$summary
-
+means.output <- mr$mean
+Rhats <- mr$Rhat
+model.sum <- mr$summary
 
 #View All non-converged parameters 
 bad.params <- function(x) {
@@ -64,50 +66,104 @@ bad.params <- function(x) {
 non.converge <- bad.params(Rhats)
 non.converge[non.converge > 1.3]
 ###summaries of model parameters ########
-###here is an example if we actually want to estimate & plot #
-# relationships between alpha and detection prob #
-# we could also save mean and CIs for the random effects as a #
-# separate dataframe exported elsewhere # 
-
+######################################################################
+################ detection relationships ##############################
+####### calculating relationship with ordinal date ####
 #define range for important covariates in models
-#intercept for covariate matrix 
-int <- rep( 1, 100 )
-#cbind( int, sclegl)
-#annual eagle abundance
-sclegl <- seq( min( [ , 'EglAbund'], na.rm = TRUE ), max( XK[ , 'EglAbund'], na.rm = TRUE ), 
-               length.out = 100 )
+#extract range of values for ordinal date
+ord <- seq( min( Site.Occ[ , 'OrdinalDate' ], na.rm = TRUE ), 
+            max( Site.Occ[ , 'OrdinalDate' ], na.rm = TRUE ), by = 1 )
+#scale
+ord.scl <- scale( ord )
+#intercept
+ord.int <- rep( 1, length( ord ) )
 
-egl <- seq( min( Kcovs[ , 'EglAbund' ], na.rm = TRUE ), 
-            max( Kcovs[ , 'EglAbund' ], na.rm = TRUE ), length.out = 100 )
-#estimate mean relationship with predictor while keeping all other covs constant at their mean
+#estimate relationship with predictor while keeping all others constant at their mean (i.e. zero)
 #multiply coefficient matrix (for all iterations) against transposed covariate matrix using matrix algebra
-phi.egl <- cbind( upm1$sims.list$int.psi, mr$sims.list$beta.phi[,2] ) %*% 
-  t(cbind( int, sclegl ) ) 
+p.ord <- cbind( mr$sims.list$int.p, mr$sims.list$alpha[,2] ) %*% 
+          t( cbind( ord.int, ord.scl ) ) 
 #calculate its mean and get inverse logit
-phi.eglm <- expit( apply( phi.egl, MARGIN = 2, FUN = mean ) )
+p.ord.m <- plogis( apply( p.ord, MARGIN = 2, FUN = mean ) )
 #calculate its 95% CIs and get its inverse logit:
-phi.eglCI <- expit( apply( phi.egl, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.975) ) )
+p.ord.CI <- plogis( apply( p.ord, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.975) ) )
+#### end of ordinal #######
 
-### you can then save output into dataframe and save it so #
+####### calculating relationship with time of days(hrs) ####
+#define range for important covariates in models
+#extract range of values for time of day
+tod <- seq( min( Site.Occ[ , 'TOD' ], na.rm = TRUE ), 
+            max( Site.Occ[ , 'TOD' ], na.rm = TRUE ), length = length(ord) )/60
+#scale
+tod.scl <- scale( tod )
+#intercept
+tod.int <- rep( 1, length( tod ) )
+#estimate relationship with predictor while keeping all others constant at their mean (i.e. zero)
+#multiply coefficient matrix (for all iterations) against transposed covariate matrix using matrix algebra
+p.tod <- cbind( mr$sims.list$int.p, mr$sims.list$alpha[,3] ) %*% 
+          t( cbind( tod.int, tod.scl ) ) 
+#calculate its mean and get inverse logit
+p.tod.m <- plogis( apply( p.tod, MARGIN = 2, FUN = mean ) )
+#calculate its 95% CIs and get its inverse logit:
+p.tod.CI <- plogis( apply( p.tod, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.975) ) )
+####### end of TOD #####
+### combine all continuous relationships to plot #####
 # we can then plot it elsewhere#
 #combine predicted estimates into a dataframe
-predrships <- data.frame( sclegl, egl,  #standardise and not standardised covariates
-                          phi.eglm, t( phi.eglCI ) #predicted response
+predrships <- data.frame( ord.scl, ord,  #standardise and not standardised covariates
+                          tod.scl, tod, #time of day
+                          p.ord.m, t( p.ord.CI ), #predicted response
+                          p.tod.m, t( p.tod.CI ) #predicted response
+                          
 )
+#####
+#### observer effect #####
+head(Site.Occ)
+#estimate relationship with predictor while keeping all others constant at their mean (i.e. zero)
+p.obs <- plogis( cbind( mr$sims.list$int.p, (mr$sims.list$int.p + mr$sims.list$alpha[,3] )) )
+colnames( p.obs ) <- c( 'remaining years', 'first year' )
+# #calculate its mean and get inverse logit
+# p.obs.m <- plogis( apply( p.obs, MARGIN = 2, FUN = mean ) )
+# #calculate its 95% CIs and get its inverse logit:
+# p.obs.CI <- plogis( apply( p.obs, MARGIN = 2, FUN = quantile, probs = c(0.025, 0.975) ) )
+# convert matrix to long format
+p.obs.df <- tidyr::gather( data = as.data.frame( p.obs), key = Predictor,
+                          Value )
+#plot
+op <- ggplot( p.obs.df, aes( y = Value, x = Predictor ) ) + 
+  theme_classic() + ylab( 'Probability of detection' ) +
+  theme( text = element_text( size = 18 ),
+         strip.text = element_blank(), strip.background = element_blank(),
+         axis.line = element_line( size = 1.3 ) ) + 
+  ylim( 0.0, 1.0 ) + 
+#  coord_flip() + 
+  geom_violin( trim = FALSE, fill = '#A4A4A4', size = 1.2 ) + 
+  stat_summary( fun.y = mean, geom = "point", size = 2 ) 
+####### end of observer #####
+###### plotting detection rships #####
 # to plot:
 predp <- ggplot( data = predrships ) + theme_classic() +
   theme( legend.position = "none", 
          text = element_text( size = 18 ), 
-         axis.line = element_line( size = 1.3 ) ) + ylim( 0.0,1.0 ) 
+         axis.line = element_line( size = 1.3 ) ) + ylim( 0.0,1.0 ) + 
+  ylab( "Probability of detection" )            
 
-ap <- predp +  xlab( "Bald eagle abundance" ) +
-  geom_line( aes( x = egl, y = phi.eglm ), size = 1.2 ) +
-  geom_ribbon( alpha = 0.4, aes( x = egl, ymin = X2.5. , ymax = X97.5. ) ) + #, 
-  ylab( "Probability of persistence" )            
-##### end #########
+odp <- predp +  xlab( "Ordinal Date" ) +
+  geom_line( aes( x = ord, y = p.ord.m ), size = 1.2 ) +
+  geom_ribbon( alpha = 0.4, aes( x = ord, ymin = X2.5. , ymax = X97.5. ) ) 
+
+todp <- predp +  xlab( "Time of Day (hrs)" ) +
+  geom_line( aes( x = tod, y = p.tod.m ), size = 1.2 ) +
+  geom_ribbon( alpha = 0.4, aes( x = tod, ymin = X2.5..1 , ymax = X97.5..1 ) ) 
+
+# tiff( 'DetRships.tiff',
+#       height = 20, width = 20, units = 'cm', compression = "lzw", res = 300 )
+grid.arrange( odp, todp, op, ncol = 2, 
+              nrow = 2 )
+#dev.off()
+##### end p rship plots #########
 #################################################################
 
-
+####### summaries #####################
 
 #Pull out just the z matrix and initilize for the loop
 z.prime <- means.output$z
@@ -135,12 +191,12 @@ for( i in 1:S ){
   z.prime.65[ i, , ] <- z.prime.65[ i, , ] * JKmat#JKsurv
   z.prime.75[ i, , ] <- z.prime.75[ i, , ] * JKmat #JKsurv
 }
-
-#Check differences
-z.prime[1,,]
-z.prime.5[1,,]
-z.prime.65[1,,]
-z.prime.75[1,,]
+# 
+# #Check differences
+# z.prime[1,,]
+# z.prime.5[1,,]
+# z.prime.65[1,,]
+# z.prime.75[1,,]
 
 #Quick function to calculate total observations of each species
 total <- function(x, y){
@@ -246,27 +302,30 @@ MCMCtrace(upm3, params = 'sigma.psi', priors = sigma.dt, ind = T, Rhat = T,
 
 
 #Parameter Plots 
-MCMCplot(upm1, params = c("alpha"), rank = T, main = "Swallows Phylo Group Alphas", labels = c("Observer Effect", "Time of Day",
-                                                                                               "Day of Year", "Body Mass"))
+MCMCplot(mr, params = c("alpha"), rank = T, main = "Swallows Phylo Group Alphas", labels = c("Observer Effect", "Time of Day",
+                                                                                               "Day of Year" ))
 
-MCMCplot(upm1, params = c("int.psi", "int.p"), rank = T, main = "Phylo Group Intercepts", labels = c("Intercept Occupancy", 
+MCMCplot(mr, params = c("int.psi", "int.p"), rank = T, main = "Phylo Group Intercepts", labels = c("Intercept Occupancy", 
                                                                                                      "Intercept Detection")) 
-MCMCplot(upm1, params = c("epsID.psi", "sigmaID.psi"), main = "Phylo Group Site Effects")
+MCMCplot(mr, params = c("epsID.psi", "sigmaID.psi"), main = "Phylo Group Site Effects")
 
-MCMCplot(upm1, params = c("eps.psi", "sigma.psi"), main = "Phylo Group Year Effects")
+MCMCplot(mr, params = c("eps.psi", "sigma.psi"), main = "Phylo Group Year Effects")
 
-MCMCplot(upm1, params = c("delta", "sigma.delta"), main = "Species RE", labels = c("BASW", "CASW", "CLSW", 
-                                                                                   "PUMA", "BASW", "NRWS", 
-                                                                                   "Sigma Delta"))
-rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum",
+MCMCplot(mr, params = c("delta", "sigma.delta"), main = "Species RE" )#, 
+         #labels = c("BASW", "CASW", "CLSW", "PUMA", "BASW", "NRWS", "Sigma Delta"))
+
+rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum", "mr", 
                           "z.prime", "z.prime.5", "z.prime.65",
                           "z.prime.75", "total.observed", 
                           "alpha.div", "non.converge")))
-
 ##Save workspace
 what.dir <- "R Workspace/Output"
+#what.dir <- paste0( getwd(), "/results" )
 phylo.group <- as.character(unique(spp.occ$Phylo.V1))
 phylo.group <- gsub("/", "_", phylo.group)
 phylo.group <- paste0(phylo.group, "", ".RData")
 
 save.image(file = here::here(paste0(what.dir, "/", phylo.group)))
+#save.image(file = paste0(what.dir, "/", phylo.group ) )
+
+########################### end of script ################################################
