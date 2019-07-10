@@ -5,6 +5,10 @@
 ##################Created by: Spencer R Keyser#########################
 #######################################################################
 
+#Start from line 748 to get at what the issue is for the sites
+#Today it seemed ok? Need to double check 
+#Should hve climate data for 84 rts and 274 sites
+
 
 ##Clean Global Environment  
 rm(list = ls())
