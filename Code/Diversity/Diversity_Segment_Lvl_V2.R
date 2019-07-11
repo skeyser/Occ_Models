@@ -348,17 +348,19 @@ rt.xy <- rt.xy %>% select(rtename, rteno, countrynum, Latitude,
 #Create site x year id
 final_sp_df$unique_id <- paste0(final_sp_df$site, "_", final_sp_df$Year)
 
-bbs_simple <- final_sp_df[,c("sci_name", "unique_id")]
+bbs_simple <- final_sp_df[,c("sci_name", "unique_id", "Year", "site")]
 bbs_simple$Detected <- 1
 #bbs_plot <- bbs_total[, c("unique_id", "statenum")]
 #bbs_plot <- as.data.frame(bbs_plot)
 
-#Cast Data
+#Cast Data for calculating the sums for site diversity 
 bbs_cast <- dcast(data = bbs_simple, formula = unique_id ~ sci_name, fun.aggregate = sum)
 
+#Remove column 1 after setting rownames
 rownames(bbs_cast) <- bbs_cast$unique_id
 bbs_cast <- bbs_cast[,-1]
 
+#Calculate site diversity by summming across sites 
 Site_div <- rowSums(bbs_cast)
 Site_div <- as.data.frame(Site_div)
 Site_div$unique_id <- rownames(Site_div)
@@ -366,34 +368,56 @@ rownames(Site_div) <- NULL
 
 
 #check names are the same so we can just cbind them
-bbs_total <- final_sp_df[!duplicated(final_sp_df),]
+bbs_total <- final_sp_df[!duplicated(final_sp_df),] #Remove any duplicated rows
 bbs_total <- bbs_total %>% dplyr::select(rteno.x, rt_yr, Segment, Year,
-                                  BCR, site, unique_id)
-bbs_total <- bbs_total[!duplicated(bbs_total),]
-bbs_total <- arrange(bbs_total, desc(unique_id))
-Site_div <- arrange(Site_div, desc(unique_id))
-bbs_total <- cbind(bbs_total, Site_div)
+                                  BCR, site, unique_id) #Selection variables 
+bbs_total <- bbs_total[!duplicated(bbs_total),] #Remove any duplicated rows 
+bbs_total <- arrange(bbs_total, desc(unique_id)) #Order bbs_total
+Site_div <- arrange(Site_div, desc(unique_id)) #Order Site_dive
+bbs_total <- cbind(bbs_total, Site_div) #cbind two dfs
 bbs_total <- bbs_total[, -9]
 
 bbs_total <- merge(bbs_total, rt.xy, by.x = "rteno.x", by.y = "rteno")
 
-
+bbs_total <- bbs_total[bbs_total$Year >= 1980,]
+bbs_total$Yr_bin <- 1
+bbs_total$Yr_bin[bbs_total$Year >= 1985 & bbs_total$Year <= 1989] <- 2
+bbs_total$Yr_bin[bbs_total$Year >= 1990 & bbs_total$Year <= 1994] <- 3
+bbs_total$Yr_bin[bbs_total$Year >= 1995 & bbs_total$Year <= 1999] <- 4
+bbs_total$Yr_bin[bbs_total$Year >= 2000 & bbs_total$Year <= 2004] <- 5
+bbs_total$Yr_bin[bbs_total$Year >= 2005 & bbs_total$Year <= 2009] <- 6
+bbs_total$Yr_bin[bbs_total$Year >= 2010 & bbs_total$Year <= 2014] <- 7
+bbs_total$Yr_bin[bbs_total$Year >= 2015 & bbs_total$Year <= 2018] <- 8
+  
+  
 #Mean SR for each route
 bbs_total$site <- as.character(bbs_total$site)
 Site.means <- bbs_total %>% group_by(site) %>%
-              summarise(mean.alpha = mean(Site_div))
+              summarise(mean.alpha = mean(Site_div)) %>%
+              ungroup(bbs_total)
+
+Site.means.bin <- bbs_total %>% group_by(site, Yr_bin) %>%
+                  summarise(alpha.bin = mean(Site_div)) %>%
+                  ungroup(bbs_total)
+
+Site.means.bin$unique_id <- paste0(Site.means.bin$site, "_", Site.means.bin$Yr_bin)
+Site.means.bin <- Site.means.bin[, c("unique_id", "alpha.bin")]
 
 
+#Initializing DFs for loops 
 n.sites <- length(unique(bbs_total$site))
 site.list <- as.character(unique(bbs_total$site))
 
 slopes_sites <- data.frame(site.list, slope = NA)
 
+bbs_div_means <- bbs_total
+bbs_div_means <- bbs_div_means %>% group_by(site, Yr_bin)%>% summarise(mean.div = mean(Site_div))
+
 for (i in 1:n.sites){
   site.temp <- site.list[i]
-  site_total_temp <- bbs_total[bbs_total$site == site.temp,]
+  site_total_temp <- bbs_div_means[bbs_div_means$site == site.temp,]
   if (nrow(site_total_temp) > 1){
-    lm.temp <- lm(site_total_temp$Site_div ~ site_total_temp$Year)
+    lm.temp <- lm(site_total_temp$mean.div ~ site_total_temp$Yr_bin)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
     slopes_sites[i,2] <- slope.temp
   }
@@ -410,50 +434,87 @@ mean(site_means2$slope, na.rm = T)
 median(site_means2$slope, na.rm = T)
 
 
+############################################################
+#############Beta diversity preparation#####################
+############################################################
+
+#Binning the species specific dataset for community bins
+bbs_simple <- bbs_simple[bbs_simple$Year >= 1980,]
+bbs_simple$Yr_bin <- 1
+bbs_simple$Yr_bin[bbs_simple$Year >= 1985 & bbs_simple$Year <= 1989] <- 2
+bbs_simple$Yr_bin[bbs_simple$Year >= 1990 & bbs_simple$Year <= 1994] <- 3
+bbs_simple$Yr_bin[bbs_simple$Year >= 1995 & bbs_simple$Year <= 1999] <- 4
+bbs_simple$Yr_bin[bbs_simple$Year >= 2000 & bbs_simple$Year <= 2004] <- 5
+bbs_simple$Yr_bin[bbs_simple$Year >= 2005 & bbs_simple$Year <= 2009] <- 6
+bbs_simple$Yr_bin[bbs_simple$Year >= 2010 & bbs_simple$Year <= 2014] <- 7
+bbs_simple$Yr_bin[bbs_simple$Year >= 2015 & bbs_simple$Year <= 2018] <- 8
+
+#Calculate community means per yr_bin
+bbs_simple$unique_id <- paste0(bbs_simple$site, "_", bbs_simple$Yr_bin)
+
+#Cast spp x site_yr.bin
+bbs_cast <- dcast(bbs_simple, unique_id ~ sci_name, value.var = "Detected", fun.aggregate = sum)
+rownames(bbs_cast) <- bbs_cast$unique_id
+bbs_cast <- bbs_cast[, -1]
+
+#Make all detections 1
+bbs_cast[bbs_cast >= 1] <- 1
+
 #mean temporal beta diversity by site
 mean.betas <- data.frame(site.list, mean.beta = NA)
 
 #Create matrix for storing Betas 
-beta.matrix <- data.frame(unique_id = bbs_total$unique_id, beta = NA)
+beta.matrix <- data.frame(unique_id = bbs_simple$unique_id, beta = NA)
 beta.matrix$unique_id <- as.character(beta.matrix$unique_id)
 
-#Loop for calculating Beta Diversity from baseline 5 years
-#If I average the Beta diversity after will this generate 
-#statistical biases???
-#Should we loop it from year bin to year bin?
+#Reove duplites
+beta.matrix <- beta.matrix[!duplicated(beta.matrix),]
+
+#Loop through the sites so that we calculate beta based on year bins 
 for (n in 1:n.sites){
   site.temp <- site.list[n]
   #Find all the years for which that site was surveys
-  yrs.temp <- unique(bbs_total[which(bbs_total$site == site.temp),"Year"])
-  yrs.temp <- yrs.temp[yrs.temp >= 1980]
+  yrs.temp <- unique(bbs_total[which(bbs_total$site == site.temp),"Yr_bin"])
+  yrs.temp <- yrs.temp[yrs.temp >= 1]
   #only consider sites that were observed in more than 5 years 
-  if (length(yrs.temp) > 5){
+  if (length(yrs.temp) > 1){ #select all sites that have mre than 1 year bin 
     #Create a baseline year from years temp
     #Sorting
     yrs.temp <- yrs.temp[order(yrs.temp)]
     #find the first 5 years 
-    first.yrs <- yrs.temp[yrs.temp <= (yrs.temp[1] + 4)]
-    print(paste0("Number of years for site ", site.temp, " is ", length(first.yrs)))
+    first.yrs <- yrs.temp[yrs.temp <= (yrs.temp[1])] #pulls first year bin
+    print(paste0("Starting Yr_bin for ", site.temp, " is ", first.yrs))
     site.yrs.first <- paste0(site.temp, "_", first.yrs)
     #create average community of first 5 years 
     bbs_cast_first <- bbs_cast[rownames(bbs_cast) %in% site.yrs.first,]
-    first.comm.temp <- colMeans(bbs_cast_first)
+    first.comm.temp <- bbs_cast_first 
     #get remaining years 
-    other.yrs.temp <- yrs.temp[yrs.temp > (yrs.temp[1] + 4)]
+    other.yrs.temp <- yrs.temp[yrs.temp > (yrs.temp[1])]
     #Now loop the remaining years 
     for (y in 1:length(other.yrs.temp)){
-      other.yr.temp <- other.yrs.temp[y]
-      other.site.temp <- paste0(site.temp, "_", other.yr.temp)
-      bbs_cast_other <- bbs_cast[rownames(bbs_cast) == other.site.temp,]
-      bbs_cast_other <- rbind(bbs_cast_other, first.comm.temp)
-      beta.temp <- vegdist(sqrt(sqrt(bbs_cast_other)), method = "jaccard")
-      beta.matrix$beta[beta.matrix$unique_id == other.site.temp] <- beta.temp
+      other.yr.temp <- other.yrs.temp[y] #pull out another yr
+      other.site.temp <- paste0(site.temp, "_", other.yr.temp) #make the unique id
+      bbs_cast_other <- bbs_cast[rownames(bbs_cast) == other.site.temp,] #pull the comm data
+      bbs_cast_other <- rbind(bbs_cast_other, first.comm.temp) #put the current yr and baseline
+      beta.temp <- vegdist(sqrt(sqrt(bbs_cast_other)), method = "jaccard") #calc jaccard disim
+      beta.matrix$beta[beta.matrix$unique_id == other.site.temp] <- beta.temp #store it in df
     }
   }}
 
 
-#Put betas back in site daTA MERGE
+#Remove years and duplicates in the bbs_total DF so we can link yr_bin calculations
+bbs_total$unique_id <- paste0(bbs_total$site, "_", bbs_total$Yr_bin)
+bbs_total <- bbs_total %>% select(-c("Year", "rt_yr", "Site_div"))
+bbs_total <- bbs_total[!duplicated(bbs_total), ]
+
+#Add the betas into the bbs_total df 
+#At this point the bbs_total DF has the necessary info to merge with 
+#climate and LULC data for analyses at the binned level
 bbs_total <- merge(bbs_total, beta.matrix, by = "unique_id")
+bbs_total <- merge(bbs_total, Site.means.bin, by = "unique_id")
+
+
+
 
 #Calculate slopes for B diversity
 slopes_sites_beta <- data.frame(site.list, beta.slope = NA)
