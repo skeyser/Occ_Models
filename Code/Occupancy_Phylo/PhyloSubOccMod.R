@@ -281,29 +281,49 @@ passerine <- final_sp_df[final_sp_df$Order == "Passeriformes",]
 passer <- setDT(passerine)[, .(count = uniqueN(sci_name)), by = Family_Latin]
 
 #Rename phylo in the complete DF for grouping species
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Sturnidae"] <- "Sturnidae/Turdidae/Mimidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Turdidae"] <- "Sturnidae/Turdidae/Mimidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Mimidae"] <- "Sturnidae/Turdidae/Mimidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Alaudidae"] <- "Remizidae/Paridae/Alaudidae/Hirundinidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Paridae"] <- "Remizidae/Paridae/Alaudidae/Hirundinidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Remizidae"] <- "Remizidae/Paridae/Alaudidae/Hirundinidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Hirundinidae"] <- "Remizidae/Paridae/Alaudidae/Hirundinidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Corvidae"] <- "Laniidae/Corvidae/Vireonidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Laniidae"] <- "Laniidae/Corvidae/Vireonidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Vireonidae"] <- "Laniidae/Corvidae/Vireonidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Fringillidae"] <- "Passeridae/Cardinalidae/Fringillidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Cardinalidae"] <- "Passeridae/Cardinalidae/Fringillidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Passeridae"] <- "Passeridae/Cardinalidae/Fringillidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Troglodytidae"] <- "Polioptilidae/Sittidae/Troglodytidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Sittidae"] <- "Polioptilidae/Sittidae/Troglodytidae"
-final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Polioptilidae"] <- "Polioptilidae/Sittidae/Troglodytidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Sturnidae"] <- "Sturnidae/Turdidae/Mimidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Turdidae"] <- "Sturnidae/Turdidae/Mimidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Mimidae"] <- "Sturnidae/Turdidae/Mimidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Alaudidae"] <- "Remizidae/Paridae/Alaudidae/Hirundinidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Paridae"] <- "Remizidae/Paridae/Alaudidae/Hirundinidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Remizidae"] <- "Remizidae/Paridae/Alaudidae/Hirundinidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Hirundinidae"] <- "Remizidae/Paridae/Alaudidae/Hirundinidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Corvidae"] <- "Laniidae/Corvidae/Vireonidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Laniidae"] <- "Laniidae/Corvidae/Vireonidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Vireonidae"] <- "Laniidae/Corvidae/Vireonidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Fringillidae"] <- "Passeridae/Cardinalidae/Fringillidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Cardinalidae"] <- "Passeridae/Cardinalidae/Fringillidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Passeridae"] <- "Passeridae/Cardinalidae/Fringillidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Troglodytidae"] <- "Polioptilidae/Sittidae/Troglodytidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Sittidae"] <- "Polioptilidae/Sittidae/Troglodytidae"
+# final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Polioptilidae"] <- "Polioptilidae/Sittidae/Troglodytidae"
+
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Sturnidae"] <- "Muscicapida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Turdidae"] <- "Muscicapida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Mimidae"] <- "Muscicapida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Troglodytidae"] <- "Muscicapida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Sittidae"] <- "Muscicapida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Polioptilidae"] <- "Muscicapida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Alaudidae"] <- "Sylviida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Paridae"] <- "Sylviida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Remizidae"] <- "Sylviida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Hirundinidae"] <- "Sylviida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Corvidae"] <- "Corvides"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Laniidae"] <- "Corvides"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Vireonidae"] <- "Corvides"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Fringillidae"] <- "Passerida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Cardinalidae"] <- "Passerida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Passeridae"] <- "Passerida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Parulidae"] <- "Passerida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Emberizidae"] <- "Passerida"
+final_sp_df$Family_Latin[final_sp_df$Family_Latin == "Icteridae"] <- "Passerida"
 
 final_sp_df$Order[final_sp_df$Order == "Apodiformes"] <- "Apodiformes/Caprimulgiformes"
 final_sp_df$Order[final_sp_df$Order == "Caprimulgiformes"] <- "Apodiformes/Caprimulgiformes"
 final_sp_df$Order[final_sp_df$Order == "Falconiformes"] <- "Falconiformes/Psittaciformes"
 final_sp_df$Order[final_sp_df$Order == "Psittaciformes"] <- "Falconiformes/Psittaciformes"
-final_sp_df$Order[final_sp_df$Order == "Coraciiformes"] <- "Coraciiformes/Piciformes"
-final_sp_df$Order[final_sp_df$Order == "Piciformes"] <- "Coraciiformes/Piciformes"
+#final_sp_df$Order[final_sp_df$Order == "Coraciiformes"] <- "Coraciiformes/Piciformes"
+#final_sp_df$Order[final_sp_df$Order == "Piciformes"] <- "Coraciiformes/Piciformes"
 final_sp_df$Order[final_sp_df$Order == "Ciconiiformes"] <- "Ciconiiformes/Pelecaniformes/Suliformes" 
 final_sp_df$Order[final_sp_df$Order == "Pelecaniformes"] <- "Ciconiiformes/Pelecaniformes/Suliformes"
 final_sp_df$Order[final_sp_df$Order == "Suliformes"] <- "Ciconiiformes/Pelecaniformes/Suliformes"
@@ -314,9 +334,18 @@ final_sp_df$Order[final_sp_df$Order == "Columbiformes"] <- "Cuculiformes/Columbi
 final_sp_df$Order[final_sp_df$Order == "Anseriformes"] <- "Anseriformes/Galliformes"
 final_sp_df$Order[final_sp_df$Order == "Galliformes"] <- "Anseriformes/Galliformes"
 
+final_sp_df$Order[final_sp_df$Order == "Coraciiformes"] <- "Afroaves"
+final_sp_df$Order[final_sp_df$Order == "Piciformes"] <- "Afroaves"
+final_sp_df$Order[final_sp_df$Order == "Strigiformes"] <- "Afroaves"
+final_sp_df$Order[final_sp_df$Order == "Accipitriformes"] <- "Afroaves"
+
+
+
 ####Remove BCR 19#####
 final_sp_df <- final_sp_df[!(final_sp_df$BCR == 19),]
 
+####Use this DF for making BCR OCC DF###
+final_sp_df1 <- final_sp_df
 
 ########################################################
 ############From this point on every DF generated#######
@@ -339,7 +368,7 @@ family.count <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Family_L
 
 
 ##########################################################
-final_sp_df <- final_sp_df %>% arrange(match(Order, "Falconiformes/Psittaciformes"),
+final_sp_df <- final_sp_df %>% arrange(match(Order, "Afroaves"),
                                        sci_name)
 
 ##########################################################
@@ -865,7 +894,7 @@ spp.df[ which( spp.df$spp.id == 4), ]
 ydf[1,8,32]
 ydf[1,,]
 #Restrict the spp.occ to the subgroup that is being used
-spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Falconiformes/Psittaciformes",]
+spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Afroaves",]
 
 #Restrict BCR 
 bcr.occ <- bcr.occ[1:max(spp.occ$spp.id), ]
@@ -898,4 +927,4 @@ rm(list = setdiff(ls(), c("ydf", "jdf", "bcr.occ",
                           "Obs.ma", "JKmat", "JKsurv", "final_sp_df", 
                           "surveyedJ")))
 
-save.image(here::here("R Workspace/Phylo_Subs/FalconsAndParrots.RData"))
+save.image(here::here("R Workspace/Phylo_Subs/Afroaves2.RData"))
