@@ -524,7 +524,7 @@ for (i in 1:n.sites){
   bbs_total_temp <- bbs_total[bbs_total$site == site.temp,]
   bbs_total_temp <- bbs_total_temp[complete.cases(bbs_total_temp),]
   if (nrow(bbs_total_temp) > 1){
-    lm.temp <- lm(bbs_total_temp$beta ~ bbs_total_temp$Year)
+    lm.temp <- lm(bbs_total_temp$beta ~ bbs_total_temp$Yr_bin)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
     slopes_sites_beta[i,2] <- slope.temp
   }
@@ -555,7 +555,7 @@ plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta, group = site,
                                                           labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
-                geom_smooth(method = lm, se = FALSE, aes(x = Year, y = beta, group = site, 
+                geom_smooth(method = lm, se = FALSE, aes(x = Yr_bin, y = beta, group = site, 
                                                          colour = factor(BCR,
                                                                          labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
                 xlab("Year") +
@@ -587,27 +587,27 @@ ggdraw() +
 #Species Richness Trends GoM
 #Add a column to Summary_Stats to indicate 5 year bin to look at long term trends
 #start at 1975 as this was the year standard protocols were implemented
-bbs_total <- bbs_total[bbs_total$Year >= 1980,]
-bbs_total$Yr_bin <- 1
-bbs_total$Yr_bin[bbs_total$Year >= 1985 & bbs_total$Year <= 1989] <- 2
-bbs_total$Yr_bin[bbs_total$Year >= 1990 & bbs_total$Year <= 1994] <- 3
-bbs_total$Yr_bin[bbs_total$Year >= 1995 & bbs_total$Year <= 1999] <- 4
-bbs_total$Yr_bin[bbs_total$Year >= 2000 & bbs_total$Year <= 2004] <- 5
-bbs_total$Yr_bin[bbs_total$Year >= 2005 & bbs_total$Year <= 2009] <- 6
-bbs_total$Yr_bin[bbs_total$Year >= 2010 & bbs_total$Year <= 2014] <- 7
-bbs_total$Yr_bin[bbs_total$Year >= 2015 & bbs_total$Year <= 2018] <- 8
+# bbs_total <- bbs_total[bbs_total$Year >= 1980,]
+# bbs_total$Yr_bin <- 1
+# bbs_total$Yr_bin[bbs_total$Year >= 1985 & bbs_total$Year <= 1989] <- 2
+# bbs_total$Yr_bin[bbs_total$Year >= 1990 & bbs_total$Year <= 1994] <- 3
+# bbs_total$Yr_bin[bbs_total$Year >= 1995 & bbs_total$Year <= 1999] <- 4
+# bbs_total$Yr_bin[bbs_total$Year >= 2000 & bbs_total$Year <= 2004] <- 5
+# bbs_total$Yr_bin[bbs_total$Year >= 2005 & bbs_total$Year <= 2009] <- 6
+# bbs_total$Yr_bin[bbs_total$Year >= 2010 & bbs_total$Year <= 2014] <- 7
+# bbs_total$Yr_bin[bbs_total$Year >= 2015 & bbs_total$Year <= 2018] <- 8
 
 
 
-Mean_alpha_bin <- aggregate(data = bbs_total, Site_div ~ Yr_bin + site, FUN = "mean")
+#Mean_alpha_bin <- aggregate(data = bbs_total, Site_div ~ Yr_bin + site, FUN = "mean")
 #Mean_alpha_bin <- separate(Mean_alpha_bin, site, c("state", "rteno", "yr"), sep = "_")
 
-plot(Mean_alpha_bin$Site_div ~ Mean_alpha_bin$Yr_bin)
-lm_alpha <- lm(Site_div ~ Yr_bin + site, data = Mean_alpha_bin)
+plot(bbs_total$alpha.bin ~ bbs_total$Yr_bin)
+lm_alpha <- lm(alpha.bin ~ Yr_bin + site, data = bbs_total)
 summary(lm_alpha)
 anova(lm_alpha)
 library(lme4)
-lmer_alpha <- lmer(Site_div ~ Yr_bin + (1|site), data = Mean_alpha_bin)
+lmer_alpha <- lmer(alpha.bin ~ Yr_bin + (1|site), data = bbs_total)
 summary(lmer_alpha)
 anova(lmer_alpha)
 sjPlot::tab_model(lmer_alpha)
@@ -654,7 +654,7 @@ plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = Site_div, group = site,
                  geom_smooth(method = glm,se = FALSE, aes(x = Year, y = Site_div, group = site, 
                                                           colour = factor(BCR, 
                                                                           labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
-                 xlab("Year") +
+                 xlab("5-Year Interval") +
                  ylab(expression(paste("Rarefied ", alpha, "-diversity"))) +
                  labs(colour = "Bird Conservation Region") +
                  #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
