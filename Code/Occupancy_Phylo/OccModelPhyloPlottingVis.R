@@ -269,7 +269,7 @@ PR.beta <- rbeta(300, 4, 4)
 #Automating Traceplots Saves
 phylo.plot <- as.character(unique(spp.occ$Phylo.V1))
 phylo.plot <- gsub("/", "_", phylo.plot)
-
+title.plot <- as.character(unique(spp.occ$Phylo.V1))
 
 
 MCMCtrace(upm3, params = 'alpha', priors = PR.norm, ind = T, Rhat = T, 
@@ -302,22 +302,23 @@ MCMCtrace(upm3, params = 'sigma.psi', priors = sigma.dt, ind = T, Rhat = T,
 
 
 #Parameter Plots 
-MCMCplot(mr, params = c("alpha"), rank = T, main = paste0(phylo.plot, " ", "Group Alphas"), labels = c("Observer Effect", "Time of Day",
+alpha.plot <- MCMCplot(mr, params = c("alpha"), rank = T, main = paste0(title.plot, " ", "Group Alphas"), labels = c("Observer Effect", "Time of Day",
                                                                                                        "Day of Year" ))
 
-MCMCplot(mr, params = c("int.psi", "int.p"), rank = T, main = "Phylo Group Intercepts", labels = c("Intercept Occupancy", 
+int.plot <- MCMCplot(mr, params = c("int.psi", "int.p"), rank = T, main = "Phylo Group Intercepts", labels = c("Intercept Occupancy", 
                                                                                                    "Intercept Detection")) 
-MCMCplot(mr, params = c("epsID.psi", "sigmaID.psi"), main = "Phylo Group Site Effects")
+site.plot <- MCMCplot(mr, params = c("epsID.psi", "sigmaID.psi"), main = "Phylo Group Site Effects")
 
-MCMCplot(mr, params = c("eps.psi", "sigma.psi"), main = "Phylo Group Year Effects")
+yr.plot <- MCMCplot(mr, params = c("eps.psi", "sigma.psi"), main = "Phylo Group Year Effects")
 
-MCMCplot(mr, params = c("delta", "sigma.delta"), main = "Species RE" )#, 
+spp.plot <- MCMCplot(mr, params = c("delta", "sigma.delta"), main = "Species RE" )#, 
          #labels = c("BASW", "CASW", "CLSW", "PUMA", "BASW", "NRWS", "Sigma Delta"))
+
 
 rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum", 
                           "z.prime", "z.prime.5", "z.prime.65",
                           "z.prime.75", "total.observed", 
-                          "alpha.div", "non.converge")))
+                          "alpha.div", "non.converge", "spp.occ")))
 ##Save workspace
 what.dir <- "R Workspace/Output"
 #what.dir <- paste0( getwd(), "/results" )
