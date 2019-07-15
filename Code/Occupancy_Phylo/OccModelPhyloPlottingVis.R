@@ -17,7 +17,7 @@ J <- 274
 K <- 38
 S <- max(spp.occ$spp.id)
 #read in predictors 
-Site.Occ <- read.csv( file = 'Site.Occ.csv', header = TRUE )  
+Site.Occ <- read.csv( file = here::here("Data_BBS/Generated DFs/Site.Occ.csv"), header = TRUE )  
 head( Site.Occ )
 ###################################
 #This bit is in the model body now#
@@ -273,40 +273,40 @@ phylo.plot <- gsub("/", "_", phylo.plot)
 
 
 MCMCtrace(upm3, params = 'alpha', priors = PR.norm, ind = T, Rhat = T, 
-          n.eff = T, pdf = F) #file = here::here(paste0("Figures/TraceAlpha", "_", phylo.plot)))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceAlpha", "_", phylo.plot)))
 
 MCMCtrace(upm3, params = 'sigma.delta', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = F)#file = here::here(paste0("Figures/TraceSigmaDelta", "_", phylo.plot)))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaDelta", "_", phylo.plot)))
 
 MCMCtrace(upm3, params = 'delta', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = F) #file = here::here(paste0("Figures/TraceDelta", "_", phylo.plot)))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceDelta", "_", phylo.plot)))
 
 MCMCtrace(upm3, params = 'int.p', priors = PR.beta, ind = T, Rhat = T, 
-          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceIntP", "_", phylo.plot)))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceIntP", "_", phylo.plot)))
 
 MCMCtrace(upm3, params = 'int.psi', priors = PR.beta, ind = T, Rhat = T, 
-          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceIntPsi", "_", phylo.plot)))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceIntPsi", "_", phylo.plot)))
 
 MCMCtrace(upm3, params = 'epsID.psi', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceEpsID", "_", phylo.plot)))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceEpsID", "_", phylo.plot)))
 
 MCMCtrace(upm3, params = 'eps.psi', priors = PR.norm.cond, ind = T, Rhat = T, 
-          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceEps", "_", phylo.plot)))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceEps", "_", phylo.plot)))
 
 MCMCtrace(upm3, params = 'sigmaID.psi', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceSigmaID", "_", phylo.plot)))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaID", "_", phylo.plot)))
 
 MCMCtrace(upm3, params = 'sigma.psi', priors = sigma.dt, ind = T, Rhat = T, 
-          n.eff = T, pdf = F) #, file = here::here(paste0("Figures/TraceSigmaEps", "_", phylo.plot)))
+          n.eff = T, pdf = T, file = here::here(paste0("Figures/TraceSigmaEps", "_", phylo.plot)))
 
 
 
 #Parameter Plots 
-MCMCplot(mr, params = c("alpha"), rank = T, main = "Swallows Phylo Group Alphas", labels = c("Observer Effect", "Time of Day",
-                                                                                               "Day of Year" ))
+MCMCplot(mr, params = c("alpha"), rank = T, main = paste0(phylo.plot, " ", "Group Alphas"), labels = c("Observer Effect", "Time of Day",
+                                                                                                       "Day of Year" ))
 
 MCMCplot(mr, params = c("int.psi", "int.p"), rank = T, main = "Phylo Group Intercepts", labels = c("Intercept Occupancy", 
-                                                                                                     "Intercept Detection")) 
+                                                                                                   "Intercept Detection")) 
 MCMCplot(mr, params = c("epsID.psi", "sigmaID.psi"), main = "Phylo Group Site Effects")
 
 MCMCplot(mr, params = c("eps.psi", "sigma.psi"), main = "Phylo Group Year Effects")
@@ -314,7 +314,7 @@ MCMCplot(mr, params = c("eps.psi", "sigma.psi"), main = "Phylo Group Year Effect
 MCMCplot(mr, params = c("delta", "sigma.delta"), main = "Species RE" )#, 
          #labels = c("BASW", "CASW", "CLSW", "PUMA", "BASW", "NRWS", "Sigma Delta"))
 
-rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum", "mr", 
+rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum", 
                           "z.prime", "z.prime.5", "z.prime.65",
                           "z.prime.75", "total.observed", 
                           "alpha.div", "non.converge")))
