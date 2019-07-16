@@ -321,7 +321,7 @@ rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum",
                           "z.prime", "z.prime.5", "z.prime.65",
                           "z.prime.75", "total.observed", 
                           "alpha.div", "non.converge", "spp.occ",
-                          "JKmat", "JKsurv")))
+                          "JKmat", "JKsurv", "jdf")))
 ##Save workspace
 what.dir <- "R Workspace/Output"
 #what.dir <- paste0( getwd(), "/results" )
