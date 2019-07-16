@@ -170,7 +170,7 @@ z.prime <- means.output$z
 z.prime.5 <- means.output$z
 z.prime.65 <- means.output$z
 z.prime.75 <- means.output$z
-
+z.prime.95 <- means.output$z
 #Loop through each species, site, and year to set 0s and 1s 
 #manually using cut-off values
 
@@ -181,6 +181,7 @@ for (s in 1:S){
       z.prime.5[s, j, k] <- ifelse(z.prime.5[s, j, k] > 0.5, 1, 0)
       z.prime.65[s, j, k] <- ifelse(z.prime.65[s, j, k] > 0.65, 1, 0)
       z.prime.75[s, j, k] <- ifelse(z.prime.75[s, j, k] > 0.75, 1, 0)
+      #z.prime.95[s, j, k] <- ifelse(z.prime.95[s ,j, k] >= 0.95, 1, 0)
     }#K
   }#J
 }#S
@@ -190,6 +191,7 @@ for( i in 1:S ){
   z.prime.5[ i, , ] <- z.prime.5[ i, , ] * JKmat #JKsurv
   z.prime.65[ i, , ] <- z.prime.65[ i, , ] * JKmat#JKsurv
   z.prime.75[ i, , ] <- z.prime.75[ i, , ] * JKmat #JKsurv
+  #z.prime.95[ i, , ] <- z.prime.95[ i, , ] * JKmat
 }
 # 
 # #Check differences
@@ -318,7 +320,8 @@ spp.plot <- MCMCplot(mr, params = c("delta", "sigma.delta"), main = "Species RE"
 rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum", 
                           "z.prime", "z.prime.5", "z.prime.65",
                           "z.prime.75", "total.observed", 
-                          "alpha.div", "non.converge", "spp.occ")))
+                          "alpha.div", "non.converge", "spp.occ",
+                          "JKmat", "JKsurv")))
 ##Save workspace
 what.dir <- "R Workspace/Output"
 #what.dir <- paste0( getwd(), "/results" )
