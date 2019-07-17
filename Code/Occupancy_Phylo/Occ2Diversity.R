@@ -11,18 +11,22 @@ rm(list = ls())
 
 #Load in Packages
 
-library("pacman")
-pacman::p_load("tidyverse", "plyr", "reshape2", "here", "arrayhelpers")
+#library("pacman")
+#pacman::p_load("tidyverse", "plyr", "reshape2", "here", "arrayhelpers")
 
 #Finish Package Loading 
 
 #Load in Work spaces of z-matrices 
-load(file = here::here("R Workspace/Output/Output4Analysis/Muscicapida.RData"))
+load(file = here::here("R Workspace/Output/Output4Analysis/Tyrannidae.RData"))
 jdf <- read.csv(file = here::here("Data_BBS/Generated DFs/jdf.csv"))
 jdf <- jdf[, -1]
 yrs <- read.csv(file = here::here("Data_BBs/Generated DFs/Years.Occ.csv"))
 JKmat <- readRDS(file = here::here("Data_BBS/Generated DFs/JKmat.RDS"))
 JKsurv <- readRDS(file = here::here("Data_BBS/Generated DFs/JKsurv.RDS"))
+
+#If spp.occ df doesn't exist for the given work space it needs to be read in
+#saveRDS(spp.occ, file = here::here("Data_BBS/Generated DFs/Flycatchers_spp_occ.RDS"))
+spp.occ <- readRDS(here::here("Data_BBS/Generated DFs/Flycatchers_spp_occ.RDS"))
 
 #Checkout the z.prime matrix 
 dim(z.prime)
@@ -32,17 +36,16 @@ S <- max(spp.occ$spp.id)
 J <- 274
 K <- 38
 
+z.prime.95 <- means.output$z
+
+
 for(i in 1:S){
   z.prime[ i, , ] <- z.prime[ i, , ] * JKmat
+  z.prime.95[ i, , ] <- z.prime.95[ i, , ] * JKmat
 }
 
 #Create a z.prime.95 based on other literature just for keeping if need be
 #Reworking all of the z.primes so the cutoffs include the value too (aka >= not >)
-z.prime.5 <- means.output$z
-z.prime.65 <- means.output$z
-z.prime.75 <- means.output$z
-z.prime.95 <- means.output$z
-
 
 #Change values in matrix 
 for (s in 1:S){
@@ -69,7 +72,9 @@ total.observed$Estimated.0.95 <- NA
 
 for (i in 1:S){
   total.observed[i, 5] <- total(z.prime.95, i)
+  #total.observed[i, 7] <- total(z.prime.95, i)
 }
+
 
 #z.prime is spp x sites x years
 #Create empty matrix for handling 2-D matrices from z.prime
@@ -78,7 +83,7 @@ z2d.prime <- array2df(z.prime, levels = list(spp.id = T, site.id = T, year.id = 
 z2d.prime.5 <- array2df(z.prime.5, levels = list(spp.id = T, site.id = T, year.id = T), label.x = "Occupancy")
 z2d.prime.65 <- array2df(z.prime.65, levels = list(spp.id = T, site.id = T, year.id = T), label.x = "Occupancy")
 z2d.prime.75 <- array2df(z.prime.75, levels = list(spp.id = T, site.id = T, year.id = T), label.x = "Occupancy")
-z2d.prime.95 <- array2df(z.prime.95, levles = list(spp.id = T, site.id = T, year.id = T), label.x = "Occupancy")
+z2d.prime.95 <- array2df(z.prime.95, levels = list(spp.id = T, site.id = T, year.id = T), label.x = "Occupancy")
 
 #UDF if col[x] is a factor make it an integer, if not make it a numeric
 no.factors <- function(x){
@@ -96,6 +101,20 @@ z2d.prime.65[] <- lapply(z2d.prime.65, no.factors)
 z2d.prime.75[] <- lapply(z2d.prime.75, no.factors)
 z2d.prime.95[] <- lapply(z2d.prime.95, no.factors)
 
+
+#Add the z.prime.95 into the alpha.diversity calculations
+group.a.div.95 <- matrix(NA, J, K)
+
+for (j in 1:J){
+  for ( k in  1:K){
+    #zeros those z for unsampled segments
+    group.a.div.95[ j, k ] <- sum( z.prime.95[ 1:S, j, k ], na.rm = TRUE)# * JKsurv[ j, k ] )
+    #keep only average estimate
+    #mean.a.div[ j, k ] <- mean(a.div[ j, k ])
+  }#K
+}#J
+
+alpha.div$group.a.div.95 <- group.a.div.95 
 
 
 #Combine z.dfs with info from spp.occ and jdf
@@ -122,14 +141,21 @@ df.prime.95 <- z2d.prime.95 %>% left_join( yrs, by = "year.id") %>%
 
 
 group.name <- as.character(unique(spp.occ$Phylo.V1))
+group.name <- gsub("/", "_", group.name)
 group.name1 <- paste0(group.name, "_", "CommunityDF.csv")
 group.name.5 <- paste0(group.name, "_", "CommunityDF5.csv")
 group.name.65 <- paste0(group.name, "_", "CommunityDF65.csv")
 group.name.75 <- paste0(group.name, "_", "CommunityDF75.csv")
+group.name.95 <- paste0(group.name, "_", "CommunityDF95.csv")
 
 
 write.csv(df.prime, file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", group.name1)))
-write.csv(df.prime, file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", group.name.5)))
-write.csv(df.prime, file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", group.name.65)))
-write.csv(df.prime, file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", group.name.75)))
+write.csv(df.prime.5, file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", group.name.5)))
+write.csv(df.prime.65, file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", group.name.65)))
+write.csv(df.prime.75, file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", group.name.75)))
+write.csv(df.prime.95, file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", group.name.95)))
+
+image.name <- paste0(group.name, "", ".RData")
+save.image(file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", image.name)))
+
 
