@@ -170,7 +170,7 @@ z.prime <- means.output$z
 z.prime.5 <- means.output$z
 z.prime.65 <- means.output$z
 z.prime.75 <- means.output$z
-z.prime.95 <- means.output$z
+#z.prime.95 <- means.output$z
 #Loop through each species, site, and year to set 0s and 1s 
 #manually using cut-off values
 
@@ -178,9 +178,9 @@ for (s in 1:S){
   for (j in 1:J){
     for (k in 1:K){
       #Generate multiple "cut-offs" for sensitivity analyses
-      z.prime.5[s, j, k] <- ifelse(z.prime.5[s, j, k] > 0.5, 1, 0)
-      z.prime.65[s, j, k] <- ifelse(z.prime.65[s, j, k] > 0.65, 1, 0)
-      z.prime.75[s, j, k] <- ifelse(z.prime.75[s, j, k] > 0.75, 1, 0)
+      z.prime.5[s, j, k] <- ifelse(z.prime.5[s, j, k] >= 0.5, 1, 0)
+      z.prime.65[s, j, k] <- ifelse(z.prime.65[s, j, k] >= 0.65, 1, 0)
+      z.prime.75[s, j, k] <- ifelse(z.prime.75[s, j, k] >= 0.75, 1, 0)
       #z.prime.95[s, j, k] <- ifelse(z.prime.95[s ,j, k] >= 0.95, 1, 0)
     }#K
   }#J
@@ -213,13 +213,14 @@ total <- function(x, y){
 #                             "Estimated No Sp RE" = NA)
 
 total.observed <- data.frame("Observed" = 1:max(spp.occ$spp.id), "Estimated 0.5" = NA, 
-                             "Estimated 0.65" = NA, "Estimated 0.75" = NA)
+                             "Estimated 0.65" = NA, "Estimated 0.75" = NA) #, "Estimated 0.95" = NA)
 
 for (i in 1:S){#max(spp.occ$spp.id)){
   total.observed[i, 1] <- total(ydf, i)
   total.observed[i, 2] <- total(z.prime.5, i)
   total.observed[i, 3] <- total(z.prime.65, i)
   total.observed[i, 4] <- total(z.prime.75, i)
+  #total.observed[i, 5] <- total(z.prime.95, i)
 }
 
 #Find yearly alpha diversity per subgroup
@@ -228,6 +229,7 @@ group.a.div <- matrix(NA, J, K )#274, 38)
 group.a.div.5 <- matrix(NA, J, K )# 274, 38)
 group.a.div.65 <- matrix(NA, J, K )#274, 38)
 group.a.div.75 <- matrix(NA, J, K )#274, 38)
+
 
 for (j in 1:J){
   for ( k in  1:K){
