@@ -368,7 +368,7 @@ family.count <- setDT(final_sp_df)[, .(count = uniqueN(sci_name)), by = Family_L
 
 
 ##########################################################
-final_sp_df <- final_sp_df %>% arrange(match(Order, "Afroaves"),
+final_sp_df <- final_sp_df %>% arrange(match(Order, "Falconiformes/Psittaciformes"),
                                        sci_name)
 
 ##########################################################
@@ -894,7 +894,7 @@ spp.df[ which( spp.df$spp.id == 4), ]
 ydf[1,8,32]
 ydf[1,,]
 #Restrict the spp.occ to the subgroup that is being used
-spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Afroaves",]
+spp.occ <- spp.occ[spp.occ$Phylo.V1 == "Falconiformes/Psittaciformes",]
 
 #Restrict BCR 
 bcr.occ <- bcr.occ[1:max(spp.occ$spp.id), ]
@@ -927,4 +927,4 @@ rm(list = setdiff(ls(), c("ydf", "jdf", "bcr.occ",
                           "Obs.ma", "JKmat", "JKsurv", "final_sp_df", 
                           "surveyedJ")))
 
-save.image(here::here("R Workspace/Phylo_Subs/Afroaves2.RData"))
+save.image(here::here("R Workspace/Phylo_Subs/FalconsParrots2.RData"))
