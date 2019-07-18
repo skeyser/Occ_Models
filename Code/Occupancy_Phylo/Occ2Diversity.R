@@ -158,4 +158,29 @@ write.csv(df.prime.95, file = here::here(paste0("Data_BBS/Generated DFs/OccMod_C
 image.name <- paste0(group.name, "", ".RData")
 save.image(file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/", image.name)))
 
+####Read in all of the new community matrices####
 
+#List files based on path names 
+comm_list <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommMats"), pattern = "*DF.csv", full.names = T)
+comm_list5 <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommMats"), pattern = "*DF5.csv", full.names = T)
+comm_list65 <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommMats"), pattern = "*DF65.csv", full.names = T)
+comm_list75 <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommMats"), pattern = "*DF75.csv", full.names = T)
+comm_list95 <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommMats"), pattern = "*DF95.csv", full.names = T)
+
+#Read files in for each type
+prime.files <- lapply(comm_list, function(x) read.csv(x, stringsAsFactors = F))
+prime.files5 <- lapply(comm_list5, function(x) read.csv(x, stringsAsFactors = F))
+prime.files65 <- lapply(comm_list65, function(x) read.csv(x, stringsAsFactors = F))
+prime.files75 <- lapply(comm_list75, function(x) read.csv(x, stringsAsFactors = F))
+prime.files95 <- lapply(comm_list95, function(x) read.csv(x, stringsAsFactors = F))
+
+#Bind all of the DFs into 5 large DFs
+prime.df <- do.call(rbind, prime.files)
+prime.df5 <- do.call(rbind, prime.files5) 
+prime.df65 <- do.call(rbind, prime.files65)
+prime.df75 <- do.call(rbind, prime.files75)
+prime.df95 <- do.call(rbind, prime.files95)
+
+###############################################################################
+###################################End Script##################################
+###############################################################################
