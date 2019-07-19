@@ -325,7 +325,7 @@ rm(list = setdiff(ls(), c("means.output", "Rhats", "model.sum",
                           "alpha.div", "non.converge", "spp.occ",
                           "JKmat", "JKsurv", "jdf")))
 ##Save workspace
-what.dir <- "R Workspace/Output"
+what.dir <- "R Workspace/Output/Output4Analysis"
 #what.dir <- paste0( getwd(), "/results" )
 phylo.group <- as.character(unique(spp.occ$Phylo.V1))
 phylo.group <- gsub("/", "_", phylo.group)
