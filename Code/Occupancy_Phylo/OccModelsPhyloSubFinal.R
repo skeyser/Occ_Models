@@ -18,7 +18,7 @@ pacman::p_load(jagsUI, MCMCvis, here)
 ###Load in the Data4OccModels Workspace###
 ##########################################
 
-load(here::here('R Workspace/Phylo_Subs/Warblers.RData'))
+load(here::here('R Workspace/Phylo_Subs/OhGreatFootlessOnes.RData'))
 
 ##Hello github##
 
@@ -422,6 +422,6 @@ upm3 <- autojags( win.data, inits = inits, params, modelname,
 
 fm3.time <- proc.time() - ptm3
 
-save.image("R Workspace/Output/Warblers.RData")
+save.image("R Workspace/Output/ApodiformesFull.RData")
 ################## end of script ######################################################################################
 #########################################################################################################################
