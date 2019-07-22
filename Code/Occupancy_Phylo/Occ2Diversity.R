@@ -12,12 +12,12 @@ rm(list = ls())
 #Load in Packages
 
 #library("pacman")
-#pacman::p_load("tidyverse", "plyr", "reshape2", "here", "arrayhelpers")
+pacman::p_load("tidyverse", "plyr", "reshape2", "here", "arrayhelpers")
 
 #Finish Package Loading 
 
 #Load in Work spaces of z-matrices 
-load(file = here::here("R Workspace/Output/Output4Analysis/Tyrannidae.RData"))
+load(file = here::here("R Workspace/Output/Output4Analysis/Tits.RData"))
 jdf <- read.csv(file = here::here("Data_BBS/Generated DFs/jdf.csv"))
 jdf <- jdf[, -1]
 yrs <- read.csv(file = here::here("Data_BBs/Generated DFs/Years.Occ.csv"))
@@ -25,10 +25,10 @@ JKmat <- readRDS(file = here::here("Data_BBS/Generated DFs/JKmat.RDS"))
 JKsurv <- readRDS(file = here::here("Data_BBS/Generated DFs/JKsurv.RDS"))
 
 #If spp.occ df doesn't exist for the given work space it needs to be read in
-#saveRDS(spp.occ, file = here::here("Data_BBS/Generated DFs/Flycatchers_spp_occ.RDS"))
-spp.occ <- readRDS(here::here("Data_BBS/Generated DFs/Flycatchers_spp_occ.RDS"))
+#saveRDS(spp.occ, file = here::here("Data_BBS/Generated DFs/Emberizidae_spp_occ.RDS"))
+#spp.occ <- readRDS(here::here("Data_BBS/Generated DFs/Emberizidae_spp_occ.RDS"))
 
-#Checkout the z.prime matrix 
+#Checkout the z.prime matrix
 dim(z.prime)
 
 #Put all of the surveys that were not conducted into the z.prime
@@ -47,7 +47,7 @@ for(i in 1:S){
 #Create a z.prime.95 based on other literature just for keeping if need be
 #Reworking all of the z.primes so the cutoffs include the value too (aka >= not >)
 
-#Change values in matrix 
+#Change values in matrix
 for (s in 1:S){
   for (j in 1:J){
     for (k in 1:K){
@@ -56,12 +56,12 @@ for (s in 1:S){
       z.prime.75[s, j, k] <- ifelse(z.prime.75[s, j, k] >= 0.75, 1, 0)
       z.prime.95[s, j, k] <- ifelse(z.prime.95[s, j, k] >= 0.95, 1, 0)
     }
-  }  
+  }
 }
 
 #Quick function to calculate total observations of each species
 total <- function(x, y){
-  df <- x[y,,] 
+  df <- x[y,,]
   #did I just break your function by using JKmat instead?
   yr.sums <- colSums(df, 1:length(nrow), na.rm = TRUE)
   sum(yr.sums, na.rm = TRUE)
@@ -71,8 +71,8 @@ total <- function(x, y){
 total.observed$Estimated.0.95 <- NA
 
 for (i in 1:S){
-  total.observed[i, 5] <- total(z.prime.95, i)
-  #total.observed[i, 7] <- total(z.prime.95, i)
+  #total.observed[i, 5] <- total(z.prime.95, i)
+  total.observed[i, 7] <- total(z.prime.95, i)
 }
 
 
@@ -160,6 +160,7 @@ save.image(file = here::here(paste0("Data_BBS/Generated DFs/OccMod_CommMats", "/
 
 ####Read in all of the new community matrices####
 
+
 #List files based on path names 
 comm_list <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommMats"), pattern = "*DF.csv", full.names = T)
 comm_list5 <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommMats"), pattern = "*DF5.csv", full.names = T)
@@ -167,15 +168,22 @@ comm_list65 <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommM
 comm_list75 <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommMats"), pattern = "*DF75.csv", full.names = T)
 comm_list95 <- list.files(path = here::here("Data_BBS/Generated DFs/OccMod_CommMats"), pattern = "*DF95.csv", full.names = T)
 
+#List RDS files 
+comm_list <- list.files(path = here::here("R Workspace/Spp_Arrays"), pattern = "*.RDS", full.names =T)
+
 #Read files in for each type
+prime.files <- lapply(comm_list, function(x) readRDS(x))
 prime.files <- lapply(comm_list, function(x) read.csv(x, stringsAsFactors = F))
 prime.files5 <- lapply(comm_list5, function(x) read.csv(x, stringsAsFactors = F))
 prime.files65 <- lapply(comm_list65, function(x) read.csv(x, stringsAsFactors = F))
 prime.files75 <- lapply(comm_list75, function(x) read.csv(x, stringsAsFactors = F))
 prime.files95 <- lapply(comm_list95, function(x) read.csv(x, stringsAsFactors = F))
 
+#Turn all arrays into DF
+#prime.df <- lapply(prime.files, function(x) array2df(x, levels = list(mcmc.iter = T, spp.id = T, site.id = T, year.id = T), label.x = "Occupancy"))
+
 #Bind all of the DFs into 5 large DFs
-prime.df <- do.call(rbind, prime.files)
+prime.df <- do.call(rbind, prime.df)
 prime.df5 <- do.call(rbind, prime.files5) 
 prime.df65 <- do.call(rbind, prime.files65)
 prime.df75 <- do.call(rbind, prime.files75)
