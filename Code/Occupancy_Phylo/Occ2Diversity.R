@@ -16,8 +16,14 @@ pacman::p_load("tidyverse", "plyr", "reshape2", "here", "arrayhelpers")
 
 #Finish Package Loading 
 
-#Load in Work spaces of z-matrices 
-load(file = here::here("R Workspace/Output/Output4Analysis/Tits.RData"))
+#Load in Work spaces of z-matrices and create spp.occ dfs for each class 
+load(file = here::here("R Workspace/Output/Output4Analysis/Wrens.RData"))
+#file_name <- as.character(unique(spp.occ$Phylo.V1))
+#file_name <- gsub(pattern = "/", "_", file_name)
+#file_name <- paste0(file_name, "_SppOcc", ".csv")
+#write.csv(spp.occ, file = here::here(paste0("Data_BBS/Generated DFs/SppOcc/", "", file_name)))
+
+#Load in non-species data
 jdf <- read.csv(file = here::here("Data_BBS/Generated DFs/jdf.csv"))
 jdf <- jdf[, -1]
 yrs <- read.csv(file = here::here("Data_BBs/Generated DFs/Years.Occ.csv"))
