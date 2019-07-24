@@ -97,3 +97,22 @@ for (q in 1:length(df.list)){
     } #if statement
   } #n
 } #q
+
+#Calculate a Mean Beta for all of the iterations
+beta.matrix2 <- beta.matrix[complete.cases(beta.matrix),]
+
+#Create a DF to store summary stats
+beta.means <- data.frame(Sites = beta.matrix2$Sites, mean.beta = NA, beta.sd = NA)
+
+#Calculate means and sds for beta diversity
+rownames(beta.matrix2) <- beta.matrix2$Sites #makes the sites the rows
+beta.matrix2 <- beta.matrix2[, -1] #Remove sites foe calculations
+
+beta.means$mean.beta <- rowMeans(beta.matrix2) #calculate means across rows
+beta.means$beta.sd <- apply(beta.matrix2, 1, sd) #calculate SD
+#write.csv(beta.means, file = here::here("Data_BBS/Generated DFs/MCMC DFs/beta_means.csv"))
+
+
+
+
+
