@@ -1,7 +1,24 @@
 #LULc Data Processing and Cleaning 
-install.packages("pacman")
+#install.packages("pacman")
 library("pacman")
 pacman::p_load("here", "tidyverse", "reshape2", "stringr")
+
+
+#Load in and tidy up data for link rtnames with rtenos
+all.routes <- read.csv(here("Data_BBS/States_GoM/routes.csv"))
+Gom.rt.id <- read.csv(here("Data_BBS/States_GoM/Gom_Routes_ID.correct.csv"))
+link.to.lulc <- Gom.rt.id[, c("rteno", "rtename")]
+link.to.lulc$rtename <- as.character(link.to.lulc$rtename)
+link.to.lulc$rtename <- gsub(" ", "_", link.to.lulc$rtename)
+link.to.lulc <- link.to.lulc[!duplicated(link.to.lulc),]
+
+link.to.lulc[link.to.lulc$rtename == "BETAIR", 2] <- "BELAIR"
+link.to.lulc[link.to.lulc$rtename == "L._ATASCOSA_NWR", 2] <- "L__ATASCOSA_NWR"
+link.to.lulc[link.to.lulc$rtename == "SUGARLOAF_KEY_2", 2] <- "SUGARLOAF_KEY"
+link.to.lulc[link.to.lulc$rtename == "EGLIN_A.F.B.", 2] <- "EGLIN_A_F_B_"
+link.to.lulc[link.to.lulc$rtename == "SEMINOLE_HLS", 2] <- "SEMINOLE_HILLS"
+link.to.lulc[link.to.lulc$rtename == "ALABAMA_PORT", 2] <- "DAUPHIN_IS_2"
+
 
 #Create list for file names to read bulk files for NLCD, CCAP, and Mangrove
 file_list <- list.files(path=here("Data_Envi/BBS_CCAP_50stop"), pattern="*.csv", full.names = T) # create list of all .csv files in folder
@@ -65,6 +82,45 @@ colnames(nlcd.cleaned)[colnames(nlcd.cleaned) == "Bare Rock/Sand/Clay/Quarries/S
 colnames(nlcd.cleaned)[colnames(nlcd.cleaned) == "Shrubland/Grasslands/Herbaceous"] <- "Grassland"
 
 #Calculate % cover for wetland in the NLCD segments
+#Not in script but for creation of the 1985 averages sites were removed
+#Sites don't appear in the wetland.20 DF 
+#Code below calculates the 1986 means LULC for all sites to be rbinded 
+
+# nlcd.85 <- nlcd.cleaned[nlcd.cleaned$year == 1980 | nlcd.cleaned$year == 1990,]
+# nlcd.85 <- nlcd.85[!nlcd.85$site %in% bad.sites, ]
+# site.list <- unique(nlcd.85$site)
+# 
+# nlcd.means <- data.frame(site = unique(nlcd.85$site), year = 1985, Background = NA, Water= NA, Urban = NA, Bare = NA, 
+#                          Forest = NA, Grassland = NA, Ag = NA, Woody_Wetlands = NA, Emergent_Wetlands = NA)
+# 
+# rownames(nlcd.means) <- nlcd.means[,1]
+# nlcd.means <- nlcd.means[, c(-1, -2)]
+# 
+# for ( i in 1:length(site.list)){
+#   nlcd.temp <- nlcd.85[nlcd.85$site == site.list[i], ]
+#   lulc.means <- colMeans(nlcd.temp[, 1:9])
+#   nlcd.means[rownames(nlcd.means) == site.list[i],] <- lulc.means
+# }
+# 
+# nlcd.means <- tibble::rownames_to_column(nlcd.means, var = "site")
+# nlcd.means$year <- "1986"
+# nlcd.means$unique_id <- paste0(nlcd.means$site, "_", nlcd.means$year)
+# nlcd.site.info <- nlcd.cleaned[, c("site", "Route", "Segment")]
+# nlcd.site.info <- nlcd.site.info[!duplicated(nlcd.site.info), ]
+# 
+# nlcd.means <- left_join(nlcd.means, nlcd.site.info, by = "site")
+# nlcd.means <- nlcd.means %>% select("Background", "Water", "Urban", "Bare", "Forest",
+#                                     "Grassland", "Ag", "Woody_Wetlands", "Emergent_Wetlands",
+#                                     "year", "site", "unique_id", "Route", "Segment")
+# 
+# 
+# write.csv(nlcd.means, file = here::here("Data_Envi/BBS_NLCD_50stop/nlcd1986.csv"))
+
+nlcd.1986 <- read.csv(here::here("Data_Envi/BBS_NLCD_50stop/nlcd1986.csv"))
+nlcd.1986 <- nlcd.1986[, -1]
+
+nlcd.cleaned <- rbind(nlcd.cleaned, nlcd.1986)
+
 nlcd.20 <- nlcd.cleaned %>% mutate(total_cover = Urban + Ag + Grassland + Forest + Woody_Wetlands + 
                                      Emergent_Wetlands + Bare + Water) %>% 
   mutate(tot_wetland = Woody_Wetlands + Emergent_Wetlands) %>% 
@@ -73,28 +129,6 @@ nlcd.20 <- nlcd.cleaned %>% mutate(total_cover = Urban + Ag + Grassland + Forest
          Grassland, Forest, Woody_Wetlands, Emergent_Wetlands,
          Bare, Water, Route, Segment, total_cover, tot_wetland,
          pct_wetland)
-
-#Master DF with CCAP and NLCD data in it 
-wetland.20 <- rbind(nlcd.20, ccap.20)
-
-#Pull out maximum % cover segments 
-wetland.max <- wetland.20 %>% group_by(site) %>%
-               filter(pct_wetland == max(pct_wetland))
-
-#Subset based on whether the max segment is equal to 
-#or less than 20%
-wetland.max <- wetland.max[wetland.max$pct_wetland >= 0.20,]
-
-#Make a list of segments that fit the criteria above
-max.list <- unique(wetland.max$site)
-
-#Subset large DF based on unqiue sites to keep all sites
-#that have ever has at least 20% wetland cover
-
-wetland.20 <- wetland.20[wetland.20$site %in% max.list, ]
-
-#Write csv for segment coverage 
-#write.csv(wetland.20, file = here("Data_BBS/Generated DFs/CompleteSegments_With_20percent.csv"))
 
 #Entire Route level cover  
 #Syntax for aggregate, use "." fall all variables
@@ -224,6 +258,31 @@ ccap.20 <- ccap.cleaned %>% mutate(total_cover = Urban + Ag + Grassland + Forest
 #ccap.20 <- ccap.20[ccap.20$pct_wetland >= 0.2, ]
 
 ######Bind CCAP and NLCD together######
+#Master DF with CCAP and NLCD data in it 
+wetland.20 <- rbind(nlcd.20, ccap.20)
+
+#Pull out maximum % cover segments 
+wetland.max <- wetland.20 %>% group_by(site) %>%
+  filter(pct_wetland == max(pct_wetland))
+
+#Subset based on whether the max segment is equal to 
+#or less than 20%
+wetland.max <- wetland.max[wetland.max$pct_wetland >= 0.20,]
+
+#Make a list of segments that fit the criteria above
+max.list <- unique(wetland.max$site)
+
+#Subset large DF based on unqiue sites to keep all sites
+#that have ever has at least 20% wetland cover
+
+wetland.20 <- wetland.20[wetland.20$site %in% max.list, ]
+
+wetland.20 <- merge(wetland.20, link.to.lulc, by.x = "Route", by.y = "rtename")
+wetland.20$rteno.x <- paste0(wetland.20$rteno, "_", wetland.20$Segment)
+
+#Write csv for segment coverage 
+#write.csv(wetland.20, file = here("Data_BBS/Generated DFs/CompleteSegments_With_20percent.csv"))
+
 
 
 #File written to .csv for convenience
@@ -269,20 +328,6 @@ lulc.agg <- lulc.agg %>% mutate(lag.ur = lag(Urban, order_by = year))%>%
   mutate(pct.change.ur = ((Urban - lag.ur) / lag.ur) * 100) %>% 
   mutate(diff.from.first.ur = (Urban - first(Urban))) %>%
   mutate(ratio.ur = (Urban / total_cover))
-
-all.routes <- read.csv(here("Data_BBS/States_GoM/routes.csv"))
-Gom.rt.id <- read.csv(here("Data_BBS/States_GoM/Gom_Routes_ID.correct.csv"))
-link.to.lulc <- Gom.rt.id[, c("rteno", "rtename")]
-link.to.lulc$rtename <- as.character(link.to.lulc$rtename)
-link.to.lulc$rtename <- gsub(" ", "_", link.to.lulc$rtename)
-link.to.lulc <- link.to.lulc[!duplicated(link.to.lulc),]
-
-link.to.lulc[link.to.lulc$rtename == "BETAIR", 2] <- "BELAIR"
-link.to.lulc[link.to.lulc$rtename == "L._ATASCOSA_NWR", 2] <- "L__ATASCOSA_NWR"
-link.to.lulc[link.to.lulc$rtename == "SUGARLOAF_KEY_2", 2] <- "SUGARLOAF_KEY"
-link.to.lulc[link.to.lulc$rtename == "EGLIN_A.F.B.", 2] <- "EGLIN_A_F_B_"
-link.to.lulc[link.to.lulc$rtename == "SEMINOLE_HLS", 2] <- "SEMINOLE_HILLS"
-link.to.lulc[link.to.lulc$rtename == "ALABAMA_PORT", 2] <- "DAUPHIN_IS_2"
 
 
 ##Merge Unique_id with LULC
