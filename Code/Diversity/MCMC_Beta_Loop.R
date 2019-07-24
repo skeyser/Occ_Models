@@ -1,5 +1,5 @@
 #############################################################################################
-###########Script created to calculate temporal and spatial beta diversity################### 
+#####Script created to calculate temporal and spatial alpha and beta diversity###############
 #########################Created By: Spencer R Keyser########################################
 ####################################7/24/2019################################################
 #############################################################################################
@@ -45,6 +45,35 @@ x <- x %>% left_join(Bins, by = "Year")
 #df1.new$site_yr <- paste0(df1.new$site, "_", df1.new$Yr_bin)
 }
 
+#Create empty DF for richness
+mcmc2 <-paste0("SR_", seq(1:100))
+SR.matrix <- data.frame(matrix(ncol = 100, nrow = 4925))
+colnames(SR.matrix) <- mcmc2
+rownames(SR.matrix) <- surveys
+site_yr <- length(unique(JKclean$site_yr))
+site_yr_list <- unique(JKclean$site_yr)
+
+#Calculate Alpha Diversity 
+for (q in 1:length(df.list)){
+  df.temp <- read.csv(file = df.list[q]) 
+  df.temp <- df.cleaner(df.temp)
+  bbs_cast <- dcast(df.temp, site_yr ~ Species, value.var = "Occupancy", fun.aggregate = sum)
+  rownames(bbs_cast) <- bbs_cast[, 1]
+  bbs_cast <- bbs_cast[, -1]
+  bbs_cast[bbs_cast >= 1] <- 1
+  for (w in 1:site_yr){
+    site.temp <- site_yr_list[w]
+    print(paste0("Working on route ", site.temp, "currently for MCMC iteration ", q))
+    bbs_cast_temp <- bbs_cast[rownames(bbs_cast) == site.temp, ]
+    SR.matrix[rownames(SR.matrix) == rownames(bbs_cast_temp), q] <- rowSums(bbs_cast_temp) 
+  }#w
+} #q
+
+#write.csv(SR.matrix, file = here::here("Data_BBS/Generated DFs/sr_matrix.csv"))
+sr.means <- data.frame(Sites = rownames(SR.matrix), Mean_SR = NA, Sd_SR = NA)
+sr.means$Mean_SR <- rowMeans(SR.matrix)
+sr.means$Sd_SR <- apply(SR.matrix, 1, sd)
+#write.csv(sr.means, file = here::here("Data_BBS/Generated DFs/sr_means.csv"))
 
 #mean temporal beta diversity by site
 mcmc <- paste0("Beta", "_", seq(100))
@@ -117,9 +146,4 @@ beta.matrix2 <- beta.matrix2[, -1] #Remove sites foe calculations
 beta.means$mean.beta <- rowMeans(beta.matrix2) #calculate means across rows
 beta.means$beta.sd <- apply(beta.matrix2, 1, sd) #calculate SD
 #write.csv(beta.means, file = here::here("Data_BBS/Generated DFs/MCMC DFs/beta_means.csv"))
-
-
-
-
-
 
