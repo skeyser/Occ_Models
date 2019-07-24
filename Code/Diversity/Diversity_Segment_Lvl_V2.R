@@ -16,7 +16,7 @@ rm(list = ls())
 #Package Loading
 #install.packages("pacman")
 #library("pacman")
-pacman::p_load("here", "tidyverse", "reshape2", "vegan", "data.table", "cowplot", "lme4", "sjplot", 
+pacman::p_load("here", "tidyverse", "reshape2", "vegan", "data.table", "cowplot", "lme4", "sjPlot", 
                "sjstats", "car")
 
 #Packages to call in the function without loading
@@ -404,35 +404,62 @@ Site.means.bin$unique_id <- paste0(Site.means.bin$site, "_", Site.means.bin$Yr_b
 Site.means.bin <- Site.means.bin[, c("unique_id", "alpha.bin")]
 
 
+#Bring in the MCMC DFs
+beta.mcmc <- read.csv(file = here::here("Data_BBS/Generated DFs/beta_means.csv"))
+beta.mcmc <- beta.mcmc[, -1]
+beta.mcmc <- beta.mcmc %>% rename(unique_id = Sites)
+beta.mcmc$unique_id <- as.character(beta.mcmc$unique_id)
+
+sr.mcmc <- read.csv(file = here::here("Data_BBS/Generated DFs/sr_means.csv"))
+sr.mcmc <- sr.mcmc[, -1]
+sr.mcmc <- sr.mcmc %>% rename(unique_id = Sites)
+sr.mcmc$unique_id <- as.character(sr.mcmc$unique_id)
+
 #Initializing DFs for loops 
 n.sites <- length(unique(bbs_total$site))
 site.list <- as.character(unique(bbs_total$site))
 
-slopes_sites <- data.frame(site.list, slope = NA)
+slopes_sites <- data.frame(site.list, slope = NA, slope.mcmc = NA)
 
 bbs_div_means <- bbs_total
-bbs_div_means <- bbs_div_means %>% group_by(site, Yr_bin)%>% summarise(mean.div = mean(Site_div))
+bbs_div_means <- left_join(bbs_div_means, sr.mcmc, by = "unique_id")
+bbs_div_means <- bbs_div_means %>% rename(SR_MCMC = Mean_SR, SD_MCMC = Sd_SR)
+#bbs_div_means <- bbs_div_means %>% group_by(site, Yr_bin)%>% summarise(mean.div = mean(Site_div))
 
 for (i in 1:n.sites){
   site.temp <- site.list[i]
   site_total_temp <- bbs_div_means[bbs_div_means$site == site.temp,]
   if (nrow(site_total_temp) > 1){
-    lm.temp <- lm(site_total_temp$mean.div ~ site_total_temp$Yr_bin)
+    lm.temp <- lm(site_total_temp$Site_div ~ site_total_temp$Year)
+    lm.temp2 <- lm(site_total_temp$SR_MCMC ~ site_total_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
-    slopes_sites[i,2] <- slope.temp
+    slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
+    slopes_sites[i, 2] <- slope.temp
+    slopes_sites[i, 3] <- slope.temp2
   }
 }
 
 hist(slopes_sites$slope, breaks = 50)
+hist(slopes_sites$slope.mcmc, breaks = 50)
 
 slopes_sites$site <- as.character(slopes_sites$site.list)
-slopes_sites <- slopes_sites %>% dplyr::select(site, slope)
+slopes_sites <- slopes_sites %>% dplyr::select(site, slope, slope.mcmc)
 
-site_means2 <- merge(Site.means, slopes_sites, by = "site")
+#Mean alpha at the site level 
+site_means <- bbs_div_means %>% select(Site_div, SR_MCMC, site)
+site_means <- site_means %>% group_by(site) %>% summarise(MeanDiv = mean(Site_div), MeanDivMCMC = mean(SR_MCMC))
+
+#Alpha diversity at the site x yr level
+site_alpha <- bbs_div_means %>% select(Site_div, SR_MCMC, SD_MCMC, unique_id)
+
+#Mean alpha and alpha slopes at the site level 
+site_means2 <- merge(site_means, slopes_sites, by = "site")
+
 
 mean(site_means2$slope, na.rm = T)
 median(site_means2$slope, na.rm = T)
-
+mean(site_means2$slope.mcmc, na.rm = T)
+median(site_means2$slope.mcmc, na.rm = T)
 
 ############################################################
 #############Beta diversity preparation#####################
@@ -450,7 +477,7 @@ bbs_simple$Yr_bin[bbs_simple$Year >= 2010 & bbs_simple$Year <= 2014] <- 7
 bbs_simple$Yr_bin[bbs_simple$Year >= 2015 & bbs_simple$Year <= 2018] <- 8
 
 #Calculate community means per yr_bin
-bbs_simple$unique_id <- paste0(bbs_simple$site, "_", bbs_simple$Yr_bin)
+bbs_simple$unique_id <- paste0(bbs_simple$site, "_", bbs_simple$Year)
 
 #Cast spp x site_yr.bin
 bbs_cast <- dcast(bbs_simple, unique_id ~ sci_name, value.var = "Detected", fun.aggregate = sum)
@@ -474,7 +501,7 @@ beta.matrix <- beta.matrix[!duplicated(beta.matrix),]
 for (n in 1:n.sites){
   site.temp <- site.list[n]
   #Find all the years for which that site was surveys
-  yrs.temp <- unique(bbs_total[which(bbs_total$site == site.temp),"Yr_bin"])
+  yrs.temp <- unique(bbs_total[which(bbs_total$site == site.temp),"Year"])
   yrs.temp <- yrs.temp[yrs.temp >= 1]
   #only consider sites that were observed in more than 5 years 
   if (length(yrs.temp) > 1){ #select all sites that have mre than 1 year bin 
@@ -483,7 +510,7 @@ for (n in 1:n.sites){
     yrs.temp <- yrs.temp[order(yrs.temp)]
     #find the first 5 years 
     first.yrs <- yrs.temp[yrs.temp <= (yrs.temp[1])] #pulls first year bin
-    print(paste0("Starting Yr_bin for ", site.temp, " is ", first.yrs))
+    print(paste0("Starting Year for ", site.temp, " is ", first.yrs))
     site.yrs.first <- paste0(site.temp, "_", first.yrs)
     #create average community of first 5 years 
     bbs_cast_first <- bbs_cast[rownames(bbs_cast) %in% site.yrs.first,]
@@ -501,42 +528,58 @@ for (n in 1:n.sites){
     }
   }}
 
+beta.total <- left_join(beta.matrix, beta.mcmc, by = "unique_id")
+beta.total <- beta.total %>% rename(beta.mcmc = mean.beta, beta.mcmc.sd = beta.sd)
+
 
 #Remove years and duplicates in the bbs_total DF so we can link yr_bin calculations
-bbs_total$unique_id <- paste0(bbs_total$site, "_", bbs_total$Yr_bin)
-bbs_total <- bbs_total %>% select(-c("Year", "rt_yr", "Site_div"))
-bbs_total <- bbs_total[!duplicated(bbs_total), ]
+#bbs_total$unique_id <- paste0(bbs_total$site, "_", bbs_total$Yr_bin)
+#bbs_total <- bbs_total %>% select(-c("Year", "rt_yr", "Site_div"))
+#bbs_total <- bbs_total[!duplicated(bbs_total), ]
 
 #Add the betas into the bbs_total df 
 #At this point the bbs_total DF has the necessary info to merge with 
 #climate and LULC data for analyses at the binned level
-bbs_total <- merge(bbs_total, beta.matrix, by = "unique_id")
-bbs_total <- merge(bbs_total, Site.means.bin, by = "unique_id")
+bbs_total <- merge(bbs_total, beta.total, by = "unique_id")
+bbs_total <- merge(bbs_total, site_alpha, by = "unique_id")
 
 
 
 
 #Calculate slopes for B diversity
-slopes_sites_beta <- data.frame(site.list, beta.slope = NA)
+slopes_sites_beta <- data.frame(site.list, beta.slope = NA, beta.slope.mcmc = NA)
 
 for (i in 1:n.sites){
   site.temp <- site.list[i]
   bbs_total_temp <- bbs_total[bbs_total$site == site.temp,]
   bbs_total_temp <- bbs_total_temp[complete.cases(bbs_total_temp),]
   if (nrow(bbs_total_temp) > 1){
-    lm.temp <- lm(bbs_total_temp$beta ~ bbs_total_temp$Yr_bin)
+    lm.temp <- lm(bbs_total_temp$beta ~ bbs_total_temp$Year)
+    lm.temp2 <- lm(bbs_total_temp$beta.mcmc ~ bbs_total_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
+    slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
     slopes_sites_beta[i,2] <- slope.temp
+    slopes_sites_beta[i,3] <- slope.temp2
   }
 }
 
 hist(slopes_sites_beta$beta.slope)
 t.test(slopes_sites_beta$beta.slope, mu = 0)
 
+hist(slopes_sites_beta$beta.slope.mcmc)
+t.test(slopes_sites_beta$beta.slope.mcmc, mu = 0)
+
 #####Cleaned to this point#####
 ###############################
 
+#Create a DF that calculates beta and alpha diversity in the year_bin formats
+#for models 
+bbs_bin <- bbs_total %>% select(rteno.x, site, BCR, Site_div.x, rtename, Yr_bin, beta, beta.mcmc, SR_MCMC) %>%
+  group_by(site, Yr_bin) %>% summarize(beta = mean(beta), alpha = mean(Site_div.x), beta.mcmc = mean(beta.mcmc),
+                                       alpha.mcmc = mean(SR_MCMC))
 
+
+bbs_bin$unique_id <- paste0(bbs_bin$site, "_", bbs_bin$Yr_bin)
 
 #Plots for Beta Diversity
 
@@ -555,7 +598,7 @@ plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta, group = site,
                                                           labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
-                geom_smooth(method = lm, se = FALSE, aes(x = Yr_bin, y = beta, group = site, 
+                geom_smooth(method = lm, se = FALSE, aes(x = Year, y = beta, group = site, 
                                                          colour = factor(BCR,
                                                                          labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
                 xlab("Year") +
@@ -786,33 +829,31 @@ precipitation <- as.data.frame(precipitation)
 avgs <- do.call("cbind", list(avgs, avg.max, avg.min, precipitation))
 avgs$site.mo.yr <- paste0(avgs$Site, "_", avgs$Month, "_", avgs$yr_bin)
 
-
-
 #Binning the beta matrix data 
-beta.matrix$unique_id <- as.character(beta.matrix$unique_id)
-betas <- beta.matrix %>% separate(unique_id, c("rteno", "segment", "year"), sep = "_") %>% unite(site, c("rteno", "segment"), sep = "_")
-betas$year <- as.numeric(betas$year)
-betas$Yr_bin <- 1
-betas$Yr_bin[betas$year >= 1985 & betas$year <= 1989] <- 2
-betas$Yr_bin[betas$year >= 1990 & betas$year <= 1994] <- 3
-betas$Yr_bin[betas$year >= 1995 & betas$year <= 1999] <- 4
-betas$Yr_bin[betas$year >= 2000 & betas$year <= 2004] <- 5
-betas$Yr_bin[betas$year >= 2005 & betas$year <= 2009] <- 6
-betas$Yr_bin[betas$year >= 2010 & betas$year <= 2014] <- 7
-betas$Yr_bin[betas$year >= 2015 & betas$year <= 2018] <- 8
+# beta.matrix$unique_id <- as.character(beta.matrix$unique_id)
+# betas <- beta.matrix %>% separate(unique_id, c("rteno", "segment", "year"), sep = "_") %>% unite(site, c("rteno", "segment"), sep = "_")
+# betas$year <- as.numeric(betas$year)
+# betas$Yr_bin <- 1
+# betas$Yr_bin[betas$year >= 1985 & betas$year <= 1989] <- 2
+# betas$Yr_bin[betas$year >= 1990 & betas$year <= 1994] <- 3
+# betas$Yr_bin[betas$year >= 1995 & betas$year <= 1999] <- 4
+# betas$Yr_bin[betas$year >= 2000 & betas$year <= 2004] <- 5
+# betas$Yr_bin[betas$year >= 2005 & betas$year <= 2009] <- 6
+# betas$Yr_bin[betas$year >= 2010 & betas$year <= 2014] <- 7
+# betas$Yr_bin[betas$year >= 2015 & betas$year <= 2018] <- 8
 
 #Getting the Betas into the environmental Data 
 #Pull the minumum year-bin for the linking up the 
 #climate data to the first year bin with a beta value
-min.betas <- aggregate(Yr_bin ~ site, betas, FUN = "min")
+min.betas <- aggregate(Yr_bin ~ site, bbs_bin, FUN = "min")
 
 
 #Beta.mod at this point has a beta for each site and year combination
-betas.mod <- betas
+#betas.mod <- betas
 
 
 #Calculate Mean Beta for each year-bin 
-betas.mod <- aggregate(beta ~ site + Yr_bin, betas, FUN = "mean")
+#betas.mod <- aggregate(beta ~ site + Yr_bin, betas, FUN = "mean")
 
 #BBS site DF (rteno, site, site name, rt_yr combo)
 bbs_site_temp <- bbs_total[, c("rteno.x", "rtename", "site", "rt_yr")]
@@ -892,12 +933,38 @@ temp.agg <- avgs %>% ungroup(avgs) %>% select(site, yr_bin, tmean.c, tmax.c, tmi
 #Aggregate all the anomalies by year_bin for each site
 temp.agg <- aggregate(. ~ site + yr_bin, temp.agg, FUN = "mean")
 temp.avgs <- temp.agg
-betas.mod$unique_id <- paste0(betas.mod$site, "_", betas.mod$Yr_bin)
+#betas.mod$unique_id <- paste0(betas.mod$site, "_", betas.mod$Yr_bin)
 temp.avgs$unique_id <- paste0(temp.avgs$site, "_", temp.avgs$yr_bin)
 
 #Put betas with temperature data 
 #DF contains unique_id, site, yr_bin, raw climate, and anomalies
-lmer.df <- merge(temp.avgs, betas.mod, by = "unique_id")
+lmer.df <- merge(temp.avgs, bbs_bin, by = "unique_id")
+
+#Make a Bins df
+Bins <- data.frame(matrix(ncol = 2, nrow = 40))
+l <- c("year", "Yr_bin")
+colnames(Bins) <- l
+Bins$year <- 1980:2019
+Bins$Yr_bin <- rep(1:8, times = 1, each = 5)
+
+#Bring in the LULC Data 
+bbs_lulc <- read.csv(here::here("Data_BBS/Generated DFs/BBS_LULC.csv"))
+
+bbs_lulc <- bbs_lulc %>% select(-c(site, X, unique_id)) %>% rename(site = rteno.x) %>% 
+  mutate(site = as.character(site)) %>% left_join(Bins, by = "year") %>%
+  unite("unique_id", site, Yr_bin, sep = "_") %>% right_join(bbs_bin, by = "unique_id")
+
+
+
+
+
+
+
+
+
+
+
+
 test <- lmer.df
 test <- separate(test, site.y, into = c("rteno", "segment"), by = "_")
 
