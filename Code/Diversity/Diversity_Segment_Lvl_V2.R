@@ -974,9 +974,9 @@ bbs_lulc <- bbs_lulc %>% group_by(site) %>%
   mutate(scale.ww = scale(Woody_Wetlands)) %>%
   mutate(scale.ew = scale(Emergent_Wetlands)) %>%
   mutate(scale.ur = scale(Urban)) %>%
-  mutate(scale.ag = scale(Ag))
+  mutate(scale.ag = scale(Ag)) %>% ungroup()
 
-bbs_full <- bbs_lulc %>% left_join(temp.avgs, by = "unique_id")
+bbs_full <- bbs_lulc %>% left_join(temp.avgs, by = "unique_id") %>% ungroup()
 
 #Models for beta-diversity
 bbs_full <- bbs_full %>% rename(beta.reg = beta)
@@ -1052,6 +1052,67 @@ plot(ur.est)
 
 sjPlot::tab_model(mod.full.beta)
 sjPlot::tab_model(mod.full.betamcmc)
+
+
+##################################################################################
+#############################Spatial NMDS and Adonis##############################
+##################################################################################
+
+#See which year had the most completed surveys
+setDT(bbs_div_means)[, .(count = uniqueN(site)), by = Year] #2008 with 174
+
+bbs11 <- bbs_simple[bbs_simple$Year == 2010,]
+bbs11 <- bbs11 %>% arrange(site)
+
+ww11 <- bbs_full %>% select(site, year, pct.ww)
+ww11 <- ww11[ww11$year == 2010,]
+
+bbs11.list <- unique(bbs11$site)
+wetland.site <- unique(ww11$site)
+
+setdiff(bbs11.list, wetland.site)
+setdiff(wetland.site, bbs11.list)
+
+
+#ww11 <- ww11[ww11$site %in% site.list11,]
+mangrove08.site <- unique(ww11$site)
+ww11 <- ww11 %>% select(-c(year)) %>% arrange(site)
+ww11$groups <- NA
+ww11$groups[ww11$pct.ww <= 0.50] <- "L"
+ww11$groups[ww11$pct.ww > 0.50] <- "H"
+ww11 <- ww11$groups
+
+ew11 <- bbs_lulc %>% select(site, year, pct.ew)
+ew11 <- ew11[ew11$year == 2010,]
+ew11 <- ew11[ew11$site %in% site.list08,]
+ew11.site <- unique(ew11$site)
+ew11 <- ew11 %>% select(-c(year)) %>% arrange(site)
+ew11$groups <- NA
+ew11$groups[ew11$pct.ew <= 0.25] <- "L"
+ew11$groups[ew11$pct.ew <= 0.50 & ew11$pct.ew > 0.25] <- "ML"
+ew11$groups[ew11$pct.ew <= 0.75 & ew11$pct.ew > 0.50] <- "MH"
+ew11$groups[ew11$pct.ew > 0.75] <- "H"
+ew11 <- ew11$groups
+
+bbs_cast11 <- dcast(bbs11, unique_id ~ sci_name, value.var = "Detected", fun.aggregate = sum)
+rownames(bbs_cast11) <- bbs_cast11$unique_id
+bbs_cast11 <- bbs_cast08[, -1]
+
+
+mds11 <- metaMDS(bbs_cast11)
+
+data.scores <- as.data.frame(scores(mds11))  
+data.scores$site <- rownames(data.scores)  
+data.scores$grp<-ww11
+
+ggplot(data=data.scores) + 
+  stat_ellipse(aes(x=NMDS1,y=NMDS2,colour=ww11),level = 0.50) +
+  geom_point(aes(x=NMDS1,y=NMDS2,shape=,colour=ww11),size=4)
+
+
+adon.results <- adonis(bbs_cast08 ~ mangrove08, method = "jaccard", perm = 999)
+print(adon.results)
+
 
 
 
