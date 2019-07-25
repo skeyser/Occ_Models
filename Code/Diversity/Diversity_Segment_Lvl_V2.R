@@ -938,7 +938,7 @@ temp.avgs$unique_id <- paste0(temp.avgs$site, "_", temp.avgs$yr_bin)
 
 #Put betas with temperature data 
 #DF contains unique_id, site, yr_bin, raw climate, and anomalies
-lmer.df <- merge(temp.avgs, bbs_bin, by = "unique_id")
+#lmer.df <- merge(temp.avgs, bbs_bin, by = "unique_id")
 
 #Make a Bins df
 Bins <- data.frame(matrix(ncol = 2, nrow = 40))
@@ -955,20 +955,111 @@ bbs_lulc <- bbs_lulc %>% select(-c(site, X, unique_id)) %>% rename(site = rteno.
   unite("unique_id", site, Yr_bin, sep = "_") %>% right_join(bbs_bin, by = "unique_id")
 
 
+#Calculate the % of Emergent, Woody Wetlands, and Urban 
+bbs_lulc <- bbs_lulc %>% group_by(site) %>% 
+  mutate(pct.ww = Woody_Wetlands / total_cover) %>% 
+  mutate(pct.ew = Emergent_Wetlands / total_cover) %>% 
+  mutate(lag.ww = lag(Woody_Wetlands, order_by = year))%>% 
+  mutate(pct.change.ww = ((Woody_Wetlands - lag.ww) / lag.ww) * 100) %>% 
+  mutate(diff.from.first.ww = (Woody_Wetlands - first(Woody_Wetlands))) %>%
+  mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>% 
+  mutate(pct.ur = Urban / total_cover) %>% mutate(lag.ew = lag(Emergent_Wetlands, order_by = year))%>% 
+  mutate(pct.change.ew = ((Emergent_Wetlands - lag.ew) / lag.ew) * 100) %>% 
+  mutate(diff.from.first.ew = (Emergent_Wetlands - first(Emergent_Wetlands))) %>%
+  mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>% 
+  mutate(lag.ur = lag(Urban, order_by = year))%>% 
+  mutate(pct.change.ur = ((Urban - lag.ur) / lag.ur) * 100) %>% 
+  mutate(diff.from.first.ur = (Urban - first(Urban))) %>%
+  mutate(ratio.ur = (Urban / total_cover)) %>%
+  mutate(scale.ww = scale(Woody_Wetlands)) %>%
+  mutate(scale.ew = scale(Emergent_Wetlands)) %>%
+  mutate(scale.ur = scale(Urban)) %>%
+  mutate(scale.ag = scale(Ag))
 
+bbs_full <- bbs_lulc %>% left_join(temp.avgs, by = "unique_id")
 
+#Models for beta-diversity
+bbs_full <- bbs_full %>% rename(beta.reg = beta)
 
+bbs_full <- bbs_full[complete.cases(bbs_full),]
 
+#Pulls out the first and last year
+bbs_short <- bbs_full %>% group_by(site.x) %>% arrange(year) %>% slice(c(1, n())) 
 
+#Pulls out just the last
+bbs_last <- bbs_full %>% group_by(site.x) %>% arrange(year) %>% slice(n())
 
+################################################################################################################################
+############################################***Models for Raw Species Observations***###########################################
+################################################################################################################################
 
+#mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + pct.ww + pct.ew + pct.ur + (1|site.x))
+mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + scale.ww + 
+                      scale.ew + scale.ur + scale.ag + (1|site.x))
 
+summary(mod.full.beta)
+Anova(mod.full.beta)
+
+#Models with first and last betas 
+mod.short.beta <- lmer(data = bbs_short, beta.reg ~ anomalies + precip.anomalies + scale.ww + 
+                        scale.ew + scale.ur + scale.ag + (1|site.x))
+summary(mod.short.beta)
+Anova(mod.short.beta)
+
+temp.est <- Effect("anomalies", partial.residuals = T, mod.short.beta)
+plot(temp.est)
+
+ww.est <- Effect("scale.ww", partial.residuals = T, mod.short.beta)
+plot(ww.est)
+
+#Models with the last beta
+mod.last.beta <- lmer(data = bbs_short, beta.reg ~ anomalies + precip.anomalies + scale.ww + 
+                      scale.ew + scale.ur + scale.ag + (1|site.x))
+
+summary(mod.last.beta)
+Anova(mod.last.beta)
+
+temp.est <- Effect("anomalies", partial.residuals = T, mod.last.beta)
+plot(temp.est)
+
+ww.est <- Effect("scale.ww", partial.residuals = T, mod.last.beta)
+plot(ww.est)
+
+##############################################################################################################################
+###################################***Models for MCMC estimated Species Occurrences***########################################
+##############################################################################################################################
+
+#mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc.y ~ anomalies + precip.anomalies + pct.ww + pct.ew + pct.ur + (1|site.x)) 
+mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + scale.ew + scale.ww + scale.ur + (1|site.x))
+
+summary(mod.full.betamcmc)
+Anova(mod.full.betamcmc)
 
 
 test <- lmer.df
 test <- separate(test, site.y, into = c("rteno", "segment"), by = "_")
 
+p_load(effects)
 
+temp.est <- Effect("anomalies", partial.residuals = T, mod.full.betamcmc)
+plot(temp.est)
+
+ww.est <- Effect("scale.ww", partial.residuals = T, mod.full.beta)
+plot(ww.est)
+
+ur.est <- Effect("scale.ur", partial.residuals = T, mod.full.beta)
+plot(ur.est)
+
+sjPlot::tab_model(mod.full.beta)
+sjPlot::tab_model(mod.full.betamcmc)
+
+
+
+########################################################################################
+
+#Below is mostly junk
+
+########################################################################################
 ggplotRegression(tempmod)
 
 ggplot(temp.avgs, aes(x = yr_bin, y = anomalies, group = site)) + labs(x = "Year Bin", ylab = "Temperature Anomalies") + geom_line()
