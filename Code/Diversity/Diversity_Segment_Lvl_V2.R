@@ -974,7 +974,8 @@ bbs_lulc <- bbs_lulc %>% group_by(site) %>%
   mutate(scale.ww = scale(Woody_Wetlands)) %>%
   mutate(scale.ew = scale(Emergent_Wetlands)) %>%
   mutate(scale.ur = scale(Urban)) %>%
-  mutate(scale.ag = scale(Ag)) %>% ungroup()
+  mutate(scale.ag = scale(Ag)) %>% 
+  mutate(scale.wetland = scale(pct_wetland)) %>% ungroup()
 
 bbs_full <- bbs_lulc %>% left_join(temp.avgs, by = "unique_id") %>% ungroup()
 
@@ -982,6 +983,8 @@ bbs_full <- bbs_lulc %>% left_join(temp.avgs, by = "unique_id") %>% ungroup()
 bbs_full <- bbs_full %>% rename(beta.reg = beta)
 
 bbs_full <- bbs_full[complete.cases(bbs_full),]
+
+bbs_full <- as.data.frame(bbs_full)
 
 #Pulls out the first and last year
 bbs_short <- bbs_full %>% group_by(site.x) %>% arrange(year) %>% slice(c(1, n())) 
@@ -993,9 +996,9 @@ bbs_last <- bbs_full %>% group_by(site.x) %>% arrange(year) %>% slice(n())
 ############################################***Models for Raw Species Observations***###########################################
 ################################################################################################################################
 
-#mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + pct.ww + pct.ew + pct.ur + (1|site.x))
+#mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + ratio.ww + pct.ur + (1|site.x))
 mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + scale.ww + 
-                      scale.ew + scale.ur + scale.ag + (1|site.x))
+                      scale.ew + scale.ur + scale.ag + scale.wetland + (1|site.x))
 
 summary(mod.full.beta)
 Anova(mod.full.beta)
@@ -1030,7 +1033,7 @@ plot(ww.est)
 ##############################################################################################################################
 
 #mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc.y ~ anomalies + precip.anomalies + pct.ww + pct.ew + pct.ur + (1|site.x)) 
-mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + scale.ew + scale.ww + scale.ur + (1|site.x))
+mod.full.betamcmc <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + scale.ew + scale.ww + scale.ur + scale.wetland + (1|site.x))
 
 summary(mod.full.betamcmc)
 Anova(mod.full.betamcmc)
@@ -1044,10 +1047,10 @@ p_load(effects)
 temp.est <- Effect("anomalies", partial.residuals = T, mod.full.betamcmc)
 plot(temp.est)
 
-ww.est <- Effect("scale.ww", partial.residuals = T, mod.full.beta)
+ww.est <- Effect("scale.ww", partial.residuals = T, mod.full.betamcmc)
 plot(ww.est)
 
-ur.est <- Effect("scale.ur", partial.residuals = T, mod.full.beta)
+ur.est <- Effect("scale.ur", partial.residuals = T, mod.full.betamcmc)
 plot(ur.est)
 
 sjPlot::tab_model(mod.full.beta)
@@ -1058,62 +1061,65 @@ sjPlot::tab_model(mod.full.betamcmc)
 #############################Spatial NMDS and Adonis##############################
 ##################################################################################
 
+p_load(ggfortify)
+
 #See which year had the most completed surveys
 setDT(bbs_div_means)[, .(count = uniqueN(site)), by = Year] #2008 with 174
 
-bbs11 <- bbs_simple[bbs_simple$Year == 2010,]
-bbs11 <- bbs11 %>% arrange(site)
+bbs.mds <- bbs_simple[bbs_simple$Year == 2006,]
+bbs.mds <- bbs.mds %>% arrange(site)
 
-ww11 <- bbs_full %>% select(site, year, pct.ww)
-ww11 <- ww11[ww11$year == 2010,]
+lc.mds <- bbs_lulc %>% select(site, year, ratio.ww, pct.ur)
+lc.mds <- lc.mds[lc.mds$year == 2006,]
 
-bbs11.list <- unique(bbs11$site)
-wetland.site <- unique(ww11$site)
+mds.list <- unique(bbs.mds$site)
+wetland.site <- unique(lc.mds$site)
 
-setdiff(bbs11.list, wetland.site)
-setdiff(wetland.site, bbs11.list)
+mds.full <- merge(lc.mds, bbs.mds, by = "site")
+
+lc.mds <- select(mds.full, c(ratio.ww, pct.ur, site))
+lc.mds <- lc.mds[!duplicated(lc.mds), ]
+
+#ww.mds <- ww.mds[ww.mds$site %in% mds.list,]
+
+#ww11.site <- unique(ww.mds$site.x)
+ww.mds <- lc.mds %>% arrange(site)
+ww.mds$groups <- NA
+ww.mds$groups[ww.mds$ratio.ww < 1] <- "Emergent Wetland Dominated"
+#ww.mds$groups[ww.mds$ratio.ww >= 0.8 & ww.mds$ratio.ww <= 1.2] <- "Mix"
+ww.mds$groups[ww.mds$ratio.ww > 1] <- "Woody Wetland Dominated"
+ww.mds <- ww.mds$groups
+
+ur.mds <- lc.mds %>% arrange(site)
+ur.mds$groups <- NA
+ur.mds$groups[ur.mds$pct.ur <= .33] <- "L"
+ur.mds$groups[ur.mds$pct.ur > .33 & ur.mds$pct.ur < .66] <- "M"
+ur.mds$groups[ur.mds$pct.ur >= .66] <- "H"
+ur.mds <- ur.mds$groups
+
+bbs.mds <- bbs.mds %>% arrange(site)
+mds_cast <- dcast(mds.full, unique_id ~ sci_name, value.var = "Detected", fun.aggregate = sum)
+rownames(mds_cast) <- mds_cast$unique_id
+mds_cast <- mds_cast[, -1]
 
 
-#ww11 <- ww11[ww11$site %in% site.list11,]
-mangrove08.site <- unique(ww11$site)
-ww11 <- ww11 %>% select(-c(year)) %>% arrange(site)
-ww11$groups <- NA
-ww11$groups[ww11$pct.ww <= 0.50] <- "L"
-ww11$groups[ww11$pct.ww > 0.50] <- "H"
-ww11 <- ww11$groups
+mds <- metaMDS(mds_cast)
 
-ew11 <- bbs_lulc %>% select(site, year, pct.ew)
-ew11 <- ew11[ew11$year == 2010,]
-ew11 <- ew11[ew11$site %in% site.list08,]
-ew11.site <- unique(ew11$site)
-ew11 <- ew11 %>% select(-c(year)) %>% arrange(site)
-ew11$groups <- NA
-ew11$groups[ew11$pct.ew <= 0.25] <- "L"
-ew11$groups[ew11$pct.ew <= 0.50 & ew11$pct.ew > 0.25] <- "ML"
-ew11$groups[ew11$pct.ew <= 0.75 & ew11$pct.ew > 0.50] <- "MH"
-ew11$groups[ew11$pct.ew > 0.75] <- "H"
-ew11 <- ew11$groups
-
-bbs_cast11 <- dcast(bbs11, unique_id ~ sci_name, value.var = "Detected", fun.aggregate = sum)
-rownames(bbs_cast11) <- bbs_cast11$unique_id
-bbs_cast11 <- bbs_cast08[, -1]
-
-
-mds11 <- metaMDS(bbs_cast11)
-
-data.scores <- as.data.frame(scores(mds11))  
+data.scores <- as.data.frame(scores(mds))  
 data.scores$site <- rownames(data.scores)  
-data.scores$grp<-ww11
-
-ggplot(data=data.scores) + 
-  stat_ellipse(aes(x=NMDS1,y=NMDS2,colour=ww11),level = 0.50) +
-  geom_point(aes(x=NMDS1,y=NMDS2,shape=,colour=ww11),size=4)
+data.scores$grp1 <- ww.mds
+#data.scores$grp2 <- ur.mds
 
 
-adon.results <- adonis(bbs_cast08 ~ mangrove08, method = "jaccard", perm = 999)
+ggplot(data = data.scores) + 
+  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = ww.mds), level = 0.50) +
+  geom_point(aes(x = NMDS1, y = NMDS2, shape = , colour = ww.mds), size=2)
+
+
+adon.results <- adonis(mds_cast ~ ww.mds, method = "jaccard", perm = 999)
 print(adon.results)
 
-
+#autoplot(prcomp(), data = data.scores, )
 
 
 ########################################################################################
