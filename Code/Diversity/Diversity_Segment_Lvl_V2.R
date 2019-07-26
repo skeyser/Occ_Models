@@ -749,7 +749,9 @@ ggdraw() +
 ######################################################
 
 
-
+###############################################################################################################
+###############################Climate Data at the Route Level#################################################
+###############################################################################################################
 
 #Environmental Data Loading and Cleaning 
 #PRISM Data Script 
@@ -782,7 +784,7 @@ colnames(prism.total)[colnames(prism.total) == "tmax..degrees.F."] <- "tmax"
 colnames(prism.total)[colnames(prism.total) == "tmin..degrees.F."] <- "tmin"
 colnames(prism.total)[colnames(prism.total) == "tmean..degrees.F."] <- "tmean"
 
-#Create tear bins for analysis 
+#Create year bins for analysis 
 prism.total$Year <- as.numeric(prism.total$Year)
 prism.total$yr_bin <- 1
 prism.total$yr_bin[prism.total$Year >= 1980 & prism.total$Year <= 1984] <- 1
@@ -846,6 +848,7 @@ avgs$site.mo.yr <- paste0(avgs$Site, "_", avgs$Month, "_", avgs$yr_bin)
 #Pull the minumum year-bin for the linking up the 
 #climate data to the first year bin with a beta value
 min.betas <- aggregate(Yr_bin ~ site, bbs_bin, FUN = "min")
+max.betas <- aggregate(Yr_bin ~ site, bbs_bin, FUN = "max")
 
 
 #Beta.mod at this point has a beta for each site and year combination
@@ -936,22 +939,191 @@ temp.avgs <- temp.agg
 #betas.mod$unique_id <- paste0(betas.mod$site, "_", betas.mod$Yr_bin)
 temp.avgs$unique_id <- paste0(temp.avgs$site, "_", temp.avgs$yr_bin)
 
+
+#######################################################################################################
+###########################Climate at the Segment Level Centroid#######################################
+#######################################################################################################
+
+#Read in segment level climate data
+prism.seg1 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRISMsegs_1980_1994.csv"), stringsAsFactors = F)
+prism.seg2 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRISMsegs_1995_2009.csv"), stringsAsFactors = F)
+prism.seg3 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRISMsegs_2010_2019.csv"), stringsAsFactors = F)
+
+#Bind data, clear NA's from spacing in csv, and separate dates
+prism.seg <- rbind(prism.seg1, prism.seg2, prism.seg3)
+prism.seg <- prism.seg[complete.cases(prism.seg), ]
+prism.seg <- separate(prism.seg, col = Date, into = c("Year", "Month"), by = "-", remove = T)
+
+#Rename variables, wierd CSV notation
+colnames(prism.seg)[colnames(prism.seg) == "ppt..inches."] <- "precip"
+colnames(prism.seg)[colnames(prism.seg) == "tmax..degrees.F."] <- "tmax"
+colnames(prism.seg)[colnames(prism.seg) == "tmin..degrees.F."] <- "tmin"
+colnames(prism.seg)[colnames(prism.seg) == "tmean..degrees.F."] <- "tmean"
+
+#Bin set up
+Bins <- data.frame(matrix(ncol = 2, nrow = 40))
+l <- c("Year", "Yr_bin")
+colnames(Bins) <- l
+Bins$Year <- 1980:2019
+Bins$Yr_bin <- rep(1:8, times = 1, each = 5)
+
+#Pull the yr_bins into the data
+prism.seg <- merge(prism.seg, Bins, by = "Year")
+
+#Bin months for season (use only spring and summer)
+prism.seg$Month <- as.numeric(prism.seg$Month)
+prism.seg$season <- "Winter"
+prism.seg$season[prism.seg$Month >= 03 & prism.seg$Month <= 05] <- "Spring"
+prism.seg$season[prism.seg$Month >= 06 & prism.seg$Month <= 08] <- "Summer"
+prism.seg$season[prism.seg$Month >= 09 & prism.seg$Month <= 11] <- "Fall"
+prism.seg$season[prism.seg$Month >= 12 & prism.seg$Month <= 02] <- "Winter"
+
+#Reduce data for just Spring and Summer seasons
+prism.seg.sp <- prism.seg[prism.seg$season == "Spring", ] 
+prism.seg.s <- prism.seg[prism.seg$season == "Summer", ]
+prism.seg.f <- prism.seg[prism.seg$season == "Fall", ]
+prism.seg.w <- prism.seg[prism.seg$season == "Winter", ]
+
+#Put indicator of season in colnames for calling 
+colnames(prism.seg.sp)[7:10] <- paste0(colnames(prism.seg.sp)[7:10], "_", unique(prism.seg.sp$season)) 
+colnames(prism.seg.s)[7:10] <- paste0(colnames(prism.seg.s)[7:10], "_", unique(prism.seg.s$season)) 
+colnames(prism.seg.f)[7:10] <- paste0(colnames(prism.seg.f)[7:10], "_", unique(prism.seg.f$season)) 
+colnames(prism.seg.w)[7:10] <- paste0(colnames(prism.seg.w)[7:10], "_", unique(prism.seg.w$season)) 
+
+#Calculate Yr_bin & Seasonal Means for site 
+prism.seg.sp <- prism.seg.sp %>% group_by(Site, Yr_bin) %>% summarise(tmean_Spring = mean(tmean_Spring),
+                                                                      tmin_Spring = mean(tmin_Spring), 
+                                                                      tmax_Spring = mean(tmax_Spring),
+                                                                      precip_Spring = mean(precip_Spring)) %>%
+                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+
+prism.seg.s <- prism.seg.s %>% group_by(Site, Yr_bin) %>% summarise(tmean_Summer = mean(tmean_Summer),
+                                                                      tmin_Summer = mean(tmin_Summer), 
+                                                                      tmax_Summer = mean(tmax_Summer),
+                                                                      precip_Summer = mean(precip_Summer)) %>%
+                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+
+prism.seg.f <- prism.seg.f %>% group_by(Site, Yr_bin) %>% summarise(tmean_Fall = mean(tmean_Fall),
+                                                                      tmin_Fall = mean(tmin_Fall), 
+                                                                      tmax_Fall = mean(tmax_Fall),
+                                                                      precip_Fall = mean(precip_Fall)) %>%
+                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+
+prism.seg.w <- prism.seg.w %>% group_by(Site, Yr_bin) %>% summarise(tmean_Winter = mean(tmean_Winter),
+                                                                      tmin_Winter = mean(tmin_Winter), 
+                                                                      tmax_Winter = mean(tmax_Winter),
+                                                                      precip_Winter = mean(precip_Winter)) %>%
+                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+
+
+#Bring all the seasons together 
+prism.seg.means <- prism.seg.sp %>% left_join(prism.seg.s, by = "unique_id") %>% left_join(prism.seg.f, by = "unique_id") %>%
+                                    left_join(prism.seg.w, by = "unique_id")
+
+prism.seg.means <- prism.seg.means %>% separate(col = unique_id, into = c("Rteno", "Segment", "Yr_bin"))
+
+prism.seg.means$Site <- paste0(prism.seg.means$Rteno, "_", prism.seg.means$Segment) 
+
+#Calculate the total mean column for each site 
+prism.seg.means <- prism.seg.means %>% mutate(tmean = (tmean_Spring + tmean_Summer + tmean_Fall + tmean_Winter) / 4,
+                                              tmax = (tmax_Spring + tmax_Summer + tmax_Fall + tmax_Winter) / 4,
+                                              tmin = (tmin_Spring + tmin_Summer + tmin_Fall + tmin_Winter) / 4,
+                                              pmean = (precip_Spring + precip_Summer + precip_Fall + precip_Winter) / 4,
+                                              tmean.bird = (tmean_Spring + tmean_Summer) / 2,
+                                              tmin.bird = (tmin_Spring + tmin_Summer) / 2,
+                                              tmax.bird = (tmax_Spring + tmax_Summer) / 2,
+                                              pmean.bird = (precip_Spring + precip_Summer) / 2)
+
+#Metric Conversion
+seg.climate <- prism.seg.means %>% mutate(tmean.c = (tmean - 32) / 1.8, 
+                        tmax.c = (tmax - 32) / 1.8,
+                        tmin.c = (tmin - 32) / 1.8,
+                        tmean.bird.c = (tmean.bird - 32) / 1.8,
+                        tmin.bird.c = (tmin.bird - 32) / 1.8,
+                        tmax.bird.c = (tmax.bird - 32) / 1.8,
+                        pmean.c = (pmean * 2.54),
+                        pmean.bird.c = (pmean.bird * 2.54),
+                        tmean_Spring.c = (tmean_Spring - 32) / 1.8,
+                        tmean_Summer.c = (tmean_Summer - 32) / 1.8,
+                        tmean_Fall.c = (tmean_Fall - 32) / 1.8,
+                        tmean_Winter.c = (tmean_Winter - 32) / 1.8,
+                        tmin_Spring.c = (tmin_Spring - 32) / 1.8,
+                        tmin_Summer.c = (tmin_Summer - 32) / 1.8,
+                        tmin_Fall.c = (tmin_Fall - 32) / 1.8,
+                        tmin_Winter.c = (tmin_Winter - 32) / 1.8,
+                        tmax_Spring.c = (tmax_Spring - 32) / 1.8,
+                        tmax_Summer.c = (tmax_Summer - 32) / 1.8,
+                        tmax_Fall.c = (tmax_Fall - 32) / 1.8,
+                        tmax_Winter.c = (tmax_Winter - 32) / 1.8,
+                        precip_Spring.c = (precip_Spring * 2.54),
+                        precip_Summer.c = (precip_Summer * 2.54),
+                        precip_Fall.c = (precip_Fall * 2.54),
+                        precip_Winter.c = (precip_Winter * 2.54))
+                        
+seg.climate <- seg.climate[, c("Site", "Rteno", "Yr_bin", "tmean.c", "tmax.c", "tmin.c", "pmean.c",
+                               "tmean.bird.c", "tmax.bird.c", "tmin.bird.c", "pmean.bird.c", "tmean_Spring.c",
+                               "tmin_Spring.c", "tmax_Spring.c", "precip_Spring.c", "tmean_Summer.c", "tmax_Summer.c",
+                               "tmin_Summer.c", "precip_Summer.c", "tmean_Fall.c", "tmin_Fall.c", "tmax_Fall.c", "precip_Fall.c",
+                               "tmean_Winter.c", "tmin_Winter.c", "tmax_Winter.c", "precip_Winter.c")]
+
+#Pull the min betas 
+min.beta.merge <- min.betas[, c("site", "min.yr.bin")]
+colnames(min.beta.merge)[colnames(min.beta.merge) == "site"] <- "Site"
+colnames(max.betas)[colnames(max.betas) == "site"] <- "Site"
+colnames(max.betas)[colnames(max.betas) == "Yr_bin"] <- "max.yr.bin" 
+
+
+
+seg.climate <- right_join(min.beta.merge, seg.climate, by = "Site") %>% right_join(max.betas, seg.climate, by = "Site")
+
+#Restrict to only the minimum year bins
+seg.climate <- seg.climate[seg.climate$Yr_bin >= seg.climate$min.yr.bin & seg.climate$Yr_bin <= seg.climate$max.yr.bin, ]
+
+#Calculate Anomalies
+seg.climate <- seg.climate %>% group_by(Site) %>% 
+  arrange(Yr_bin, .by_group = T) %>% 
+  mutate(mean.anom = tmean.c - first(tmean.c),
+         max.anom = tmax.c - first(tmax.c),
+         min.anom = tmin.c - first(tmin.c), 
+         p.anom = pmean.c - first(pmean.c),
+         mean.anom.bird = tmean.bird.c - first(tmean.bird.c),
+         max.anom.bird = tmax.bird.c - first(tmax.bird.c),
+         min.anom.bird = tmin.bird.c - first(tmin.bird.c),
+         p.anom.bird = pmean.bird.c - first(pmean.bird.c),
+         mean.anom.sp = tmean_Spring.c - first(tmean_Spring.c),
+         max.anom.sp = tmax_Spring.c - first(tmax_Spring.c),
+         min.anom.sp = tmin_Spring.c - first(tmin_Spring.c),
+         p.anom.sp = precip_Spring.c - first(precip_Spring.c),
+         mean.anom.s = tmean_Summer.c - first(tmean_Summer.c),
+         max.anom.s = tmax_Summer.c - first(tmax_Summer.c),
+         min.anom.s = tmin_Summer.c - first(tmin_Summer.c),
+         p.anom.s = precip_Summer.c - first(precip_Summer.c),
+         mean.anom.f = tmean_Fall.c - first(tmean_Fall.c),
+         max.anom.f = tmax_Fall.c - first(tmax_Fall.c),
+         min.anom.f = tmin_Fall.c - first(tmin_Fall.c),
+         p.anom.f = precip_Fall.c - first(precip_Fall.c),
+         mean.anom.w = tmean_Winter.c - first(tmean_Winter.c),
+         max.anom.w = tmax_Winter.c - first(tmax_Winter.c),
+         min.anom.w = tmin_Winter.c - first(tmin_Winter.c),
+         p.anom.w = precip_Winter.c - first(precip_Winter.c))
+         
+         
+         
+seg.climate$unique_id <- paste0(seg.climate$Site, "_", seg.climate$Yr_bin)
+
+#######################################################################################################
+
+
 #Put betas with temperature data 
 #DF contains unique_id, site, yr_bin, raw climate, and anomalies
 #lmer.df <- merge(temp.avgs, bbs_bin, by = "unique_id")
 
-#Make a Bins df
-Bins <- data.frame(matrix(ncol = 2, nrow = 40))
-l <- c("year", "Yr_bin")
-colnames(Bins) <- l
-Bins$year <- 1980:2019
-Bins$Yr_bin <- rep(1:8, times = 1, each = 5)
-
 #Bring in the LULC Data 
 bbs_lulc <- read.csv(here::here("Data_BBS/Generated DFs/BBS_LULC.csv"))
+colnames(bbs_lulc)[colnames(bbs_lulc) == "year"] <- "Year"
 
 bbs_lulc <- bbs_lulc %>% select(-c(site, X, unique_id)) %>% rename(site = rteno.x) %>% 
-  mutate(site = as.character(site)) %>% left_join(Bins, by = "year") %>%
+  mutate(site = as.character(site)) %>% left_join(Bins, by = "Year") %>%
   unite("unique_id", site, Yr_bin, sep = "_") %>% right_join(bbs_bin, by = "unique_id")
 
 
@@ -959,15 +1131,15 @@ bbs_lulc <- bbs_lulc %>% select(-c(site, X, unique_id)) %>% rename(site = rteno.
 bbs_lulc <- bbs_lulc %>% group_by(site) %>% 
   mutate(pct.ww = Woody_Wetlands / total_cover) %>% 
   mutate(pct.ew = Emergent_Wetlands / total_cover) %>% 
-  mutate(lag.ww = lag(Woody_Wetlands, order_by = year))%>% 
+  mutate(lag.ww = lag(Woody_Wetlands, order_by = Yr_bin))%>% 
   mutate(pct.change.ww = ((Woody_Wetlands - lag.ww) / lag.ww) * 100) %>% 
   mutate(diff.from.first.ww = (Woody_Wetlands - first(Woody_Wetlands))) %>%
   mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>% 
-  mutate(pct.ur = Urban / total_cover) %>% mutate(lag.ew = lag(Emergent_Wetlands, order_by = year))%>% 
+  mutate(pct.ur = Urban / total_cover) %>% mutate(lag.ew = lag(Emergent_Wetlands, order_by = Yr_bin))%>% 
   mutate(pct.change.ew = ((Emergent_Wetlands - lag.ew) / lag.ew) * 100) %>% 
   mutate(diff.from.first.ew = (Emergent_Wetlands - first(Emergent_Wetlands))) %>%
   mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>% 
-  mutate(lag.ur = lag(Urban, order_by = year))%>% 
+  mutate(lag.ur = lag(Urban, order_by = Yr_bin))%>% 
   mutate(pct.change.ur = ((Urban - lag.ur) / lag.ur) * 100) %>% 
   mutate(diff.from.first.ur = (Urban - first(Urban))) %>%
   mutate(ratio.ur = (Urban / total_cover)) %>%
@@ -977,7 +1149,9 @@ bbs_lulc <- bbs_lulc %>% group_by(site) %>%
   mutate(scale.ag = scale(Ag)) %>% 
   mutate(scale.wetland = scale(pct_wetland)) %>% ungroup()
 
-bbs_full <- bbs_lulc %>% left_join(temp.avgs, by = "unique_id") %>% ungroup()
+#Merge with the site centroid DF
+#bbs_full <- bbs_lulc %>% left_join(temp.avgs, by = "unique_id") %>% ungroup()
+bbs_full <- merge(bbs_lulc, seg.climate, by = "unique_id")
 
 #Models for beta-diversity
 bbs_full <- bbs_full %>% rename(beta.reg = beta)
@@ -987,21 +1161,42 @@ bbs_full <- bbs_full[complete.cases(bbs_full),]
 bbs_full <- as.data.frame(bbs_full)
 
 #Pulls out the first and last year
-bbs_short <- bbs_full %>% group_by(site.x) %>% arrange(year) %>% slice(c(1, n())) 
+bbs_short <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(c(1, n())) 
 
 #Pulls out just the last
-bbs_last <- bbs_full %>% group_by(site.x) %>% arrange(year) %>% slice(n())
+bbs_last <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(n())
+
+################################################################################################################################
+#######################################Confirming Assumptions of Data before selecting Model####################################
+################################################################################################################################
+p_load(HLMdiag, DHARMa, car)
+
+Plot.beta.linearity <- plot(resid(mod.temp.beta), bbs_full$beta.reg)
+
+p_load(MASS)
+
+bbs_full$mean.anom.t <- bbs_full$mean.anom + 1
+qqp(bbs_full$mean.anom.t, "norm")
+qqp(bbs_full$mean.anom.t, "lnorm")
 
 ################################################################################################################################
 ############################################***Models for Raw Species Observations***###########################################
 ################################################################################################################################
 
+
 #mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + ratio.ww + pct.ur + (1|site.x))
 mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + scale.ww + 
                       scale.ew + scale.ur + scale.ag + scale.wetland + (1|site.x))
-
 summary(mod.full.beta)
 Anova(mod.full.beta)
+
+#Model with full 
+mod.temp.beta <- lmer(data = bbs_full, beta.reg ~ mean.anom + p.anom + (1|site), REML = F)
+summary(mod.temp.beta)
+Anova(mod.temp.beta)
+
+
+
 
 #Models with first and last betas 
 mod.short.beta <- lmer(data = bbs_short, beta.reg ~ anomalies + precip.anomalies + scale.ww + 
@@ -1120,6 +1315,14 @@ adon.results <- adonis(mds_cast ~ ww.mds, method = "jaccard", perm = 999)
 print(adon.results)
 
 #autoplot(prcomp(), data = data.scores, )
+
+
+
+
+
+
+
+
 
 
 ########################################################################################
