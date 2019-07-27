@@ -945,12 +945,13 @@ temp.avgs$unique_id <- paste0(temp.avgs$site, "_", temp.avgs$yr_bin)
 #######################################################################################################
 
 #Read in segment level climate data
+prism.base <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRISMsegs_Baseline.csv"), stringsAsFactors = F)
 prism.seg1 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRISMsegs_1980_1994.csv"), stringsAsFactors = F)
 prism.seg2 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRISMsegs_1995_2009.csv"), stringsAsFactors = F)
 prism.seg3 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRISMsegs_2010_2019.csv"), stringsAsFactors = F)
 
 #Bind data, clear NA's from spacing in csv, and separate dates
-prism.seg <- rbind(prism.seg1, prism.seg2, prism.seg3)
+prism.seg <- rbind(prism.base, prism.seg1, prism.seg2, prism.seg3)
 prism.seg <- prism.seg[complete.cases(prism.seg), ]
 prism.seg <- separate(prism.seg, col = Date, into = c("Year", "Month"), by = "-", remove = T)
 
@@ -965,7 +966,15 @@ Bins <- data.frame(matrix(ncol = 2, nrow = 40))
 l <- c("Year", "Yr_bin")
 colnames(Bins) <- l
 Bins$Year <- 1980:2019
-Bins$Yr_bin <- rep(1:8, times = 1, each = 5)
+Bins$Yr_bin <- rep(2:9, times = 1, each = 5)
+
+Bins2 <- data.frame(matrix(ncol = 2, nrow = 10))
+l2 <- c("Year", "Yr_bin")
+colnames(Bins2) <- l2
+Bins2$Year <- 1970:1979
+Bins2$Yr_bin <- 1
+
+Bins <- rbind(Bins2, Bins)
 
 #Pull the yr_bins into the data
 prism.seg <- merge(prism.seg, Bins, by = "Year")
@@ -1067,17 +1076,17 @@ seg.climate <- seg.climate[, c("Site", "Rteno", "Yr_bin", "tmean.c", "tmax.c", "
                                "tmean_Winter.c", "tmin_Winter.c", "tmax_Winter.c", "precip_Winter.c")]
 
 #Pull the min betas 
-min.beta.merge <- min.betas[, c("site", "min.yr.bin")]
-colnames(min.beta.merge)[colnames(min.beta.merge) == "site"] <- "Site"
-colnames(max.betas)[colnames(max.betas) == "site"] <- "Site"
-colnames(max.betas)[colnames(max.betas) == "Yr_bin"] <- "max.yr.bin" 
+# min.beta.merge <- min.betas[, c("site", "min.yr.bin")]
+# colnames(min.beta.merge)[colnames(min.beta.merge) == "site"] <- "Site"
+# colnames(max.betas)[colnames(max.betas) == "site"] <- "Site"
+# colnames(max.betas)[colnames(max.betas) == "Yr_bin"] <- "max.yr.bin" 
 
 
 
-seg.climate <- right_join(min.beta.merge, seg.climate, by = "Site") %>% right_join(max.betas, seg.climate, by = "Site")
+#seg.climate <- right_join(min.beta.merge, seg.climate, by = "Site") %>% right_join(max.betas, seg.climate, by = "Site")
 
 #Restrict to only the minimum year bins
-seg.climate <- seg.climate[seg.climate$Yr_bin >= seg.climate$min.yr.bin & seg.climate$Yr_bin <= seg.climate$max.yr.bin, ]
+#seg.climate <- seg.climate[seg.climate$Yr_bin >= seg.climate$min.yr.bin & seg.climate$Yr_bin <= seg.climate$max.yr.bin, ]
 
 #Calculate Anomalies
 seg.climate <- seg.climate %>% group_by(Site) %>% 
@@ -1108,6 +1117,8 @@ seg.climate <- seg.climate %>% group_by(Site) %>%
          p.anom.w = precip_Winter.c - first(precip_Winter.c))
          
          
+seg.climate <- seg.climate %>% mutate(Yr_bin = as.numeric(Yr_bin)) %>% mutate(Yr_bin = Yr_bin - 1) %>% mutate(Yr_bin = as.character(Yr_bin))
+seg.climate <- seg.climate[seg.climate$Yr_bin != 0, ]
          
 seg.climate$unique_id <- paste0(seg.climate$Site, "_", seg.climate$Yr_bin)
 
@@ -1118,17 +1129,24 @@ seg.climate$unique_id <- paste0(seg.climate$Site, "_", seg.climate$Yr_bin)
 #DF contains unique_id, site, yr_bin, raw climate, and anomalies
 #lmer.df <- merge(temp.avgs, bbs_bin, by = "unique_id")
 
+Bins <- data.frame(matrix(ncol = 2, nrow = 40))
+l <- c("Year", "Yr_bin")
+colnames(Bins) <- l
+Bins$Year <- 1980:2019
+Bins$Yr_bin <- rep(1:8, times = 1, each = 5)
+
+
 #Bring in the LULC Data 
 bbs_lulc <- read.csv(here::here("Data_BBS/Generated DFs/BBS_LULC.csv"))
 colnames(bbs_lulc)[colnames(bbs_lulc) == "year"] <- "Year"
 
-bbs_lulc <- bbs_lulc %>% select(-c(site, X, unique_id)) %>% rename(site = rteno.x) %>% 
+bbs_lulc <- bbs_lulc %>% dplyr::select(-c(site, X, unique_id)) %>% rename(site = rteno.x) %>% 
   mutate(site = as.character(site)) %>% left_join(Bins, by = "Year") %>%
   unite("unique_id", site, Yr_bin, sep = "_") %>% right_join(bbs_bin, by = "unique_id")
 
-
 #Calculate the % of Emergent, Woody Wetlands, and Urban 
-bbs_lulc <- bbs_lulc %>% group_by(site) %>% 
+bbs_lulc <- bbs_lulc %>% group_by(site) %>%
+  mutate(pct.ag = Ag / total_cover) %>%
   mutate(pct.ww = Woody_Wetlands / total_cover) %>% 
   mutate(pct.ew = Emergent_Wetlands / total_cover) %>% 
   mutate(lag.ww = lag(Woody_Wetlands, order_by = Yr_bin))%>% 
@@ -1185,8 +1203,8 @@ qqp(bbs_full$mean.anom.t, "lnorm")
 
 
 #mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + ratio.ww + pct.ur + (1|site.x))
-mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + scale.ww + 
-                      scale.ew + scale.ur + scale.ag + scale.wetland + (1|site.x))
+mod.full.beta <- lmer(data = bbs_full, beta.reg ~ mean.anom.bird + p.anom.bird + scale.ww + I(scale.ww^2) + 
+                      scale.ew + scale.ur + I(scale.ur^2) + scale.ag + scale.wetland + (1|site))
 summary(mod.full.beta)
 Anova(mod.full.beta)
 
@@ -1228,28 +1246,35 @@ plot(ww.est)
 ##############################################################################################################################
 
 #mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc.y ~ anomalies + precip.anomalies + pct.ww + pct.ew + pct.ur + (1|site.x)) 
-mod.full.betamcmc <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + scale.ew + scale.ww + scale.ur + scale.wetland + (1|site.x))
-
+mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ mean.anom.bird + I(mean.anom.bird^2) + p.anom.bird + pct.ww + I(pct.ww^2) + 
+                        scale.ew + I(pct.ew^2) + pct.ur + I(pct.ur^2) + pct.ag + pct_wetland + (1|site), REML = F)
 summary(mod.full.betamcmc)
 Anova(mod.full.betamcmc)
 
+mod.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ (1|Site), REML = F)
+summary(mod.betamcmc)
+Anova(mod.betamcmc)
 
 test <- lmer.df
 test <- separate(test, site.y, into = c("rteno", "segment"), by = "_")
 
 p_load(effects)
 
-temp.est <- Effect("anomalies", partial.residuals = T, mod.full.betamcmc)
+temp.est <- Effect("mean.anom.bird", partial.residuals = T, mod.full.betamcmc)
 plot(temp.est)
 
-ww.est <- Effect("scale.ww", partial.residuals = T, mod.full.betamcmc)
+ww.est <- Effect("pct.ww", partial.residuals = T, mod.full.betamcmc)
 plot(ww.est)
 
-ur.est <- Effect("scale.ur", partial.residuals = T, mod.full.betamcmc)
+ur.est <- Effect("pct.ur", partial.residuals = T, mod.full.betamcmc)
 plot(ur.est)
 
 sjPlot::tab_model(mod.full.beta)
 sjPlot::tab_model(mod.full.betamcmc)
+
+mod.temp <- lmer(data = bbs_full, tmean.c ~ Year + (1|Site), REML = F)
+summary(mod.temp)
+Anova(mod.temp)
 
 
 ##################################################################################
