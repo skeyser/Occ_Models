@@ -1146,21 +1146,24 @@ bbs_lulc <- bbs_lulc %>% dplyr::select(-c(site, X, unique_id)) %>% rename(site =
 
 #Calculate the % of Emergent, Woody Wetlands, and Urban 
 bbs_lulc <- bbs_lulc %>% group_by(site) %>%
-  mutate(pct.ag = Ag / total_cover) %>%
-  mutate(pct.ww = Woody_Wetlands / total_cover) %>% 
-  mutate(pct.ew = Emergent_Wetlands / total_cover) %>% 
-  mutate(lag.ww = lag(Woody_Wetlands, order_by = Yr_bin))%>% 
-  mutate(pct.change.ww = ((Woody_Wetlands - lag.ww) / lag.ww) * 100) %>% 
+  mutate(total_cover_nb = Urban + Ag + Grassland + Forest + Woody_Wetlands + Emergent_Wetlands + Bare + Water) %>%
+  mutate(pct_wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb) %>%
+  mutate(pct.ag = Ag / total_cover_nb) %>%
+  mutate(pct.ww = Woody_Wetlands / total_cover_nb) %>% 
+  mutate(pct.ew = Emergent_Wetlands / total_cover_nb) %>% 
+  mutate(pct.ur = Urban / total_cover_nb) %>%
+  #mutate(lag.ww = lag(Woody_Wetlands, order_by = Yr_bin))%>% 
+  #mutate(pct.change.ww = ((Woody_Wetlands - lag.ww) / lag.ww) * 100) %>% 
   mutate(diff.from.first.ww = (Woody_Wetlands - first(Woody_Wetlands))) %>%
   mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>% 
-  mutate(pct.ur = Urban / total_cover) %>% mutate(lag.ew = lag(Emergent_Wetlands, order_by = Yr_bin))%>% 
-  mutate(pct.change.ew = ((Emergent_Wetlands - lag.ew) / lag.ew) * 100) %>% 
+  #mutate(lag.ew = lag(Emergent_Wetlands, order_by = Yr_bin))%>% 
+  #mutate(pct.change.ew = ((Emergent_Wetlands - lag.ew) / lag.ew) * 100) %>% 
   mutate(diff.from.first.ew = (Emergent_Wetlands - first(Emergent_Wetlands))) %>%
   mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>% 
-  mutate(lag.ur = lag(Urban, order_by = Yr_bin))%>% 
-  mutate(pct.change.ur = ((Urban - lag.ur) / lag.ur) * 100) %>% 
+  #mutate(lag.ur = lag(Urban, order_by = Yr_bin))%>% 
+  #mutate(pct.change.ur = ((Urban - lag.ur) / lag.ur) * 100) %>% 
   mutate(diff.from.first.ur = (Urban - first(Urban))) %>%
-  mutate(ratio.ur = (Urban / total_cover)) %>%
+  mutate(ratio.ur = (Urban / total_cover_nb)) %>%
   mutate(scale.ww = scale(Woody_Wetlands)) %>%
   mutate(scale.ew = scale(Emergent_Wetlands)) %>%
   mutate(scale.ur = scale(Urban)) %>%
@@ -1247,11 +1250,15 @@ plot(ww.est)
 
 #mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc.y ~ anomalies + precip.anomalies + pct.ww + pct.ew + pct.ur + (1|site.x)) 
 mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ mean.anom.bird + I(mean.anom.bird^2) + p.anom.bird + pct.ww + I(pct.ww^2) + 
-                        scale.ew + I(pct.ew^2) + pct.ur + I(pct.ur^2) + pct.ag + pct_wetland + (1|site), REML = F)
+                        pct.ew + I(pct.ew^2) + pct.ur + I(pct.ur^2) + pct.ag + pct_wetland + (1|site), REML = F)
 summary(mod.full.betamcmc)
 Anova(mod.full.betamcmc)
 
-mod.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ (1|Site), REML = F)
+mod.h.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ mean.anom.bird + diff.from.first.ww + pct.ur + (1|site), REML = F)
+summary(mod.h.betamcmc)
+Anova(mod.h.betamcmc)
+
+mod.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ min.anom.s + (1|Site), REML = F)
 summary(mod.betamcmc)
 Anova(mod.betamcmc)
 
@@ -1276,6 +1283,14 @@ mod.temp <- lmer(data = bbs_full, tmean.c ~ Year + (1|Site), REML = F)
 summary(mod.temp)
 Anova(mod.temp)
 
+
+mod.alpha <- lm(data = bbs.bin7, alpha.scale ~ ratio.ww)
+summary(mod.alpha)
+Anova(mod.alpha)
+
+bbs.bin7 <- bbs_full[bbs_full$Yr_bin.x == 7, ]
+bbs.bin7 <- bbs.bin7 %>% mutate(alpha.scale = scale(alpha.mcmc))
+bbs.bin7 <- bbs.bin7 %>% mutate(ratio.ww = round(ratio.ww, digits = 2))
 
 ##################################################################################
 #############################Spatial NMDS and Adonis##############################
