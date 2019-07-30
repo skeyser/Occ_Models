@@ -1225,6 +1225,7 @@ bbs_full <- as.data.frame(bbs_full)
 
 bbs_full <- bbs_full %>% mutate(scale.alpha = scale(alpha), scale.alphamcmc = scale(alpha.mcmc))
 
+bbs_full <- bbs_full %>% group_by(site) %>% mutate(alpha.change = alpha - first(alpha), alphamcmc.change = alpha.mcmc - first(alpha.mcmc))
 #Pulls out the first and last year
 bbs_short <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(c(1, n())) 
 
@@ -1234,11 +1235,18 @@ rtxy <- read.csv(here::here("Data_Envi/PRISM Data/SegmentXY.csv"))
 
 bbs_last <- merge(bbs_last, rtxy, by = "site")
 
-mod.last <- lm(data = bbs_last, beta.mcmc ~ mean.anom.bird + p.anom.bird +  alpha.mcmc + scale.pdww + scale.pdur + scale.pdwet + pct.ww + pct.ur + pct_wetland)
+mod.last <- lm(data = bbs_last, beta.mcmc ~ mean.anom.bird + p.anom.bird + Latitude +  scale.pdww + Longitude + scale.pdur + scale.pdwet + pct.ww + pct.ur + pct_wetland)
 summary(mod.last)
 Anova(mod.last)
 
+ggplot(data = bbs_full, aes(x = scale.pdww, y = beta.mcmc)) + geom_smooth(method = lm)
+
 summary(lm(bbs_last$beta.mcmc ~ bbs_last$mean.anom.bird))
+
+mod.last.a <- lm(data = bbs_last, alphamcmc.change ~ mean.anom.bird + p.anom.bird +  alpha.mcmc + scale.pdww  + scale.pdur + scale.pdwet + pct.ww + pct.ur + pct_wetland)
+summary(mod.last.a)
+Anova(mod.last.a)
+
 
 ################################################################################################################################
 #######################################Confirming Assumptions of Data before selecting Model####################################
