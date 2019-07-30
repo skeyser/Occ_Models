@@ -1140,52 +1140,105 @@ Bins$Yr_bin <- rep(1:8, times = 1, each = 5)
 bbs_lulc <- read.csv(here::here("Data_BBS/Generated DFs/BBS_LULC.csv"))
 colnames(bbs_lulc)[colnames(bbs_lulc) == "year"] <- "Year"
 
+bbs_ma <- read.csv(here::here("Data_Envi/BBS_Mangrove_50stop/MangroveData.csv"), stringsAsFactors = F)
+
 bbs_lulc <- bbs_lulc %>% dplyr::select(-c(site, X, unique_id)) %>% rename(site = rteno.x) %>% 
   mutate(site = as.character(site)) %>% left_join(Bins, by = "Year") %>%
   unite("unique_id", site, Yr_bin, sep = "_") %>% right_join(bbs_bin, by = "unique_id")
 
+mangrove.list <- unique(bbs_ma$site)
+lulc.list <- unique(bbs_lulc$site)
+
+#Mangrove Data
+bbs_ma <- merge(bbs_ma, Bins, by.x = "year", by.y = "Year")
+
+#Make link df for mangrove
+seg.link <- wetland.link[, c("site", "rteno.segment")]
+seg.link$site <- as.character(seg.link$site)
+seg.link <- seg.link[!duplicated(seg.link$rteno.segment), ]
+seg.sites <- rep(unique(seg.link$rteno.segment), 1, each = 8)
+seg.year <- rep(seq(from = 1980, to = 2015, by = 5), time = 380, each = 1)
+seg.rts <- rep(unique(seg.link$site), 1, each = 8)
+
+seg.link <- as.data.frame(cbind(seg.rts, seg.sites, seg.year))
+seg.link$unique_id <- paste0(seg.link$seg.rts, "_", seg.link$seg.year)
+
+#Link up mangroves wth rt#
+bbs_ma <- merge(bbs_ma, seg.link, by = "unique_id")
+
+#Pul out the values that exist in the BBS_lulc DF
+bbs_ma <- bbs_ma[bbs_ma$seg.sites %in% lulc.list, ]
+#bbs_ma <- merge(bbs_ma, Bins, by.x = "year", by.y = "Year")
+bbs_ma$unique_id <- paste0(bbs_ma$seg.sites, "_", bbs_ma$Yr_bin)
+
+bbs_lulc$Emergent_Wetlands <- bbs_lulc$Emergent_Wetlands + 0.000001
+bbs_lulc$Woody_Wetlands <- bbs_lulc$Woody_Wetlands + 0.000001
+
+
+
 #Calculate the % of Emergent, Woody Wetlands, and Urban 
 bbs_lulc <- bbs_lulc %>% group_by(site) %>%
-  mutate(total_cover_nb = Urban + Ag + Grassland + Forest + Woody_Wetlands + Emergent_Wetlands + Bare + Water) %>%
-  mutate(pct_wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb) %>%
-  mutate(pct.ag = Ag / total_cover_nb) %>%
-  mutate(pct.ww = Woody_Wetlands / total_cover_nb) %>% 
-  mutate(pct.ew = Emergent_Wetlands / total_cover_nb) %>% 
-  mutate(pct.ur = Urban / total_cover_nb) %>%
-  #mutate(lag.ww = lag(Woody_Wetlands, order_by = Yr_bin))%>% 
-  #mutate(pct.change.ww = ((Woody_Wetlands - lag.ww) / lag.ww) * 100) %>% 
-  mutate(diff.from.first.ww = (Woody_Wetlands - first(Woody_Wetlands))) %>%
-  mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>% 
-  #mutate(lag.ew = lag(Emergent_Wetlands, order_by = Yr_bin))%>% 
-  #mutate(pct.change.ew = ((Emergent_Wetlands - lag.ew) / lag.ew) * 100) %>% 
-  mutate(diff.from.first.ew = (Emergent_Wetlands - first(Emergent_Wetlands))) %>%
-  mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>% 
-  #mutate(lag.ur = lag(Urban, order_by = Yr_bin))%>% 
-  #mutate(pct.change.ur = ((Urban - lag.ur) / lag.ur) * 100) %>% 
-  mutate(diff.from.first.ur = (Urban - first(Urban))) %>%
-  mutate(ratio.ur = (Urban / total_cover_nb)) %>%
-  mutate(scale.ww = scale(Woody_Wetlands)) %>%
-  mutate(scale.ew = scale(Emergent_Wetlands)) %>%
-  mutate(scale.ur = scale(Urban)) %>%
-  mutate(scale.ag = scale(Ag)) %>% 
-  mutate(scale.wetland = scale(pct_wetland)) %>% ungroup()
+  mutate(total_cover_nb = Urban + Ag + Grassland + Forest + Woody_Wetlands + Emergent_Wetlands + Bare + Water,
+         pct_wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb, pct.ag = Ag / total_cover_nb,
+         pct.ww = Woody_Wetlands / total_cover_nb, pct.ew = Emergent_Wetlands / total_cover_nb, pct.ur = Urban / total_cover_nb,
+         pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb) %>%
+  mutate(diff.from.first.ww = (pct.ww - first(pct.ww)), scale.pdww = scale(diff.from.first.ww)) %>%
+  mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>%
+  mutate(diff.from.first.ew = (pct.ew - first(pct.ew)), scale.pdew = scale(diff.from.first.ew)) %>%
+  mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>%
+  mutate(diff.from.first.ur = (pct.ur - first(pct.ur)), scale.pdur = scale(diff.from.first.ur)) %>%
+  mutate(diff.from.first.ag = (pct.ag - first(pct.ag)), scale.pdag = scale(diff.from.first.ag)) %>%
+  mutate(diff.from.first.wet = (pct_wetland - first(pct_wetland)), scale.pdwet = scale(diff.from.first.wet)) %>%
+  mutate(diff.from.first.for = (pct.for - first(pct.for)), scale.pdfor = scale(diff.from.first.for)) %>%
+  mutate(diff.from.first.bare = (pct.bare - first(pct.bare)), scale.pdbare = scale(diff.from.first.bare)) %>%
+  mutate(diff.from.first.wat = (pct.wat - first(pct.wat)), scale.pdwat = scale(diff.from.first.wat)) %>%
+  mutate(scale.ww = scale(Woody_Wetlands), scale.ew = scale(Emergent_Wetlands),
+         scale.ur = scale(Urban), scale.ag = scale(Ag), scale.wetland = scale(pct_wetland),
+         scale.pur = scale(pct.ur), scale.pwet = scale(pct_wetland), scale.pww = scale(pct.ww),
+         scale.pew = scale(pct.ew), scale.pag = scale(pct.ag), scale.pwat = scale(pct.wat), scale.pfor = scale(pct.for),
+         scale.pbar = scale(pct.bare)) %>%
+  ungroup()
+
+
+bbs_lulc$mangrove <- 0
+
+#Write a loop to place values in the mangrove DF into the BBS_LULC DF
+for (o in 1:length(bbs_ma$unique_id)){
+  mangrove.tmp <- bbs_ma[o, ]
+  mangrove.val <- mangrove.tmp[5]
+  bbs_lulc[bbs_lulc$unique_id == mangrove.tmp$unique_id, "mangrove"] <- mangrove.val
+}
+
+bbs_lulc <- bbs_lulc %>% group_by(site) %>% mutate(pct.man = mangrove / total_cover_nb, diff.from.first.man = (pct.man - first(pct.man)),
+                                                   scale.pman = scale(pct.man), scale.pdman = scale(diff.from.first.man))
 
 #Merge with the site centroid DF
 #bbs_full <- bbs_lulc %>% left_join(temp.avgs, by = "unique_id") %>% ungroup()
 bbs_full <- merge(bbs_lulc, seg.climate, by = "unique_id")
 
 #Models for beta-diversity
-bbs_full <- bbs_full %>% rename(beta.reg = beta)
+bbs_full <- bbs_full %>% rename(beta.reg = beta) %>% dplyr::select(-c(mangrove, pct.man, diff.from.first.man, scale.pman, scale.pdman))
 
 bbs_full <- bbs_full[complete.cases(bbs_full),]
 
 bbs_full <- as.data.frame(bbs_full)
+
+bbs_full <- bbs_full %>% mutate(scale.alpha = scale(alpha), scale.alphamcmc = scale(alpha.mcmc))
 
 #Pulls out the first and last year
 bbs_short <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(c(1, n())) 
 
 #Pulls out just the last
 bbs_last <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(n())
+rtxy <- read.csv(here::here("Data_Envi/PRISM Data/SegmentXY.csv"))
+
+bbs_last <- merge(bbs_last, rtxy, by = "site")
+
+mod.last <- lm(data = bbs_last, beta.mcmc ~ mean.anom.bird + p.anom.bird +  alpha.mcmc + scale.pdww + scale.pdur + scale.pdwet + pct.ww + pct.ur + pct_wetland)
+summary(mod.last)
+Anova(mod.last)
+
+summary(lm(bbs_last$beta.mcmc ~ bbs_last$mean.anom.bird))
 
 ################################################################################################################################
 #######################################Confirming Assumptions of Data before selecting Model####################################
@@ -1206,29 +1259,28 @@ qqp(bbs_full$mean.anom.t, "lnorm")
 
 
 #mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + ratio.ww + pct.ur + (1|site.x))
-mod.full.beta <- lmer(data = bbs_full, beta.reg ~ mean.anom.bird + p.anom.bird + scale.ww + I(scale.ww^2) + 
-                      scale.ew + scale.ur + I(scale.ur^2) + scale.ag + scale.wetland + (1|site))
+mod.full.beta <- lmer(data = bbs_full, beta.reg ~ mean.anom.bird + p.anom.bird + scale.pdww + scale.pdur + (1|Site))
 summary(mod.full.beta)
 Anova(mod.full.beta)
 
+sjPlot::tab_model(mod.full.beta)
+
 #Model with full 
-mod.temp.beta <- lmer(data = bbs_full, beta.reg ~ mean.anom + p.anom + (1|site), REML = F)
+mod.temp.beta <- lmer(data = bbs_full, beta.reg ~ mean.anom + p.anom + (1|Site), REML = F)
 summary(mod.temp.beta)
 Anova(mod.temp.beta)
 
 
-
-
 #Models with first and last betas 
-mod.short.beta <- lmer(data = bbs_short, beta.reg ~ anomalies + precip.anomalies + scale.ww + 
-                        scale.ew + scale.ur + scale.ag + (1|site.x))
+mod.short.beta <- lmer(data = bbs_short, beta.reg ~ mean.anom.bird + p.anom.bird + scale.pdww + 
+                        scale.pdew + scale.pdur + scale.ag + (1|site.x))
 summary(mod.short.beta)
 Anova(mod.short.beta)
 
-temp.est <- Effect("anomalies", partial.residuals = T, mod.short.beta)
+temp.est <- Effect("mean.anom.bird", partial.residuals = T, mod.full.beta)
 plot(temp.est)
 
-ww.est <- Effect("scale.ww", partial.residuals = T, mod.short.beta)
+ww.est <- Effect("scale.pdww", partial.residuals = T, mod.full.beta)
 plot(ww.est)
 
 #Models with the last beta
@@ -1249,12 +1301,11 @@ plot(ww.est)
 ##############################################################################################################################
 
 #mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc.y ~ anomalies + precip.anomalies + pct.ww + pct.ew + pct.ur + (1|site.x)) 
-mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ mean.anom.bird + I(mean.anom.bird^2) + p.anom.bird + pct.ww + I(pct.ww^2) + 
-                        pct.ew + I(pct.ew^2) + pct.ur + I(pct.ur^2) + pct.ag + pct_wetland + (1|site), REML = F)
+mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ mean.anom.bird + p.anom.bird + scale.pdww + scale.pdur + scale.pdwet + scale.pdag + (1|Site))
 summary(mod.full.betamcmc)
 Anova(mod.full.betamcmc)
 
-mod.h.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ mean.anom.bird + diff.from.first.ww + pct.ur + (1|site), REML = F)
+mod.h.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ mean.anom.bird + scale.pdww + scale.pdur + (1|Site), REML = F)
 summary(mod.h.betamcmc)
 Anova(mod.h.betamcmc)
 
@@ -1270,10 +1321,10 @@ p_load(effects)
 temp.est <- Effect("mean.anom.bird", partial.residuals = T, mod.full.betamcmc)
 plot(temp.est)
 
-ww.est <- Effect("pct.ww", partial.residuals = T, mod.full.betamcmc)
+ww.est <- Effect("scale.pdww", partial.residuals = T, mod.full.betamcmc)
 plot(ww.est)
 
-ur.est <- Effect("pct.ur", partial.residuals = T, mod.full.betamcmc)
+ur.est <- Effect("scale.pdur", partial.residuals = T, mod.full.betamcmc)
 plot(ur.est)
 
 sjPlot::tab_model(mod.full.beta)
@@ -1284,9 +1335,13 @@ summary(mod.temp)
 Anova(mod.temp)
 
 
-mod.alpha <- lm(data = bbs.bin7, alpha.scale ~ ratio.ww)
+mod.alpha <- lm(data = bbs_full, scale.alphamcmc ~ scale.pdww + scale.pdur)# + (1|Site), REML = F)
 summary(mod.alpha)
 Anova(mod.alpha)
+
+
+ur.est.alpha <- Effect("scale.pdur", partial.residuals = T, mod.alpha)
+plot(ur.est.alpha)
 
 bbs.bin7 <- bbs_full[bbs_full$Yr_bin.x == 7, ]
 bbs.bin7 <- bbs.bin7 %>% mutate(alpha.scale = scale(alpha.mcmc))
@@ -1301,18 +1356,20 @@ p_load(ggfortify)
 #See which year had the most completed surveys
 setDT(bbs_div_means)[, .(count = uniqueN(site)), by = Year] #2008 with 174
 
-bbs.mds <- bbs_simple[bbs_simple$Year == 2006,]
+#bbs_lulc <- bbs_lulc[complete.cases(bbs_lulc), ]
+
+bbs.mds <- bbs_simple[bbs_simple$Year == 1980,]
 bbs.mds <- bbs.mds %>% arrange(site)
 
-lc.mds <- bbs_lulc %>% select(site, year, ratio.ww, pct.ur)
-lc.mds <- lc.mds[lc.mds$year == 2006,]
+lc.mds <- bbs_lulc %>% dplyr::select(site, Year, ratio.ww, pct.ur)
+lc.mds <- lc.mds[lc.mds$Year == 1980,]
 
 mds.list <- unique(bbs.mds$site)
 wetland.site <- unique(lc.mds$site)
 
 mds.full <- merge(lc.mds, bbs.mds, by = "site")
 
-lc.mds <- select(mds.full, c(ratio.ww, pct.ur, site))
+lc.mds <- dplyr::select(mds.full, c(ratio.ww, pct.ur, site))
 lc.mds <- lc.mds[!duplicated(lc.mds), ]
 
 #ww.mds <- ww.mds[ww.mds$site %in% mds.list,]
@@ -1320,7 +1377,7 @@ lc.mds <- lc.mds[!duplicated(lc.mds), ]
 #ww11.site <- unique(ww.mds$site.x)
 ww.mds <- lc.mds %>% arrange(site)
 ww.mds$groups <- NA
-ww.mds$groups[ww.mds$ratio.ww < 1] <- "Emergent Wetland Dominated"
+ww.mds$groups[ww.mds$ratio.ww <= 1] <- "Emergent Wetland Dominated"
 #ww.mds$groups[ww.mds$ratio.ww >= 0.8 & ww.mds$ratio.ww <= 1.2] <- "Mix"
 ww.mds$groups[ww.mds$ratio.ww > 1] <- "Woody Wetland Dominated"
 ww.mds <- ww.mds$groups
@@ -1338,7 +1395,8 @@ rownames(mds_cast) <- mds_cast$unique_id
 mds_cast <- mds_cast[, -1]
 
 
-mds <- metaMDS(mds_cast)
+mds <- metaMDS(mds_cast, trymax = 50)
+
 
 data.scores <- as.data.frame(scores(mds))  
 data.scores$site <- rownames(data.scores)  
@@ -1352,12 +1410,11 @@ ggplot(data = data.scores) +
 
 
 adon.results <- adonis(mds_cast ~ ww.mds, method = "jaccard", perm = 999)
+
+
 print(adon.results)
 
 #autoplot(prcomp(), data = data.scores, )
-
-
-
 
 
 
