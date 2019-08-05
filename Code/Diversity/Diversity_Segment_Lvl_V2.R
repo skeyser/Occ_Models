@@ -354,7 +354,7 @@ bbs_simple$Detected <- 1
 #bbs_plot <- as.data.frame(bbs_plot)
 
 #Cast Data for calculating the sums for site diversity 
-bbs_cast <- dcast(data = bbs_simple, formula = unique_id ~ sci_name, fun.aggregate = sum)
+bbs_cast <- reshape2::dcast(data = bbs_simple, formula = unique_id ~ sci_name, fun.aggregate = sum)
 
 #Remove column 1 after setting rownames
 rownames(bbs_cast) <- bbs_cast$unique_id
@@ -405,14 +405,14 @@ Site.means.bin <- Site.means.bin[, c("unique_id", "alpha.bin")]
 
 
 #Bring in the MCMC DFs
-beta.mcmc <- read.csv(file = here::here("Data_BBS/Generated DFs/beta_means.csv"))
+beta.mcmc <- read.csv(file = here::here("Data_BBS/Generated DFs/beta_means.csv"), stringsAsFactors = F)
 beta.mcmc <- beta.mcmc[, -1]
-beta.mcmc <- beta.mcmc %>% rename(unique_id = Sites)
+colnames(beta.mcmc)[colnames(beta.mcmc) == "Sites"] <- "unique_id"
 beta.mcmc$unique_id <- as.character(beta.mcmc$unique_id)
 
-sr.mcmc <- read.csv(file = here::here("Data_BBS/Generated DFs/sr_means.csv"))
+sr.mcmc <- read.csv(file = here::here("Data_BBS/Generated DFs/sr_means.csv"), stringsAsFactors = F)
 sr.mcmc <- sr.mcmc[, -1]
-sr.mcmc <- sr.mcmc %>% rename(unique_id = Sites)
+colnames(sr.mcmc)[colnames(sr.mcmc) == "Sites"] <- "unique_id"
 sr.mcmc$unique_id <- as.character(sr.mcmc$unique_id)
 
 #Initializing DFs for loops 
@@ -423,7 +423,7 @@ slopes_sites <- data.frame(site.list, slope = NA, slope.mcmc = NA)
 
 bbs_div_means <- bbs_total
 bbs_div_means <- left_join(bbs_div_means, sr.mcmc, by = "unique_id")
-bbs_div_means <- bbs_div_means %>% rename(SR_MCMC = Mean_SR, SD_MCMC = Sd_SR)
+bbs_div_means <- bbs_div_means %>% dplyr::rename(SR_MCMC = Mean_SR, SD_MCMC = Sd_SR)
 #bbs_div_means <- bbs_div_means %>% group_by(site, Yr_bin)%>% summarise(mean.div = mean(Site_div))
 
 for (i in 1:n.sites){
@@ -480,7 +480,7 @@ bbs_simple$Yr_bin[bbs_simple$Year >= 2015 & bbs_simple$Year <= 2018] <- 8
 bbs_simple$unique_id <- paste0(bbs_simple$site, "_", bbs_simple$Year)
 
 #Cast spp x site_yr.bin
-bbs_cast <- dcast(bbs_simple, unique_id ~ sci_name, value.var = "Detected", fun.aggregate = sum)
+bbs_cast <- reshape2::dcast(bbs_simple, unique_id ~ sci_name, value.var = "Detected", fun.aggregate = sum)
 rownames(bbs_cast) <- bbs_cast$unique_id
 bbs_cast <- bbs_cast[, -1]
 
@@ -528,8 +528,10 @@ for (n in 1:n.sites){
     }
   }}
 
+colnames(beta.mcmc)[colnames(beta.mcmc) == "Sites"] <- "unique_id"
+
 beta.total <- left_join(beta.matrix, beta.mcmc, by = "unique_id")
-beta.total <- beta.total %>% rename(beta.mcmc = mean.beta, beta.mcmc.sd = beta.sd)
+beta.total <- beta.total %>% dplyr::rename(beta.mcmc = mean.beta, beta.mcmc.sd = beta.sd)
 
 
 #Remove years and duplicates in the bbs_total DF so we can link yr_bin calculations
@@ -593,12 +595,12 @@ gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$beta.slope
 #site_data_merge$Year <- site_data_merge$count_yr + 1900
 
 
-plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta, group = site, 
+plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta.mcmc, group = BCR, 
                                           colour = factor(BCR, 
                                                           labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
-                geom_smooth(method = lm, se = FALSE, aes(x = Year, y = beta, group = site, 
+                geom_smooth(method = loess, se = T, aes(x = Year, y = beta.mcmc, group = BCR, 
                                                          colour = factor(BCR,
                                                                          labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
                 xlab("Year") +
@@ -1007,25 +1009,35 @@ prism.seg.sp <- prism.seg.sp %>% group_by(Site, Yr_bin) %>% summarise(tmean_Spri
                                                                       tmin_Spring = mean(tmin_Spring), 
                                                                       tmax_Spring = mean(tmax_Spring),
                                                                       precip_Spring = mean(precip_Spring)) %>%
-                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                                                                      ungroup()
+
+prism.seg.sp$unique_id <- paste0(prism.seg.sp$Site, "_", prism.seg.sp$Yr_bin) 
 
 prism.seg.s <- prism.seg.s %>% group_by(Site, Yr_bin) %>% summarise(tmean_Summer = mean(tmean_Summer),
                                                                       tmin_Summer = mean(tmin_Summer), 
                                                                       tmax_Summer = mean(tmax_Summer),
                                                                       precip_Summer = mean(precip_Summer)) %>%
-                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                                                                      ungroup()
+
+prism.seg.s$unique_id <- paste0(prism.seg.s$Site, "_", prism.seg.s$Yr_bin) 
 
 prism.seg.f <- prism.seg.f %>% group_by(Site, Yr_bin) %>% summarise(tmean_Fall = mean(tmean_Fall),
                                                                       tmin_Fall = mean(tmin_Fall), 
                                                                       tmax_Fall = mean(tmax_Fall),
                                                                       precip_Fall = mean(precip_Fall)) %>%
-                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                                                                      ungroup()
+
+prism.seg.f$unique_id <- paste0(prism.seg.f$Site, "_", prism.seg.f$Yr_bin) 
+
 
 prism.seg.w <- prism.seg.w %>% group_by(Site, Yr_bin) %>% summarise(tmean_Winter = mean(tmean_Winter),
                                                                       tmin_Winter = mean(tmin_Winter), 
                                                                       tmax_Winter = mean(tmax_Winter),
                                                                       precip_Winter = mean(precip_Winter)) %>%
-                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                                                                      ungroup()
+
+prism.seg.w$unique_id <- paste0(prism.seg.w$Site, "_", prism.seg.w$Yr_bin) 
+
 
 
 #Bring all the seasons together 
@@ -1145,7 +1157,7 @@ colnames(bbs_lulc)[colnames(bbs_lulc) == "year"] <- "Year"
 
 bbs_ma <- read.csv(here::here("Data_Envi/BBS_Mangrove_50stop/MangroveData.csv"), stringsAsFactors = F)
 
-bbs_lulc <- bbs_lulc %>% dplyr::select(-c(site, X, unique_id)) %>% rename(site = rteno.x) %>% 
+bbs_lulc <- bbs_lulc %>% dplyr::select(-c(site, X, unique_id)) %>% dplyr::rename(site = rteno.x) %>% 
   mutate(site = as.character(site)) %>% left_join(Bins, by = "Year") %>%
   unite("unique_id", site, Yr_bin, sep = "_") %>% right_join(bbs_bin, by = "unique_id")
 
@@ -1220,7 +1232,7 @@ bbs_lulc <- bbs_lulc %>% group_by(site) %>% mutate(pct.man = mangrove / total_co
 bbs_full <- merge(bbs_lulc, seg.climate, by = "unique_id")
 
 #Models for beta-diversity
-bbs_full <- bbs_full %>% rename(beta.reg = beta) %>% dplyr::select(-c(mangrove, pct.man, diff.from.first.man, scale.pman, scale.pdman))
+bbs_full <- bbs_full %>% dplyr::rename(beta.reg = beta) %>% dplyr::select(-c(mangrove, pct.man, diff.from.first.man, scale.pman, scale.pdman))
 
 bbs_full <- bbs_full[complete.cases(bbs_full),]
 
@@ -1387,8 +1399,8 @@ p_load(ggfortify)
 setDT(bbs_div_means)[, .(count = uniqueN(site)), by = Year] #2008 with 174
 
 #bbs_lulc <- bbs_lulc[complete.cases(bbs_lulc), ]
-
-bbs.mds <- bbs_simple[bbs_simple$Year == 1980,]
+occ50 <- read.csv(here::here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
+bbs.mds <- occ50[occ50$Year == 1980,]
 bbs.mds <- bbs.mds %>% arrange(site)
 
 lc.mds <- bbs_lulc %>% dplyr::select(site, Year, ratio.ww, pct.ur)
@@ -1420,7 +1432,7 @@ ur.mds$groups[ur.mds$pct.ur >= .66] <- "H"
 ur.mds <- ur.mds$groups
 
 bbs.mds <- bbs.mds %>% arrange(site)
-mds_cast <- dcast(mds.full, unique_id ~ sci_name, value.var = "Detected", fun.aggregate = sum)
+mds_cast <- reshape2::dcast(mds.full, unique_id ~ Species, value.var = "Detected", fun.aggregate = sum)
 rownames(mds_cast) <- mds_cast$unique_id
 mds_cast <- mds_cast[, -1]
 
