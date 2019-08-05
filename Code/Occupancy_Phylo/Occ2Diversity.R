@@ -17,7 +17,7 @@ pacman::p_load("tidyverse", "plyr", "reshape2", "here", "arrayhelpers")
 #Finish Package Loading 
 
 #Load in Work spaces of z-matrices and create spp.occ dfs for each class 
-load(file = here::here("R Workspace/Output/Output4Analysis/Wrens.RData"))
+load(file = here::here("R Workspace/Output/Output4Analysis/Falconiformes_Psittaciformes.RData"))
 #file_name <- as.character(unique(spp.occ$Phylo.V1))
 #file_name <- gsub(pattern = "/", "_", file_name)
 #file_name <- paste0(file_name, "_SppOcc", ".csv")
@@ -32,7 +32,7 @@ JKsurv <- readRDS(file = here::here("Data_BBS/Generated DFs/JKsurv.RDS"))
 
 #If spp.occ df doesn't exist for the given work space it needs to be read in
 #saveRDS(spp.occ, file = here::here("Data_BBS/Generated DFs/Emberizidae_spp_occ.RDS"))
-#spp.occ <- readRDS(here::here("Data_BBS/Generated DFs/Emberizidae_spp_occ.RDS"))
+spp.occ <- readRDS(here::here("Data_BBS/Generated DFs/SppOcc/FalconsParrots_spp_occ.RDS"))
 
 #Checkout the z.prime matrix
 dim(z.prime)
@@ -77,8 +77,8 @@ total <- function(x, y){
 total.observed$Estimated.0.95 <- NA
 
 for (i in 1:S){
-  #total.observed[i, 5] <- total(z.prime.95, i)
-  total.observed[i, 7] <- total(z.prime.95, i)
+  total.observed[i, 5] <- total(z.prime.95, i)
+  #total.observed[i, 7] <- total(z.prime.95, i)
 }
 
 
