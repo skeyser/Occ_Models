@@ -660,16 +660,19 @@ dev.off()
 n.sites <- length(unique(bbs_total$site))
 site.list <- as.character(unique(bbs_total$site))
 
-slopes_sites <- data.frame(site.list, slope = NA)
+slopes_sites <- data.frame(site.list, slope = NA, slope.mcmc = NA)
 
 for (i in 1:n.sites){
   site.temp <- site.list[i]
   bbs_temp <- bbs_total[bbs_total$site == site.temp & bbs_total$Year >= 1980, ]
   bbs_temp <- bbs_temp[!duplicated(bbs_temp$unique_id),]
   if (nrow(bbs_temp) > 1){
-    lm.temp <- lm(bbs_temp$Site_div ~ bbs_temp$Year)
+    lm.temp <- lm(bbs_temp$Site_div.x ~ bbs_temp$Year)
+    lm.temp2 <- lm(bbs_temp$SR_MCMC ~ bbs_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
+    slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
     slopes_sites[i,2] <- slope.temp
+    slopes_sites[i, 3] <- slope.temp2
   }
 }
 
@@ -689,16 +692,16 @@ gghist <- ggplot(data = slopes_sites, aes(slopes_sites$slope)) +
   coord_flip()
 
 
-plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = Site_div, group = site, 
+plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = Site_div.x, group = BCR, 
                                            colour = factor(BCR, 
                                                            labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
                  #geom_point(size = 3) +
                  #geom_line()+
-                 geom_smooth(method = glm,se = FALSE, aes(x = Year, y = Site_div, group = site, 
+                 geom_smooth(method = glm,se = FALSE, aes(x = Year, y = Site_div.x, group = BCR, 
                                                           colour = factor(BCR, 
                                                                           labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
-                 xlab("5-Year Interval") +
-                 ylab(expression(paste("Rarefied ", alpha, "-diversity"))) +
+                 xlab("Year") +
+                 ylab(expression(paste("Detection-correct ", alpha, "-diversity"))) +
                  labs(colour = "Bird Conservation Region") +
                  #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
                  #scale_x_continuous(limits = c(1980,2017), expand = c(0, 0), 
@@ -1235,7 +1238,10 @@ rtxy <- read.csv(here::here("Data_Envi/PRISM Data/SegmentXY.csv"))
 
 bbs_last <- merge(bbs_last, rtxy, by = "site")
 
-mod.last <- lm(data = bbs_last, beta.mcmc ~ mean.anom.bird + p.anom.bird + Latitude +  scale.pdww + Longitude + scale.pdur + scale.pdwet + pct.ww + pct.ur + pct_wetland)
+
+#max.anom.s & p.anom.f explain most variation in multiple LM for climate (20% together)
+#This model explains 32% variation w/o alpha
+mod.last <- lm(data = bbs_last, beta.mcmc ~ alpha.mcmc + mean.anom.bird + p.anom.f + scale.pdur + scale.pdwet + scale.pdww + pct.ur + Latitude + Longitude)
 summary(mod.last)
 Anova(mod.last)
 
@@ -1243,7 +1249,10 @@ ggplot(data = bbs_full, aes(x = scale.pdww, y = beta.mcmc)) + geom_smooth(method
 
 summary(lm(bbs_last$beta.mcmc ~ bbs_last$mean.anom.bird))
 
-mod.last.a <- lm(data = bbs_last, alphamcmc.change ~ mean.anom.bird + p.anom.bird +  alpha.mcmc + scale.pdww  + scale.pdur + scale.pdwet + pct.ww + pct.ur + pct_wetland)
+#Again anomalies of fall precipitation interestingly explaining variation, tmax.c, tmean.c, tmax.bird.c,  
+#Sig LULC terms: Pct_wetland, scale.pdew, scale.pdur (negative relationship), scale.pdwet,
+#
+mod.last.a <- lm(data = bbs_last, alphamcmc.change ~ max.anom.bird + p.anom.f +  scale.pdur + Latitude)
 summary(mod.last.a)
 Anova(mod.last.a)
 
@@ -1303,6 +1312,19 @@ plot(temp.est)
 
 ww.est <- Effect("scale.ww", partial.residuals = T, mod.last.beta)
 plot(ww.est)
+
+ggplotRegression <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point() +
+    stat_smooth(method = "lm", col = "red") +
+    labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
+                       "Intercept =",signif(fit$coef[[1]],5 ),
+                       " Slope =",signif(fit$coef[[2]], 5),
+                       " P =",signif(summary(fit)$coef[2,4], 5)), x = "Year Bins", y = ("Temperature Anomalies (Degree C)"))}
+
 
 ##############################################################################################################################
 ###################################***Models for MCMC estimated Species Occurrences***########################################
@@ -1412,10 +1434,12 @@ data.scores$grp1 <- ww.mds
 #data.scores$grp2 <- ur.mds
 
 
-ggplot(data = data.scores) + 
+mds_plot <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = ww.mds), level = 0.50) +
-  geom_point(aes(x = NMDS1, y = NMDS2, shape = , colour = ww.mds), size=2)
+  geom_point(aes(x = NMDS1, y = NMDS2, shape = , colour = ww.mds), size=2) +
+  scale_fill_manual(values = )
 
+mds_plot + labs(color = "Wetland Cover Types")
 
 adon.results <- adonis(mds_cast ~ ww.mds, method = "jaccard", perm = 999)
 
