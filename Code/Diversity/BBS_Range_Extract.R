@@ -1,5 +1,5 @@
 #This script is intended to extract the norther breeding ranges of species in the BBS
-install.packages("pacman")
+#install.packages("pacman")
 pacman::p_load("tidyverse", "reshape2", "vegan", "here")
 
 #Reads in all the dataframes into a list 
@@ -22,7 +22,7 @@ Species <- read.csv(here("Data_BBS/SpeciesList.csv"))
 
 #Shape and organize species data for merging
 Species <- Species[, c(2, 3, 5, 6, 7, 8)]
-Species.character <- lapply(Species[2:5], as.character)
+Species.character <- lapply(Species[2:6], as.character)
 aou <- Species[,1]
 Species.character <- as.data.frame(Species.character, stringsAsFactors = F)
 Species <- cbind(aou, Species.character)
@@ -64,6 +64,13 @@ bbs.max <- aggregate(Latitude ~ AOU + yr.bin, data = bbs.1980, FUN = "mean")
 max.range <- bbs.max[bbs.max$yr.bin == 1, ]
 max.range <- merge(max.range, Species, by = "AOU")
 
+
 #Remove Unidentified species 
 max.clean <- max.range[!grepl("unid", max.range$English_Common_Name),]
-range.merge <- max.clean[, c("Latitude", "English_Common_Name")]
+range.merge <- max.clean[, c("Latitude", "English_Common_Name", "Genus", "Species")]
+
+range.merge$sci_name <- paste0(range.merge$Genus, " ", range.merge$Species)
+
+range.merge <- range.merge %>% select(-c(Genus, Species))
+
+#write.csv(range.merge, here::here("Data_BBS/Generated DFs/MaxRange.csv"))
