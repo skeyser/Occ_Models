@@ -44,25 +44,26 @@ bbs <- merge(master.bbs, rts, by = "Site.id")
 bbs.max <- aggregate(Latitude ~ AOU + Year, data = bbs, FUN = "max")
 
 #Bin Years for Each 5 yrs for avg range limit
-bbs.1980 <- bbs.max[bbs.max$Year >= 1980, ]
+bbs.1980 <- bbs.max #[bbs.max$Year >= 1980, ]
 
 bbs.1980$yr.bin <- NA
 
 #Typical assignment of year_bins 
 #Need to find a more elegant way to do this 
-bbs.1980$yr.bin[bbs.1980$Year >= 1980 & bbs.1980$Year < 1985] <- 1 
-bbs.1980$yr.bin[bbs.1980$Year >= 1985 & bbs.1980$Year < 1990] <- 2 
-bbs.1980$yr.bin[bbs.1980$Year >= 1990 & bbs.1980$Year < 1995] <- 3 
-bbs.1980$yr.bin[bbs.1980$Year >= 1995 & bbs.1980$Year < 2000] <- 4 
-bbs.1980$yr.bin[bbs.1980$Year >= 2000 & bbs.1980$Year < 2005] <- 5 
-bbs.1980$yr.bin[bbs.1980$Year >= 2005 & bbs.1980$Year < 2010] <- 6
-bbs.1980$yr.bin[bbs.1980$Year >= 2010 & bbs.1980$Year < 2015] <- 7 
-bbs.1980$yr.bin[bbs.1980$Year >= 2015 & bbs.1980$Year < 2017] <- 8 
+bbs.1980$yr.bin[bbs.1980$Year >= 1966 & bbs.1980$Year < 1971] <- 1
+bbs.1980$yr.bin[bbs.1980$Year >= 1971 & bbs.1980$Year < 1976] <- 2 
+bbs.1980$yr.bin[bbs.1980$Year >= 1976 & bbs.1980$Year < 1981] <- 3 
+bbs.1980$yr.bin[bbs.1980$Year >= 1981 & bbs.1980$Year < 1986] <- 4 
+bbs.1980$yr.bin[bbs.1980$Year >= 1986 & bbs.1980$Year < 1991] <- 5 
+bbs.1980$yr.bin[bbs.1980$Year >= 1991 & bbs.1980$Year < 1996] <- 6 
+bbs.1980$yr.bin[bbs.1980$Year >= 1996 & bbs.1980$Year < 2001] <- 7
+bbs.1980$yr.bin[bbs.1980$Year >= 2001 & bbs.1980$Year < 2006] <- 8 
+bbs.1980$yr.bin[bbs.1980$Year >= 2006 & bbs.1980$Year < 2011] <- 9
+bbs.1980$yr.bin[bbs.1980$Year >= 2016 & bbs.1980$Year <= 2017] <- 10
 
 #Extract a DF that contains the range limits for each species between 1980 - 1985
-bbs.max <- aggregate(Latitude ~ AOU + yr.bin, data = bbs.1980, FUN = "mean")
-max.range <- bbs.max[bbs.max$yr.bin == 1, ]
-max.range <- merge(max.range, Species, by = "AOU")
+bbs.1980 <- bbs.1980 %>% group_by(AOU, yr.bin) %>% summarise(Latitude = mean(Latitude)) %>% slice(which.min(yr.bin)) #%>% arrange(min.bin) %>% slice(n = 1)
+max.range <- merge(bbs.1980, Species, by = "AOU")
 
 
 #Remove Unidentified species 
