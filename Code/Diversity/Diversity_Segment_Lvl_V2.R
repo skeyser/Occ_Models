@@ -726,7 +726,7 @@ plot_alpha
 ggdraw() + 
   draw_plot(plot_alpha + theme(legend.justification = "top"), 
             x = 0, y = 0, width = .9, height = 1) +
-  draw_plot(gghist, x = 0.77, y = .025, width = .2, height = .75, scale = 1) 
+  draw_plot(gghist, x = 0.75, y = .025, width = .2, height = .75, scale = 1) 
 #draw_plot_label(c("A", "B"), c(0, 1.5), c(.75, 0.75), size = 12)
 
 ######################################################
@@ -989,18 +989,27 @@ prism.seg$season[prism.seg$Month >= 03 & prism.seg$Month <= 05] <- "Spring"
 prism.seg$season[prism.seg$Month >= 06 & prism.seg$Month <= 08] <- "Summer"
 prism.seg$season[prism.seg$Month >= 09 & prism.seg$Month <= 11] <- "Fall"
 prism.seg$season[prism.seg$Month >= 12 & prism.seg$Month <= 02] <- "Winter"
+prism.seg$RainSeason <- "Dry"
+prism.seg$RainSeason[prism.seg$Month >= 11 & prism.seg$Month <= 04] <- "Dry"
+prism.seg$RainSeason[prism.seg$Month >= 05 & prism.seg$Month <= 10] <- "Wet"
+
+
 
 #Reduce data for just Spring and Summer seasons
 prism.seg.sp <- prism.seg[prism.seg$season == "Spring", ] 
 prism.seg.s <- prism.seg[prism.seg$season == "Summer", ]
 prism.seg.f <- prism.seg[prism.seg$season == "Fall", ]
 prism.seg.w <- prism.seg[prism.seg$season == "Winter", ]
+prism.seg.dry <- prism.seg[prism.seg$RainSeason == "Dry", ]
+prism.seg.wet <- prism.seg[prism.seg$RainSeason == "Wet", ]
 
 #Put indicator of season in colnames for calling 
 colnames(prism.seg.sp)[7:10] <- paste0(colnames(prism.seg.sp)[7:10], "_", unique(prism.seg.sp$season)) 
 colnames(prism.seg.s)[7:10] <- paste0(colnames(prism.seg.s)[7:10], "_", unique(prism.seg.s$season)) 
 colnames(prism.seg.f)[7:10] <- paste0(colnames(prism.seg.f)[7:10], "_", unique(prism.seg.f$season)) 
 colnames(prism.seg.w)[7:10] <- paste0(colnames(prism.seg.w)[7:10], "_", unique(prism.seg.w$season)) 
+colnames(prism.seg.dry)[7:10] <- paste0(colnames(prism.seg.dry)[7:10], "_", unique(prism.seg.dry$RainSeason)) 
+colnames(prism.seg.wet)[7:10] <- paste0(colnames(prism.seg.wet)[7:10], "_", unique(prism.seg.wet$RainSeason)) 
 
 #Calculate Yr_bin & Seasonal Means for site 
 prism.seg.sp <- prism.seg.sp %>% group_by(Site, Yr_bin) %>% summarise(tmean_Spring = mean(tmean_Spring),
@@ -1028,9 +1037,17 @@ prism.seg.w <- prism.seg.w %>% group_by(Site, Yr_bin) %>% summarise(tmean_Winter
                 unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
 
 
+prism.seg.wet <- prism.seg.wet %>% group_by(Site, Yr_bin) %>% summarise(precip_Wet = mean(precip_Wet)) %>%
+                 unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+
+prism.seg.dry <- prism.seg.dry %>% group_by(Site, Yr_bin) %>% summarise(precip_Dry = mean(precip_Dry)) %>%
+                 unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+
+
 #Bring all the seasons together 
 prism.seg.means <- prism.seg.sp %>% left_join(prism.seg.s, by = "unique_id") %>% left_join(prism.seg.f, by = "unique_id") %>%
-                                    left_join(prism.seg.w, by = "unique_id")
+                                    left_join(prism.seg.w, by = "unique_id") %>% left_join(prism.seg.dry, by = "unique_id") %>%
+                                    left_join(prism.seg.wet, by = "unique_id")
 
 prism.seg.means <- prism.seg.means %>% separate(col = unique_id, into = c("Rteno", "Segment", "Yr_bin"))
 
@@ -1070,13 +1087,15 @@ seg.climate <- prism.seg.means %>% mutate(tmean.c = (tmean - 32) / 1.8,
                         precip_Spring.c = (precip_Spring * 2.54),
                         precip_Summer.c = (precip_Summer * 2.54),
                         precip_Fall.c = (precip_Fall * 2.54),
-                        precip_Winter.c = (precip_Winter * 2.54))
+                        precip_Winter.c = (precip_Winter * 2.54),
+                        precip_Wet.c = (precip_Wet * 2.54),
+                        precip_Dry.c = (precip_Dry * 2.54))
                         
 seg.climate <- seg.climate[, c("Site", "Rteno", "Yr_bin", "tmean.c", "tmax.c", "tmin.c", "pmean.c",
                                "tmean.bird.c", "tmax.bird.c", "tmin.bird.c", "pmean.bird.c", "tmean_Spring.c",
                                "tmin_Spring.c", "tmax_Spring.c", "precip_Spring.c", "tmean_Summer.c", "tmax_Summer.c",
                                "tmin_Summer.c", "precip_Summer.c", "tmean_Fall.c", "tmin_Fall.c", "tmax_Fall.c", "precip_Fall.c",
-                               "tmean_Winter.c", "tmin_Winter.c", "tmax_Winter.c", "precip_Winter.c")]
+                               "tmean_Winter.c", "tmin_Winter.c", "tmax_Winter.c", "precip_Winter.c", "precip_Dry.c", "precip_Wet.c")]
 
 #Pull the min betas 
 # min.beta.merge <- min.betas[, c("site", "min.yr.bin")]
@@ -1117,7 +1136,9 @@ seg.climate <- seg.climate %>% group_by(Site) %>%
          mean.anom.w = tmean_Winter.c - first(tmean_Winter.c),
          max.anom.w = tmax_Winter.c - first(tmax_Winter.c),
          min.anom.w = tmin_Winter.c - first(tmin_Winter.c),
-         p.anom.w = precip_Winter.c - first(precip_Winter.c))
+         p.anom.w = precip_Winter.c - first(precip_Winter.c),
+         p.anom.wet = precip_Wet.c - first(precip_Wet.c),
+         p.anom.dry = precip_Dry.c - first(precip_Dry.c))
          
          
 seg.climate <- seg.climate %>% mutate(Yr_bin = as.numeric(Yr_bin)) %>% mutate(Yr_bin = Yr_bin - 1) %>% mutate(Yr_bin = as.character(Yr_bin))
@@ -1241,7 +1262,7 @@ bbs_last <- merge(bbs_last, rtxy, by = "site")
 
 #max.anom.s & p.anom.f explain most variation in multiple LM for climate (20% together)
 #This model explains 32% variation w/o alpha
-mod.last <- lm(data = bbs_last, beta.mcmc ~ alpha.mcmc + mean.anom.bird + p.anom.f + scale.pdur + scale.pdwet + scale.pdww + pct.ur + Latitude + Longitude)
+mod.last <- lm(data = bbs_last, beta.mcmc ~ alpha.mcmc + mean.anom.bird + p.anom.wet + p.anom.dry + scale.pdur + scale.pdwet + scale.pdww + pct.ur + Latitude + Longitude)
 summary(mod.last)
 Anova(mod.last)
 
@@ -1451,6 +1472,68 @@ print(adon.results)
 
 #autoplot(prcomp(), data = data.scores, )
 
+########################################################################################
+#########################MDS for the Occupancy Cutoffs##################################
+occ50 <- read.csv(file = here::here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
+occ50 <- occ50[, -1:-2]
+
+occ.mds <- occ50[occ50$Year == 1980,]
+occ.mds <- occ.mds %>% arrange(site)
+
+lc.mds <- bbs_lulc %>% dplyr::select(site, Year, ratio.ww, pct_wetland)
+lc.mds <- lc.mds[lc.mds$Year == 1980,]
+
+occ.mds.list <- unique(occ.mds$site)
+wetland.site <- unique(lc.mds$site)
+
+occ.mds.full <- merge(lc.mds, occ.mds, by = "site")
+
+lc.mds <- dplyr::select(occ.mds.full, c(ratio.ww, pct_wetland, site))
+lc.mds <- lc.mds[!duplicated(lc.mds), ]
+
+#ww.mds <- ww.mds[ww.mds$site %in% mds.list,]
+
+#ww11.site <- unique(ww.mds$site.x)
+ww.mds <- lc.mds %>% arrange(site)
+ww.mds$groups <- NA
+ww.mds$groups[ww.mds$ratio.ww < 0.5] <- "Emergent Wetland Dominated"
+ww.mds$groups[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mixed"
+ww.mds$groups[ww.mds$ratio.ww > 1.5] <- "Woody Wetland Dominated"
+ww.mds <- ww.mds$groups
+
+# wet.mds <- lc.mds %>% arrange(site)
+# wet.mds$groups <- NA
+# wet.mds$groups[wet.mds$pct_wetland < .5] <- "L"
+#wet.mds$groups[wet.mds$pct_wetland > .33 & wet.mds$pct_wetland < .66] <- "M"
+# wet.mds$groups[wet.mds$pct_wetland >= .5] <- "H"
+# wet.mds <- wet.mds$groups
+
+occ.mds <- occ.mds %>% arrange(site)
+occ_mds_cast <- reshape2::dcast(occ.mds.full, unique_id ~ Species, value.var = "Occupancy", fun.aggregate = sum)
+rownames(occ_mds_cast) <- occ_mds_cast$unique_id
+occ_mds_cast <- occ_mds_cast[, -1]
+
+
+mds <- metaMDS(occ_mds_cast, trymax = 50)
+
+
+data.scores <- as.data.frame(scores(mds))  
+data.scores$site <- rownames(data.scores)  
+data.scores$grp1 <- ww.mds
+#data.scores$grp2 <- wet.mds
+
+
+mds_plot <- ggplot(data = data.scores) + 
+  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = ww.mds), level = 0.50) +
+  geom_point(aes(x = NMDS1, y = NMDS2, shape = , colour = ww.mds), size=2) +
+  scale_colour_manual(values = c("#0072B2", "#009E73", "#999999"))
+
+mds_plot + labs(color = "Wetland Cover Types")
+
+adon.results <- adonis(occ_mds_cast ~ ww.mds, method = "jaccard", perm = 999)
+
+
+print(adon.results)
 
 
 
