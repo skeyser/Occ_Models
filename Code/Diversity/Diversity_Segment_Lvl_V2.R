@@ -1037,10 +1037,16 @@ prism.seg.w <- prism.seg.w %>% group_by(Site, Yr_bin) %>% summarise(tmean_Winter
                 unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
 
 
-prism.seg.wet <- prism.seg.wet %>% group_by(Site, Yr_bin) %>% summarise(precip_Wet = mean(precip_Wet)) %>%
+prism.seg.wet <- prism.seg.wet %>% group_by(Site, Yr_bin) %>% summarise(tmean_Wet = mean(tmean_Wet),
+                                                                        tmin_Wet = mean(tmin_Wet),
+                                                                        tmax_Wet = mean(tmax_Wet),
+                                                                        precip_Wet = mean(precip_Wet)) %>%
                  unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
 
-prism.seg.dry <- prism.seg.dry %>% group_by(Site, Yr_bin) %>% summarise(precip_Dry = mean(precip_Dry)) %>%
+prism.seg.dry <- prism.seg.dry %>% group_by(Site, Yr_bin) %>% summarise(tmean_Dry = mean(tmean_Dry),
+                                                                        tmin_Dry = mean(tmin_Dry),
+                                                                        tmax_Dry = mean(tmax_Dry),
+                                                                        precip_Dry = mean(precip_Dry)) %>%
                  unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
 
 
@@ -1084,6 +1090,12 @@ seg.climate <- prism.seg.means %>% mutate(tmean.c = (tmean - 32) / 1.8,
                         tmax_Summer.c = (tmax_Summer - 32) / 1.8,
                         tmax_Fall.c = (tmax_Fall - 32) / 1.8,
                         tmax_Winter.c = (tmax_Winter - 32) / 1.8,
+                        tmean_Wet.c = (tmean_Wet - 32) / 1.8,
+                        tmax_Wet.c = (tmax_Wet - 32) / 1.8,
+                        tmin_Wet.c = (tmin_Wet - 32) / 1.8,
+                        tmean_Dry.c = (tmean_Dry - 32) / 1.8,
+                        tmax_Dry.c = (tmax_Dry - 32) / 1.8,
+                        tmin_Dry.c = (tmin_Dry - 32) / 1.8,
                         precip_Spring.c = (precip_Spring * 2.54),
                         precip_Summer.c = (precip_Summer * 2.54),
                         precip_Fall.c = (precip_Fall * 2.54),
@@ -1095,7 +1107,8 @@ seg.climate <- seg.climate[, c("Site", "Rteno", "Yr_bin", "tmean.c", "tmax.c", "
                                "tmean.bird.c", "tmax.bird.c", "tmin.bird.c", "pmean.bird.c", "tmean_Spring.c",
                                "tmin_Spring.c", "tmax_Spring.c", "precip_Spring.c", "tmean_Summer.c", "tmax_Summer.c",
                                "tmin_Summer.c", "precip_Summer.c", "tmean_Fall.c", "tmin_Fall.c", "tmax_Fall.c", "precip_Fall.c",
-                               "tmean_Winter.c", "tmin_Winter.c", "tmax_Winter.c", "precip_Winter.c", "precip_Dry.c", "precip_Wet.c")]
+                               "tmean_Winter.c", "tmin_Winter.c", "tmax_Winter.c", "precip_Winter.c", "precip_Dry.c", "precip_Wet.c",
+                               "tmax_Wet.c", "tmin_Wet.c", "tmax_Dry.c", "tmin_Dry.c", "tmean_Dry.c", "tmean_Wet.c")]
 
 #Pull the min betas 
 # min.beta.merge <- min.betas[, c("site", "min.yr.bin")]
@@ -1138,7 +1151,13 @@ seg.climate <- seg.climate %>% group_by(Site) %>%
          min.anom.w = tmin_Winter.c - first(tmin_Winter.c),
          p.anom.w = precip_Winter.c - first(precip_Winter.c),
          p.anom.wet = precip_Wet.c - first(precip_Wet.c),
-         p.anom.dry = precip_Dry.c - first(precip_Dry.c))
+         p.anom.dry = precip_Dry.c - first(precip_Dry.c),
+         mean.anom.dry = tmean_Dry.c - first(tmean_Dry.c),
+         max.anom.dry = tmax_Dry.c - first(tmax_Dry.c),
+         min.anom.dry = tmin_Dry.c - first(tmin_Dry.c),
+         mean.anom.wet = tmean_Wet.c - first(tmean_Wet.c),
+         max.anom.wet = tmax_Wet.c - first(tmax_Wet.c),
+         min.anom.wet = tmin_Wet.c - first(tmin_Wet.c))
          
          
 seg.climate <- seg.climate %>% mutate(Yr_bin = as.numeric(Yr_bin)) %>% mutate(Yr_bin = Yr_bin - 1) %>% mutate(Yr_bin = as.character(Yr_bin))
@@ -1260,22 +1279,90 @@ rtxy <- read.csv(here::here("Data_Envi/PRISM Data/SegmentXY.csv"))
 bbs_last <- merge(bbs_last, rtxy, by = "site")
 
 
+#############################################################################################
+#############################CMRL for the Occupancy Data#####################################
+#############################################################################################
+
+#Load in the occupancy DF
+occ50 <- read.csv(file = here::here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
+occ50 <- occ50[, -1:-2]
+
+#Load in the CMRL Max Ranges
+spp.range <- read.csv(here::here("Data_BBS/Generated DFs/MaxRange.csv"), stringsAsFactors = T)
+
+#Clean some names up for matching
+spp.range$sci_name <- as.character(spp.range$sci_name)
+spp.range$sci_name[spp.range$sci_name == "Antigone canadensis"] <- "Grus canadensis"
+spp.range$sci_name[spp.range$sci_name == "Hydroprogne caspia"] <- "Sterna caspia"
+spp.range$sci_name[spp.range$sci_name == "Spinus psaltria"] <- "Carduelis psaltria"
+spp.range$sci_name[spp.range$sci_name == "Colaptes auratus auratus"] <- "Colaptes auratus"
+
+#Merge occ data with CMRL
+occ50 <- merge(occ50, spp.range, by.x = "Species", by.y = "sci_name")
+present <- occ50[occ50$Occupancy == 1,]
+
+#Calculate the CMRL by Year
+cmrl.occ <- aggregate(data = present, Latitude ~ site + Year, FUN = mean)
+lm.cmrl <- lmer(data = cmrl.occ, Latitude ~ Year + (1|site), REML = F)
+summary(lm.cmrl)
+Anova(lm.cmrl)
+
+cmrl.occ <- merge(cmrl.occ, Bins, by = "Year")
+
+#Get the change in CMRL 
+cmrl.occ <- cmrl.occ %>% group_by(site, Yr_bin) %>% arrange(Year) %>% summarise(CMRL = mean(Latitude)) %>% 
+                                                                      mutate(change.cmrl = CMRL - first(CMRL),
+                                                                      change.cmrl.km = change.cmrl * 111)
+#Find the mean by site
+cmrl.mean <- cmrl.occ %>% group_by(site) %>% summarise(mean.change = mean(change.cmrl.km))
+
+#Plot some results
+ggplot(data = cmrl.occ, aes(x = Year, y = Latitude, group = site)) + 
+  geom_smooth(data = cmrl.occ, aes(x = Year, y = Latitude, group = site), method = lm, se = F)
+
+#Pull out the last for each group
+cmrl.last <- cmrl.occ %>% arrange(Yr_bin) %>% slice(n()) 
+
+#Put the cmrl with the last mod DF
+bbs_last <- merge(bbs_last, cmrl.last, by = "site")
+
+bbs_last <- bbs_last %>% mutate(scale.cmrl = scale(change.cmrl.km))
+
+cmrl.occ$unique_id <- paste0(cmrl.occ$site, "_", cmrl.occ$Yr_bin)
+bbs_full <- merge(bbs_full, cmrl.occ, by = "unique_id")
+
+
+###############################################################################################
+#########################Model runs for the last year of each##################################
+###############################################################################################
+
 #max.anom.s & p.anom.f explain most variation in multiple LM for climate (20% together)
 #This model explains 32% variation w/o alpha
-mod.last <- lm(data = bbs_last, beta.mcmc ~ alpha.mcmc + mean.anom.bird + p.anom.wet + p.anom.dry + scale.pdur + scale.pdwet + scale.pdww + pct.ur + Latitude + Longitude)
+mod.last <- lm(data = bbs_last, beta.mcmc ~ alpha.mcmc + scale.cmrl + p.anom.wet + p.anom.dry + scale.pdur + scale.pdwet + scale.pdww + pct.ur + Latitude + Longitude)
 summary(mod.last)
 Anova(mod.last)
 
-ggplot(data = bbs_full, aes(x = scale.pdww, y = beta.mcmc)) + geom_smooth(method = loess)
+ggplot(data = bbs_last, aes(x = Latitude, y = scale.cmrl)) + geom_smooth(method = loess)
 
 summary(lm(bbs_last$beta.mcmc ~ bbs_last$mean.anom.bird))
 
 #Again anomalies of fall precipitation interestingly explaining variation, tmax.c, tmean.c, tmax.bird.c,  
 #Sig LULC terms: Pct_wetland, scale.pdew, scale.pdur (negative relationship), scale.pdwet,
 #
-mod.last.a <- lm(data = bbs_last, alphamcmc.change ~ max.anom.bird + p.anom.f +  scale.pdur + Latitude)
+mod.last.a <- lm(data = bbs_last, alphamcmc.change ~ max.anom.wet + p.anom.f +  scale.pdur + Latitude)
 summary(mod.last.a)
 Anova(mod.last.a)
+
+
+
+
+
+
+
+
+
+
+
 
 
 ################################################################################################################################
@@ -1297,7 +1384,7 @@ qqp(bbs_full$mean.anom.t, "lnorm")
 
 
 #mod.full.beta <- lmer(data = bbs_full, beta.reg ~ anomalies + precip.anomalies + ratio.ww + pct.ur + (1|site.x))
-mod.full.beta <- lmer(data = bbs_full, beta.reg ~ mean.anom.bird + p.anom.bird + scale.pdww + scale.pdur + (1|Site))
+mod.full.beta <- lmer(data = bbs_full, beta.reg ~ alpha + mean.anom.bird + change.cmrl.km + p.anom.bird + scale.pdww + scale.pdur + (1|Site))
 summary(mod.full.beta)
 Anova(mod.full.beta)
 
@@ -1355,7 +1442,7 @@ avPlots(mod.last)
 ##############################################################################################################################
 
 #mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc.y ~ anomalies + precip.anomalies + pct.ww + pct.ew + pct.ur + (1|site.x)) 
-mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ mean.anom.bird + p.anom.bird + scale.pdww + scale.pdur + scale.pdwet + scale.pdag + (1|Site))
+mod.full.betamcmc <- lmer(data = bbs_full, beta.mcmc ~ alpha.mcmc + mean.anom.bird + change.cmrl.km + p.anom.bird + scale.pdww + scale.pdur + (1|Site))
 summary(mod.full.betamcmc)
 Anova(mod.full.betamcmc)
 
@@ -1474,8 +1561,6 @@ print(adon.results)
 
 ########################################################################################
 #########################MDS for the Occupancy Cutoffs##################################
-occ50 <- read.csv(file = here::here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
-occ50 <- occ50[, -1:-2]
 
 occ.mds <- occ50[occ50$Year == 1980,]
 occ.mds <- occ.mds %>% arrange(site)
@@ -1534,6 +1619,198 @@ adon.results <- adonis(occ_mds_cast ~ ww.mds, method = "jaccard", perm = 999)
 
 
 print(adon.results)
+
+
+
+
+
+
+
+
+############################################################################################
+##############################Plotting######################################################
+############################################################################################
+
+#CMRL 
+line = "#0000CC"
+fill = "#6699CC"
+box1 <- ggplot(bbs_full, aes(x = Yr_bin, y = CMRL, group = site.y)) +
+  geom_boxplot(alpha = 0.3, notch = T, fill = fill, colour = line) + 
+  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(46, 70, 2)) +
+  scale_x_continuous(name = "Year Bin (5 years from baseline)") + 
+  theme(legend.position = "none") +
+  scale_fill_brewer(palette = "Dark2") + 
+  stat_summary(fun.y = mean,
+               fun.ymin = function(x) mean(x) - sd(x), 
+               fun.ymax = function(x) mean(x) + sd(x), 
+               geom = "pointrange") +
+  stat_summary(fun.y = mean,
+               geom = "line")
+box1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################################
+######Link Species Name with Range and looking at tropicalization######
+#######################################################################
+
+bbs_total$english_common_name <- as.character(bbs_total$english_common_name)
+bbs_total <- merge(bbs_total, range.merge, by.x = "english_common_name", by.y = "English_Common_Name")
+bbs.agg <- aggregate(data = bbs_total, Latitude ~ abbrev + year, FUN = mean)
+bbs.agg <- bbs.agg[bbs.agg$year >= 1980, ]
+bbs.agg$Yr_bin <- 1
+bbs.agg$Yr_bin[bbs.agg$year >= 1985 & bbs.agg$year <= 1989] <- 2
+bbs.agg$Yr_bin[bbs.agg$year >= 1990 & bbs.agg$year <= 1994] <- 3
+bbs.agg$Yr_bin[bbs.agg$year >= 1995 & bbs.agg$year <= 1999] <- 4
+bbs.agg$Yr_bin[bbs.agg$year >= 2000 & bbs.agg$year <= 2004] <- 5
+bbs.agg$Yr_bin[bbs.agg$year >= 2005 & bbs.agg$year <= 2009] <- 6
+bbs.agg$Yr_bin[bbs.agg$year >= 2010 & bbs.agg$year <= 2014] <- 7
+bbs.agg$Yr_bin[bbs.agg$year >= 2015 & bbs.agg$year <= 2018] <- 8
+bbs.agg$unique_id <- paste0(bbs.agg$abbrev, "_", bbs.agg$Yr_bin)
+betas$unique_id <- paste0(betas$site, "_", betas$Yr_bin) 
+betas <- betas[, c(-1, -2, -4)]
+bbs.agg <- merge(bbs.agg, betas, by = "unique_id")
+
+colnames(bbs.agg)[colnames(bbs.agg) == "Latitude"] <- "CMRL"
+
+##Making some figures for tropicalization data 
+
+
+line = "#0000CC"
+fill = "#6699CC"
+box1 <- ggplot(bbs.agg, aes(x = Yr_bin, y = CMRL, group = Yr_bin)) +
+  geom_boxplot(alpha = 0.3, notch = T, fill = fill, colour = line) + 
+  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(46, 70, 2)) +
+  scale_x_continuous(name = "Year Bin (5 years from baseline)") + 
+  theme(legend.position = "none") +
+  scale_fill_brewer(palette = "Dark2") + 
+  stat_summary(fun.y = mean,
+               fun.ymin = function(x) mean(x) - sd(x), 
+               fun.ymax = function(x) mean(x) + sd(x), 
+               geom = "pointrange") +
+  stat_summary(fun.y = mean,
+               geom = "line")
+box1
+
+
+range_t <- bbs.agg %>% group_by(abbrev) %>% arrange(Yr_bin) %>%
+  filter(row_number()==1 | row_number()==n()) 
+
+box2 <- ggplot(df.mer, aes(x = Yr_bin, y = CMRL, group = Yr_bin, fill = region)) +
+  geom_boxplot(aes(x = Yr_bin, y = CMRL, group = Yr_bin, fill = region)) + 
+  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(46, 70, 2)) +
+  scale_x_continuous(name = "Year Bin (5 years from baseline)") +
+  theme(legend.position = "none") 
+
+
+box2
+
+#Calculation of mean and sd of each group ?
+my_mean=aggregate(bbs.agg$CMRL , by=list(bbs.agg$Yr_bin) , mean); colnames(my_mean)=c("Yr_Bin" , "mean")
+se <- function(x) sqrt(var(x)/length(x))
+my_sd=aggregate(bbs.agg$CMRL , by=list(bbs.agg$Yr_bin) , se); colnames(my_sd)=c("Yr_Bin" , "sd")
+my_info=merge(my_mean , my_sd , by.x=1 , by.y=1)
+
+
+#Plotting beta and cmrl
+plot5 <- ggplot(bbs.agg, aes(x = beta, y = CMRL, group = abbrev)) +
+  geom_smooth(method = "lm", se = F)
+plot5
+# Make the plot
+coefs <- coef(lm(df.mer$CMRL ~ df.mer$Yr_bin))
+box3 <- ggplot(my_info) + 
+  # geom_point(aes(x = Yr_Bin, y = CMRL) , colour=rgb(0.8,0.7,0.1,0.4) , size=5) + 
+  geom_point(data = my_info, aes(x=Yr_Bin , y = mean) , colour = rgb(0.6,0.5,0.4,0.7) , size = 8) +
+  geom_errorbar(data = my_info, aes(x = Yr_Bin, y = sd, ymin = mean - sd, ymax = mean + sd), colour = rgb(0.4,0.8,0.2,0.4) , width = 0.7 , size=1.5) +
+  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(59, 62, 0.5)) +
+  scale_x_continuous(name = "Year Bin", breaks = seq(1, 8, 1), 
+                     labels = c("1980 - 1984", "1985 - 1989", "1990 - 1994", "1995 - 1999", 
+                                "2000 - 2004", "2005 - 2009", "2010 - 2014", "2015 - 2019")) +
+  coord_cartesian(ylim = c(59, 62)) 
+
+box3 + annotate("text", x = 6, y = 61.8, size = 6, label = "Average difference between year bins corresponds 
+                to a decrease in community latitude of 1.6 km/y")
+
+
+mean.change <- my_info %>% mutate(lagged = lag(mean)) %>% mutate(dif = mean - lagged) %>% 
+  mutate(avg.dif = mean(dif, na.rm = T)) 
+
+mod5 <- lm(range_t$CMRL ~ range_t$Yr_bin)
+summary(mod5)
+Anova(mod5)
+
+mod.range <- lm(bbs.agg$CMRL ~ bbs.agg$beta)
+summary(mod.range)
+Anova(mod.range)
+
+
+bbs.testing <-  aggregate(data = bbs.agg, CMRL ~ abbrev + Yr_bin, FUN = mean)
+bbs.testing <- separate(bbs.testing, abbrev, into = c("State", "rteno"), sep = "_")
+bbs.testing$abbrev <- paste0(bbs.testing$State, "_", bbs.testing$rteno)
+link <- link.me.up
+link <- link %>% mutate_if(is.integer, as.character) 
+
+df.mer <- merge(bbs.testing, link, by = "rteno")
+df.mer$region <- "North"
+df.mer$region[df.mer$latitude <= 28.27796] <- "South"
+
+plot_cmrl2 <- ggplot(data = df.mer, aes(x = Yr_bin, y = CMRL, group = region)) +
+  geom_smooth(method = "lm", se = F)
+plot_cmrl2
+
+#Plotting 
+plot_cmrl <- ggplot(data = df.mer, aes(x = Yr_bin, y = CMRL, colour = region)) +
+  geom_boxplot(aes(x = Yr_bin, y = CMRL, colour = region))
+plot_cmrl
+
+bbs.agg <- bbs.agg[complete.cases(bbs.agg),]
+
+range.exp <- lmer(bbs.agg$beta ~ bbs.agg$CMRL + (1|bbs.agg$abbrev))
+summary(range.exp)
+tab_model(range.exp)
+Anova(range.exp)
+plot(bbs.agg$beta ~ bbs.agg$CMRL)
+abline(lm(bbs.agg$beta ~ bbs.agg$CMRL))
+beta.matrix <- merge()
+
+
+
+
 
 
 
@@ -1938,125 +2215,3 @@ write.csv(climate.map, file = here::here("climate.map.csv"))
 
 
 
-#######################################################################
-######Link Spacies Name with Range and looking at tropicalization######
-#######################################################################
-
-bbs_total$english_common_name <- as.character(bbs_total$english_common_name)
-bbs_total <- merge(bbs_total, range.merge, by.x = "english_common_name", by.y = "English_Common_Name")
-bbs.agg <- aggregate(data = bbs_total, Latitude ~ abbrev + year, FUN = mean)
-bbs.agg <- bbs.agg[bbs.agg$year >= 1980, ]
-bbs.agg$Yr_bin <- 1
-bbs.agg$Yr_bin[bbs.agg$year >= 1985 & bbs.agg$year <= 1989] <- 2
-bbs.agg$Yr_bin[bbs.agg$year >= 1990 & bbs.agg$year <= 1994] <- 3
-bbs.agg$Yr_bin[bbs.agg$year >= 1995 & bbs.agg$year <= 1999] <- 4
-bbs.agg$Yr_bin[bbs.agg$year >= 2000 & bbs.agg$year <= 2004] <- 5
-bbs.agg$Yr_bin[bbs.agg$year >= 2005 & bbs.agg$year <= 2009] <- 6
-bbs.agg$Yr_bin[bbs.agg$year >= 2010 & bbs.agg$year <= 2014] <- 7
-bbs.agg$Yr_bin[bbs.agg$year >= 2015 & bbs.agg$year <= 2018] <- 8
-bbs.agg$unique_id <- paste0(bbs.agg$abbrev, "_", bbs.agg$Yr_bin)
-betas$unique_id <- paste0(betas$site, "_", betas$Yr_bin) 
-betas <- betas[, c(-1, -2, -4)]
-bbs.agg <- merge(bbs.agg, betas, by = "unique_id")
-
-colnames(bbs.agg)[colnames(bbs.agg) == "Latitude"] <- "CMRL"
-
-##Making some figures for tropicalization data 
-
-
-line = "#0000CC"
-fill = "#6699CC"
-box1 <- ggplot(bbs.agg, aes(x = Yr_bin, y = CMRL, group = Yr_bin)) +
-  geom_boxplot(alpha = 0.3, notch = T, fill = fill, colour = line) + 
-  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(46, 70, 2)) +
-  scale_x_continuous(name = "Year Bin (5 years from baseline)") + 
-  theme(legend.position = "none") +
-  scale_fill_brewer(palette = "Dark2") + 
-  stat_summary(fun.y = mean,
-               fun.ymin = function(x) mean(x) - sd(x), 
-               fun.ymax = function(x) mean(x) + sd(x), 
-               geom = "pointrange") +
-  stat_summary(fun.y = mean,
-               geom = "line")
-box1
-
-
-range_t <- bbs.agg %>% group_by(abbrev) %>% arrange(Yr_bin) %>%
-  filter(row_number()==1 | row_number()==n()) 
-
-box2 <- ggplot(df.mer, aes(x = Yr_bin, y = CMRL, group = Yr_bin, fill = region)) +
-  geom_boxplot(aes(x = Yr_bin, y = CMRL, group = Yr_bin, fill = region)) + 
-  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(46, 70, 2)) +
-  scale_x_continuous(name = "Year Bin (5 years from baseline)") +
-  theme(legend.position = "none") 
-
-
-box2
-
-#Calculation of mean and sd of each group ?
-my_mean=aggregate(bbs.agg$CMRL , by=list(bbs.agg$Yr_bin) , mean); colnames(my_mean)=c("Yr_Bin" , "mean")
-se <- function(x) sqrt(var(x)/length(x))
-my_sd=aggregate(bbs.agg$CMRL , by=list(bbs.agg$Yr_bin) , se); colnames(my_sd)=c("Yr_Bin" , "sd")
-my_info=merge(my_mean , my_sd , by.x=1 , by.y=1)
-
-
-#Plotting beta and cmrl
-plot5 <- ggplot(bbs.agg, aes(x = beta, y = CMRL, group = abbrev)) +
-  geom_smooth(method = "lm", se = F)
-plot5
-# Make the plot
-coefs <- coef(lm(df.mer$CMRL ~ df.mer$Yr_bin))
-box3 <- ggplot(my_info) + 
-  # geom_point(aes(x = Yr_Bin, y = CMRL) , colour=rgb(0.8,0.7,0.1,0.4) , size=5) + 
-  geom_point(data = my_info, aes(x=Yr_Bin , y = mean) , colour = rgb(0.6,0.5,0.4,0.7) , size = 8) +
-  geom_errorbar(data = my_info, aes(x = Yr_Bin, y = sd, ymin = mean - sd, ymax = mean + sd), colour = rgb(0.4,0.8,0.2,0.4) , width = 0.7 , size=1.5) +
-  scale_y_continuous(name = "Community Mean Range Limit", breaks = seq(59, 62, 0.5)) +
-  scale_x_continuous(name = "Year Bin", breaks = seq(1, 8, 1), 
-                     labels = c("1980 - 1984", "1985 - 1989", "1990 - 1994", "1995 - 1999", 
-                                "2000 - 2004", "2005 - 2009", "2010 - 2014", "2015 - 2019")) +
-  coord_cartesian(ylim = c(59, 62)) 
-
-box3 + annotate("text", x = 6, y = 61.8, size = 6, label = "Average difference between year bins corresponds 
-                to a decrease in community latitude of 1.6 km/y")
-
-
-mean.change <- my_info %>% mutate(lagged = lag(mean)) %>% mutate(dif = mean - lagged) %>% 
-  mutate(avg.dif = mean(dif, na.rm = T)) 
-
-mod5 <- lm(range_t$CMRL ~ range_t$Yr_bin)
-summary(mod5)
-Anova(mod5)
-
-mod.range <- lm(bbs.agg$CMRL ~ bbs.agg$beta)
-summary(mod.range)
-Anova(mod.range)
-
-
-bbs.testing <-  aggregate(data = bbs.agg, CMRL ~ abbrev + Yr_bin, FUN = mean)
-bbs.testing <- separate(bbs.testing, abbrev, into = c("State", "rteno"), sep = "_")
-bbs.testing$abbrev <- paste0(bbs.testing$State, "_", bbs.testing$rteno)
-link <- link.me.up
-link <- link %>% mutate_if(is.integer, as.character) 
-
-df.mer <- merge(bbs.testing, link, by = "rteno")
-df.mer$region <- "North"
-df.mer$region[df.mer$latitude <= 28.27796] <- "South"
-
-plot_cmrl2 <- ggplot(data = df.mer, aes(x = Yr_bin, y = CMRL, group = region)) +
-  geom_smooth(method = "lm", se = F)
-plot_cmrl2
-
-#Plotting 
-plot_cmrl <- ggplot(data = df.mer, aes(x = Yr_bin, y = CMRL, colour = region)) +
-  geom_boxplot(aes(x = Yr_bin, y = CMRL, colour = region))
-plot_cmrl
-
-bbs.agg <- bbs.agg[complete.cases(bbs.agg),]
-
-range.exp <- lmer(bbs.agg$beta ~ bbs.agg$CMRL + (1|bbs.agg$abbrev))
-summary(range.exp)
-tab_model(range.exp)
-Anova(range.exp)
-plot(bbs.agg$beta ~ bbs.agg$CMRL)
-abline(lm(bbs.agg$beta ~ bbs.agg$CMRL))
-beta.matrix <- merge()
