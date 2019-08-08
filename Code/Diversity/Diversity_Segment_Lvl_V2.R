@@ -1380,7 +1380,7 @@ bbs_full <- merge(bbs_full, cmrl.occ, by = "unique_id")
 
 #max.anom.s & p.anom.f explain most variation in multiple LM for climate (20% together)
 #This model explains 32% variation w/o alpha
-mod.last <- lm(data = bbs_last, beta.mcmc ~ alpha.mcmc + scale.cmrl + p.anom.wet + p.anom.dry + scale.pdur + scale.pdwet + scale.pdww + pct.ur + Latitude + Longitude)
+mod.last <- lm(data = bbs_last, beta.reg ~ scale.alpha + p.anom.wet.s + p.anom.dry.s)
 summary(mod.last)
 Anova(mod.last)
 
@@ -1391,7 +1391,7 @@ summary(lm(bbs_last$beta.mcmc ~ bbs_last$mean.anom.bird))
 #Again anomalies of fall precipitation interestingly explaining variation, tmax.c, tmean.c, tmax.bird.c,  
 #Sig LULC terms: Pct_wetland, scale.pdew, scale.pdur (negative relationship), scale.pdwet,
 #
-mod.last.a <- lm(data = bbs_last, alphamcmc.change ~ max.anom.wet + p.anom.f +  scale.pdur + Latitude)
+mod.last.a <- lm(data = bbs_last, alphamcmc.change ~ max.anom.wet + p.anom.wet + p.anom.dry + scale.pdur + Latitude)
 summary(mod.last.a)
 Anova(mod.last.a)
 
@@ -1722,13 +1722,20 @@ res6 <- resid(mod.6)
 
 mod.panom <- lm(res5 ~ res6)
 
+mod.7 <- lm(beta.mcmc ~ alpha.mcmc + p.anom + Latitude, data = bbs_last)
+res7 <- resid(mod.7)
+mod.8 <- lm(diff.from.first.ww ~ alpha.mcmc + p.anom + Latitude, data = bbs_last)
+res8 <- resid(mod.8)
+
+mod.ww <- lm(res7 ~ res8)
+
 ggplotRegression <- function (fit) {
   
   require(ggplot2)
   
   ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
     geom_point() +
-    stat_smooth(method = "loess", col = "red") +
+    stat_smooth(method = "lm", col = "red") +
     labs(title = paste("R-squared = ",signif(summary(fit)$r.squared, 5),
                        "Intercept =",signif(fit$coef[[1]],5 ),
                        " Slope =",signif(fit$coef[[2]], 5),
@@ -1743,6 +1750,7 @@ ggplotRegression <- function (fit) {
 ggplotRegression(mod.alpha)
 ggplotRegression(mod.panom)
 ggplotRegression(mod.lat)
+ggplotRegression(mod.ww)
 
 
 
@@ -1759,14 +1767,14 @@ avPlots(mod.last)
 
 cbbPalette <- c("#99FFCC","#99FFFF", "#66CCCC", "#339999", "#006666")
 
-beta.plot <- (ggplot(bbs_full, aes(x = Year, y = beta.mcmc, group = BCR, 
+beta.plot <- (ggplot(bbs_total, aes(x = Year, y = beta, group = BCR, 
                                colour = factor(BCR, 
                                                labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
-                geom_smooth(aes(x = Year, y = beta.mcmc, group = BCR, 
+                geom_smooth(aes(x = Year, y = beta, group = BCR, 
                               colour = factor(BCR, 
-                                              labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie"))), linetype = 1, size = 1) +
+                                              labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie"))), linetype = 1, size = 1, method = "lm") +
                 xlab("Years") +
                 ylab(expression(paste(beta, "-Diversity"))) +
                 labs(colour = "Bird Conservation Region") + 
@@ -1786,7 +1794,7 @@ beta.plot <- (ggplot(bbs_full, aes(x = Year, y = beta.mcmc, group = BCR,
                 scale_color_manual(values = cbbPalette))
 
 
-
+beta.plot
 
 
 
