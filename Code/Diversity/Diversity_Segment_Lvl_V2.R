@@ -1479,6 +1479,13 @@ ggplotRegression <- function (fit) {
 ggplotRegression(beta.ur)
 
 avPlots(mod.last)
+
+mod.last.a <- lm(data = bbs_last, alphamcmc.change ~ p.anom.wet + max.anom.wet +  p.anom.dry)
+summary(mod.last.a)
+
+
+
+
 ##############################################################################################################################
 ###################################***Models for MCMC estimated Species Occurrences***########################################
 ##############################################################################################################################
@@ -1534,7 +1541,7 @@ bbs.bin7 <- bbs.bin7 %>% mutate(ratio.ww = round(ratio.ww, digits = 2))
 #############################Spatial NMDS and Adonis##############################
 ##################################################################################
 
-p_load(ggfortify)
+pacman::p_load(ggfortify)
 
 #See which year had the most completed surveys
 setDT(bbs_div_means)[, .(count = uniqueN(site)), by = Year] #2008 with 174
@@ -1623,9 +1630,9 @@ lc.mds <- lc.mds[!duplicated(lc.mds), ]
 #ww11.site <- unique(ww.mds$site.x)
 ww.mds <- lc.mds %>% arrange(site)
 ww.mds$groups <- NA
-ww.mds$groups[ww.mds$ratio.ww < 0.5] <- "Emergent Wetland Dominated"
+ww.mds$groups[ww.mds$ratio.ww <= 1] <- "Emergent Wetland Dominated"
 ww.mds$groups[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mixed"
-ww.mds$groups[ww.mds$ratio.ww > 1.5] <- "Woody Wetland Dominated"
+ww.mds$groups[ww.mds$ratio.ww > 1] <- "Woody Wetland Dominated"
 ww.mds <- ww.mds$groups
 
 # wet.mds <- lc.mds %>% arrange(site)
@@ -1694,30 +1701,89 @@ box1
 
 
 
+mod.1 <- lm(beta.mcmc ~ Latitude + p.anom, data = bbs_last)
+res1 <- resid(mod.1)
+mod.2 <- lm(alpha.mcmc ~ Latitude + p.anom, data = bbs_last)
+res2 <- resid(mod.2)
+
+mod.alpha <- lm(res1 ~ res2)
+
+mod.3 <- lm(beta.mcmc ~ alpha.mcmc + p.anom, data = bbs_last)
+res3 <- resid(mod.3)
+mod.4 <- lm(Latitude ~ alpha.mcmc + p.anom, data = bbs_last)
+res4 <- resid(mod.4)
+
+mod.lat <- lm(res3 ~ res4)
+
+mod.5 <- lm(beta.mcmc ~ alpha.mcmc + Latitude, data = bbs_last)
+res5 <- resid(mod.5)
+mod.6 <- lm(p.anom ~ alpha.mcmc + Latitude, data = bbs_last)
+res6 <- resid(mod.6)
+
+mod.panom <- lm(res5 ~ res6)
+
+ggplotRegression <- function (fit) {
+  
+  require(ggplot2)
+  
+  ggplot(fit$model, aes_string(x = names(fit$model)[2], y = names(fit$model)[1])) + 
+    geom_point() +
+    stat_smooth(method = "loess", col = "red") +
+    labs(title = paste("R-squared = ",signif(summary(fit)$r.squared, 5),
+                       "Intercept =",signif(fit$coef[[1]],5 ),
+                       " Slope =",signif(fit$coef[[2]], 5),
+                       " P =",signif(summary(fit)$coef[2,4], 5)), 
+         #x = expression(paste("Detection-corrected ", alpha, "-Diversity")),
+         #x = "Adjusted Precipitation Anomalies (cm)",
+          x = "Adjusted Latitude (Decimal Degrees)",
+          y = expression(paste("Adjusted ", 
+                              beta, "-Diversity")))}
+
+
+ggplotRegression(mod.alpha)
+ggplotRegression(mod.panom)
+ggplotRegression(mod.lat)
 
 
 
 
 
+pacman::p_load(partial_plots)
 
 
 
 
+avPlots(mod.last)
 
 
 
+cbbPalette <- c("#99FFCC","#99FFFF", "#66CCCC", "#339999", "#006666")
 
-
-
-
-
-
-
-
-
-
-
-
+beta.plot <- (ggplot(bbs_full, aes(x = Year, y = beta.mcmc, group = BCR, 
+                               colour = factor(BCR, 
+                                               labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie")))) +
+                #geom_point(size = 3) +
+                #geom_line()+
+                geom_smooth(aes(x = Year, y = beta.mcmc, group = BCR, 
+                              colour = factor(BCR, 
+                                              labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie"))), linetype = 1, size = 1) +
+                xlab("Years") +
+                ylab(expression(paste(beta, "-Diversity"))) +
+                labs(colour = "Bird Conservation Region") + 
+                theme_bw() +
+                theme(axis.line = element_line(colour = "black", size =1.2),
+                      axis.text.x = element_text(size = 12),
+                      axis.text.y = element_text(size = 14),
+                      axis.title.x = element_text(vjust = -1, size = 14),
+                      axis.title.y = element_text(vjust = 1.5, size = 14),
+                      axis.ticks = element_line(size = 1.2),
+                      panel.grid.major = element_blank(),
+                      panel.grid.minor = element_blank(),
+                      panel.border = element_blank(),
+                      panel.background = element_blank(),
+                      plot.margin = unit(c(1,1,2,2), "lines"),
+                      text = element_text(size=14)) +
+                scale_color_manual(values = cbbPalette))
 
 
 
