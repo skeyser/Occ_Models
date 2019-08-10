@@ -415,15 +415,48 @@ sr.mcmc <- sr.mcmc[, -1]
 sr.mcmc <- sr.mcmc %>% rename(unique_id = Sites)
 sr.mcmc$unique_id <- as.character(sr.mcmc$unique_id)
 
+
+#Make bins DF
+Bins <- data.frame(matrix(ncol = 2, nrow = 40))
+l <- c("Year", "Yr_bin")
+colnames(Bins) <- l
+Bins$Year <- 1980:2019
+Bins$Yr_bin <- rep(2:9, times = 1, each = 5)
+
+
+
+
+#Read in Occ Data 50 cutoff
+occ <- read.csv(here::here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
+
+#Merge it with the year bins 
+occ <- merge(occ, Bins, by = "Year")
+occ$unique_id <- paste0(occ$site, "_", occ$Year)
+
+#Cast spp x site_yr.bin
+bbs_cast2 <- dcast(occ, unique_id ~ Species, value.var = "Occupancy", fun.aggregate = sum)
+rownames(bbs_cast2) <- bbs_cast2$unique_id
+bbs_cast2 <- bbs_cast2[, -1]
+
+#Make all detections 1
+bbs_cast2[bbs_cast2 >= 1] <- 1
+
+#Calculate SR for 50 cutoff
+occSR <- data.frame(unique_id = rownames(bbs_cast2), SR50 = NA)
+occSR <- occSR[order(occSR$unique_id), ]
+bbs_cast2 <- bbs_cast2[order(rownames(bbs_cast2)), ]
+occSR$SR50 <- rowSums(bbs_cast2)
+occSR$unique_id <- as.character(occSR$unique_id)
 #Initializing DFs for loops 
 n.sites <- length(unique(bbs_total$site))
 site.list <- as.character(unique(bbs_total$site))
 
-slopes_sites <- data.frame(site.list, slope = NA, slope.mcmc = NA)
+slopes_sites <- data.frame(site.list, slope = NA, slope.mcmc = NA, slope50 = NA)
 
 bbs_div_means <- bbs_total
-bbs_div_means <- left_join(bbs_div_means, sr.mcmc, by = "unique_id")
+bbs_div_means <- bbs_div_means %>% left_join(sr.mcmc, by = "unique_id") %>% left_join(occSR, by = "unique_id")
 bbs_div_means <- bbs_div_means %>% rename(SR_MCMC = Mean_SR, SD_MCMC = Sd_SR)
+colnames(bbs_div_means)[colnames(bbs_div_means) == "Site_div.y"] <- "Site_div" 
 #bbs_div_means <- bbs_div_means %>% group_by(site, Yr_bin)%>% summarise(mean.div = mean(Site_div))
 
 for (i in 1:n.sites){
@@ -432,25 +465,31 @@ for (i in 1:n.sites){
   if (nrow(site_total_temp) > 1){
     lm.temp <- lm(site_total_temp$Site_div ~ site_total_temp$Year)
     lm.temp2 <- lm(site_total_temp$SR_MCMC ~ site_total_temp$Year)
+    lm.temp3 <- lm(site_total_temp$SR50 ~ site_total_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
     slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
+    slope.temp3 <- summary(lm.temp3)$coefficients[2,1]
     slopes_sites[i, 2] <- slope.temp
     slopes_sites[i, 3] <- slope.temp2
+    slopes_sites[i, 4] <- slope.temp3
   }
 }
 
 hist(slopes_sites$slope, breaks = 50)
 hist(slopes_sites$slope.mcmc, breaks = 50)
+hist(slopes_sites$slope50, breaks = 50)
 
 slopes_sites$site <- as.character(slopes_sites$site.list)
-slopes_sites <- slopes_sites %>% dplyr::select(site, slope, slope.mcmc)
+slopes_sites <- slopes_sites %>% dplyr::select(site, slope, slope.mcmc, slope50)
 
 #Mean alpha at the site level 
-site_means <- bbs_div_means %>% select(Site_div, SR_MCMC, site)
-site_means <- site_means %>% group_by(site) %>% summarise(MeanDiv = mean(Site_div), MeanDivMCMC = mean(SR_MCMC))
+bbs_div_means <- bbs_div_means[, unique(colnames(bbs_div_means))]
+site_means <- bbs_div_means %>% select(Site_div, SR_MCMC, SR50, site)
+site_means <- site_means %>% group_by(site) %>% summarise(MeanDiv = mean(Site_div), MeanDivMCMC = mean(SR_MCMC),
+                                                          MeanDiv50 = mean(SR50))
 
 #Alpha diversity at the site x yr level
-site_alpha <- bbs_div_means %>% select(Site_div, SR_MCMC, SD_MCMC, unique_id)
+site_alpha <- bbs_div_means %>% select(Site_div, SR50, SR_MCMC, SD_MCMC, unique_id)
 
 #Mean alpha and alpha slopes at the site level 
 site_means2 <- merge(site_means, slopes_sites, by = "site")
@@ -460,6 +499,8 @@ mean(site_means2$slope, na.rm = T)
 median(site_means2$slope, na.rm = T)
 mean(site_means2$slope.mcmc, na.rm = T)
 median(site_means2$slope.mcmc, na.rm = T)
+mean(site_means2$slope50, na.rm = T)
+median(site_means2$slope50, na.rm = T)
 
 ############################################################
 #############Beta diversity preparation#####################
@@ -491,7 +532,7 @@ bbs_cast[bbs_cast >= 1] <- 1
 mean.betas <- data.frame(site.list, mean.beta = NA)
 
 #Create matrix for storing Betas 
-beta.matrix <- data.frame(unique_id = bbs_simple$unique_id, beta = NA)
+beta.matrix <- data.frame(unique_id = bbs_simple$unique_id, beta = NA, beta50 = NA)
 beta.matrix$unique_id <- as.character(beta.matrix$unique_id)
 
 #Reove duplites
@@ -528,6 +569,37 @@ for (n in 1:n.sites){
     }
   }}
 
+
+for (n in 1:n.sites){
+  site.temp <- site.list[n]
+  #Find all the years for which that site was surveys
+  yrs.temp <- unique(occ[which(occ$site == site.temp),"Year"])
+  yrs.temp <- yrs.temp[yrs.temp >= 1]
+  #only consider sites that were observed in more than 5 years 
+  if (length(yrs.temp) > 1){ #select all sites that have mre than 1 year bin 
+    #Create a baseline year from years temp
+    #Sorting
+    yrs.temp <- yrs.temp[order(yrs.temp)]
+    #find the first 5 years 
+    first.yrs <- yrs.temp[yrs.temp <= (yrs.temp[1])] #pulls first year bin
+    print(paste0("Starting Year for ", site.temp, " is ", first.yrs))
+    site.yrs.first <- paste0(site.temp, "_", first.yrs)
+    #create average community of first 5 years 
+    bbs_cast_first <- bbs_cast2[rownames(bbs_cast2) %in% site.yrs.first,]
+    first.comm.temp <- bbs_cast_first 
+    #get remaining years 
+    other.yrs.temp <- yrs.temp[yrs.temp > (yrs.temp[1])]
+    #Now loop the remaining years 
+    for (y in 1:length(other.yrs.temp)){
+      other.yr.temp <- other.yrs.temp[y] #pull out another yr
+      other.site.temp <- paste0(site.temp, "_", other.yr.temp) #make the unique id
+      bbs_cast_other <- bbs_cast2[rownames(bbs_cast2) == other.site.temp,] #pull the comm data
+      bbs_cast_other <- rbind(bbs_cast_other, first.comm.temp) #put the current yr and baseline
+      beta.temp <- vegdist(sqrt(sqrt(bbs_cast_other)), method = "jaccard") #calc jaccard disim
+      beta.matrix$beta50[beta.matrix$unique_id == other.site.temp] <- beta.temp #store it in df
+    }
+  }}
+
 beta.total <- left_join(beta.matrix, beta.mcmc, by = "unique_id")
 beta.total <- beta.total %>% rename(beta.mcmc = mean.beta, beta.mcmc.sd = beta.sd)
 
@@ -547,7 +619,7 @@ bbs_total <- merge(bbs_total, site_alpha, by = "unique_id")
 
 
 #Calculate slopes for B diversity
-slopes_sites_beta <- data.frame(site.list, beta.slope = NA, beta.slope.mcmc = NA)
+slopes_sites_beta <- data.frame(site.list, beta.slope = NA, beta.slope.mcmc = NA, beta50.slope = NA)
 
 for (i in 1:n.sites){
   site.temp <- site.list[i]
@@ -556,10 +628,13 @@ for (i in 1:n.sites){
   if (nrow(bbs_total_temp) > 1){
     lm.temp <- lm(bbs_total_temp$beta ~ bbs_total_temp$Year)
     lm.temp2 <- lm(bbs_total_temp$beta.mcmc ~ bbs_total_temp$Year)
+    lm.temp3 <- lm(bbs_total_temp$beta50 ~ bbs_total_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
     slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
+    slope.temp3 <- summary(lm.temp3)$coefficients[2,1]
     slopes_sites_beta[i,2] <- slope.temp
     slopes_sites_beta[i,3] <- slope.temp2
+    slopes_sites_beta[i,4] <- slope.temp3
   }
 }
 
@@ -569,38 +644,43 @@ t.test(slopes_sites_beta$beta.slope, mu = 0)
 hist(slopes_sites_beta$beta.slope.mcmc)
 t.test(slopes_sites_beta$beta.slope.mcmc, mu = 0)
 
+hist(slopes_sites_beta$beta50.slope)
+t.test(slopes_sites_beta$beta50.slope, mu = 0)
+
 #####Cleaned to this point#####
 ###############################
 
 #Create a DF that calculates beta and alpha diversity in the year_bin formats
 #for models 
-bbs_bin <- bbs_total %>% select(rteno.x, site, BCR, Site_div.x, rtename, Yr_bin, beta, beta.mcmc, SR_MCMC) %>%
+bbs_bin <- bbs_total %>% select(rteno.x, site, BCR, Site_div.x, rtename, Yr_bin, beta, beta50, beta.mcmc, SR_MCMC, SR50) %>%
   group_by(site, Yr_bin) %>% summarize(beta = mean(beta), alpha = mean(Site_div.x), beta.mcmc = mean(beta.mcmc),
-                                       alpha.mcmc = mean(SR_MCMC))
+                                       alpha.mcmc = mean(SR_MCMC), alpha50 = mean(SR50), beta50 = mean(beta50))
 
 
 bbs_bin$unique_id <- paste0(bbs_bin$site, "_", bbs_bin$Yr_bin)
 
 #Plots for Beta Diversity
 
-gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$beta.slope)) + 
-  geom_histogram(col = "black", fill = "black", bins = 10, binwidth = NULL) + 
+gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$beta50.slope)) + 
+  #geom_histogram(col = "black", fill = "black", bins = 10, binwidth = NULL) + 
+  geom_density(alpha = 0.4, fill = "#440154FF") +
   labs(title = "") +
   labs(x = expression(paste("Slopes of ", beta, "-diversity")), y = "# of Sites") +
-  theme_cowplot(font_size = 14, line_size = 1.2) +
+  theme_cowplot(font_size = 20, line_size = 1.2) +
   coord_flip()
 
 #site_data_merge$Year <- site_data_merge$count_yr + 1900
 
 
-plot_beta <- (ggplot(bbs_total, aes(x = Yr_bin, y = beta.mcmc, group = site, 
+plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta50, group = BCR, 
                                           colour = factor(BCR, 
-                                                          labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
+                                                          labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
-                geom_smooth(method = lm, se = FALSE, aes(x = Yr_bin, y = beta.mcmc, group = site, 
+                geom_smooth(method = loess, se = T, aes(x = Year, y = beta50, group = BCR, 
                                                          colour = factor(BCR,
-                                                                         labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
+                                                                         labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie")))) +
+                #scale_color_brewer(palette = )
                 xlab("Year") +
                 ylab(expression(paste(beta, "-diversity"))) +
                 labs(colour = "Bird Conservation Region") +
@@ -610,8 +690,8 @@ plot_beta <- (ggplot(bbs_total, aes(x = Yr_bin, y = beta.mcmc, group = site,
                 #scale_y_continuous(limits = c(0,1), expand = c(0, 0), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1)) +
                 theme_bw() +
                 theme(axis.line = element_line(colour = "black", size =1.2),
-                      axis.text.x = element_text(size = 14),
-                      axis.text.y = element_text(size = 14),
+                      axis.text.x = element_text(size = 20),
+                      axis.text.y = element_text(size = 20),
                       axis.title.x = element_text(vjust = -1, size = 14),
                       axis.title.y = element_text(vjust = 1.5, size = 14),
                       axis.ticks = element_line(size = 1.2),
@@ -620,12 +700,14 @@ plot_beta <- (ggplot(bbs_total, aes(x = Yr_bin, y = beta.mcmc, group = site,
                       panel.border = element_blank(),
                       panel.background = element_blank(),
                       plot.margin = unit(c(1,1,2,2), "lines"),
-                      text = element_text(size=14)))
+                      text = element_text(size=20))) 
+
+plot_beta <- plot_beta + scale_color_viridis(discrete = T)
 
 ggdraw() + 
   draw_plot(plot_beta + theme(legend.justification = "top"), 
             x = 0, y = 0, width = .9, height = 1) +
-  draw_plot(gghist_beta, x = 0.75, y = .025, width = .2, height = .75, scale = 1) 
+  draw_plot(gghist_beta, x = 0.65, y = .025, width = .2, height = .75, scale = 1) 
 
 #Species Richness Trends GoM
 #Add a column to Summary_Stats to indicate 5 year bin to look at long term trends
@@ -1310,7 +1392,8 @@ bbs_full <- as.data.frame(bbs_full)
 
 bbs_full <- bbs_full %>% mutate(scale.alpha = scale(alpha), scale.alphamcmc = scale(alpha.mcmc))
 
-bbs_full <- bbs_full %>% group_by(site) %>% mutate(alpha.change = alpha - first(alpha), alphamcmc.change = alpha.mcmc - first(alpha.mcmc))
+bbs_full <- bbs_full %>% group_by(site) %>% mutate(alpha.change = alpha - first(alpha), alphamcmc.change = alpha.mcmc - first(alpha.mcmc),
+                                                   alpha50.change = alpha50 - first(alpha50))
 #Pulls out the first and last year
 bbs_short <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(c(1, n())) 
 
@@ -1380,7 +1463,7 @@ bbs_full <- merge(bbs_full, cmrl.occ, by = "unique_id")
 
 #max.anom.s & p.anom.f explain most variation in multiple LM for climate (20% together)
 #This model explains 32% variation w/o alpha
-mod.last <- lm(data = bbs_last, beta.reg ~ scale.alpha + p.anom.wet.s + p.anom.dry.s)
+mod.last <- lm(data = bbs_last, beta.mcmc ~ alpha.mcmc + p.anom + Latitude + p.anom)
 summary(mod.last)
 Anova(mod.last)
 
@@ -1391,22 +1474,87 @@ summary(lm(bbs_last$beta.mcmc ~ bbs_last$mean.anom.bird))
 #Again anomalies of fall precipitation interestingly explaining variation, tmax.c, tmean.c, tmax.bird.c,  
 #Sig LULC terms: Pct_wetland, scale.pdew, scale.pdur (negative relationship), scale.pdwet,
 #
-mod.last.a <- lm(data = bbs_last, alphamcmc.change ~ max.anom.wet + p.anom.wet + p.anom.dry + scale.pdur + Latitude)
+mod.last.a <- lm(data = bbs_last, alpha50.change ~ max.anom.wet + p.anom.wet + p.anom.dry + scale.pdur + Latitude)
 summary(mod.last.a)
 Anova(mod.last.a)
 
+bbs_last <- bbs_last %>% mutate(alpha50.s = scale(alpha50))
 
+betareg.last50 <- betareg::betareg(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + p.anom.dry + diff.from.first.ww, link = "logit")
+summary(betareg.last50)
 
+summary(mod.last50)
 
+reg1 <- lm(data = bbs.last.corr, beta50 ~ p.anom.wet + diff.from.first.ww)
+res1 <- resid(reg1)
+reg2 <- lm(data = bbs.last.corr, alpha50 ~ p.anom.wet + diff.from.first.ww)
+res2 <- resid(reg2)
 
+reg3 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + diff.from.first.ww)
+res3 <- resid(reg3)
+reg4 <- lm(data = bbs.last.corr, p.anom.wet ~ alpha50 + diff.from.first.ww)
+res4 <- resid(reg4)
 
+reg5 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet)
+res5 <- resid(reg5)
+reg6 <- lm(data = bbs.last.corr, diff.from.first.ww ~ alpha50 + p.anom.wet)
+res6 <- resid(reg6)
 
+# reg7 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + diff.from.first.ww)
+# res7 <- resid(reg7)
+# reg8 <- lm(data = bbs.last.corr, diff.from.first.ur ~ alpha50 + p.anom.wet + diff.from.first.ww)
+# res8 <- resid(reg8)
 
+mod.a <- lm(res1 ~ res2)
+mod.p <- lm(res3 ~ res4)
+mod.ww <- lm(res5 ~ res6)
+#mod.ur <- lm(res7 ~ res8)
 
+ggplotRegression(mod.a)
+ggplotRegression(mod.p)
+ggplotRegression(mod.ww)
+#ggplotRegression(mod.ur)
 
+reg.a <- lm(data = bbs_last, beta50 ~ alpha50)
+ggplotRegression(reg.a)
 
+reg.p <- lm(data = bbs_last, beta50 ~ p.anom.wet)
+ggplotRegression(reg.p)
 
+reg.ww <- lm(data = bbs_last, beta50 ~ diff.from.first.ww)
+ggplotRegression(reg.ww)
 
+cookd <- cooks.distance(mod.last50)
+plot(cookd)
+abline(h = 4*(mean(cookd, na.rm = T)))
+
+influential <- as.numeric(names(cookd)[(cookd > 4*mean(cookd, na.rm = T))])
+bbs.last.corr <- bbs_last[c(-18, -26, -27, -28, -29, -95), ]
+
+library(ggplot2)
+ggplot(bbs.last.corr, aes(x = diff.from.first.ww, y = beta50)) +
+  geom_point(size = 4, aes(fill = NULL), shape = 21) +
+  scale_fill_grey() +
+  # geom_line(aes(y = predict(gy_loglog, GasolineYield),
+  #               colour = "log-log", linetype = "log-log")) +
+  geom_line(aes(y = predict(betareg.last50, bbs.last.corr), 
+                colour = "logit", linetype = "logit")) +
+  scale_colour_manual("", values = c("red", "blue")) +
+  scale_linetype_manual("", values = c("solid", "dashed")) +
+  theme_bw()
+
+pacman::p_load(ggmap, maps)
+
+states <- map_data("state")
+dim(states)
+head(states)
+gom <- subset(states, region %in% c("texas", "florida", "alabama", "mississippi", "louisiana"))
+  map_gom <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(1) +
+           geom_point(data = bbs_last, aes(x = Longitude, y = Latitude, color = beta50), size = 3) 
+           
+box.thing <- make_bbox(lon = bbs_last$Longitude, lat = bbs_last$Latitude, f = 0.1) 
+
+map_gom + scale_color_viridis(name = expression(paste(beta, "-Diversity"))) + theme_map()  
 ################################################################################################################################
 #######################################Confirming Assumptions of Data before selecting Model####################################
 ################################################################################################################################
@@ -1659,7 +1807,7 @@ data.scores$grp1 <- ww.mds
 
 mds_plot <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = ww.mds), level = 0.50) +
-  geom_point(aes(x = NMDS1, y = NMDS2, shape = , colour = ww.mds), size=2) +
+  geom_point(aes(x = NMDS1, y = NMDS2, shape = ww.mds, colour = ww.mds), size=2) +
   scale_colour_manual(values = c("#0072B2", "#009E73", "#999999"))
 
 mds_plot + labs(color = "Wetland Cover Types")
