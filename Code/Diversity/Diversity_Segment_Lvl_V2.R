@@ -1548,13 +1548,12 @@ pacman::p_load(ggmap, maps)
 states <- map_data("state")
 dim(states)
 head(states)
-gom <- subset(states, region %in% c("texas", "florida", "alabama", "mississippi", "louisiana"))
-  map_gom <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(1) +
-           geom_point(data = bbs_last, aes(x = Longitude, y = Latitude, color = beta50), size = 3) 
-           
+gom <- subset(states, region %in% c("texas", "florida", "alabama", "arkansas", "mississippi", "louisiana", "georgia"))
+map_gom <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(bbs_last$Longitude) - 1.5, max(bbs_last$Longitude)), ylim = c(min(bbs_last$Latitude), max(bbs_last$Latitude) + 2.5), ratio = 1.2) +
+           geom_point(data = bbs_last, aes(x = Longitude, y = Latitude, color = beta50), size = 3)
 box.thing <- make_bbox(lon = bbs_last$Longitude, lat = bbs_last$Latitude, f = 0.1) 
 
-map_gom + scale_color_viridis(name = expression(paste(beta, "-Diversity"))) + theme_map()  
+map_gom + scale_color_viridis(name = expression(paste(beta, "-diversity"))) + theme_map() + theme(legend.position = c(0.09, .75), legend.title = element_text(size = 15), legend.text = element_text(size = 15))  
 ################################################################################################################################
 #######################################Confirming Assumptions of Data before selecting Model####################################
 ################################################################################################################################
