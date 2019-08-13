@@ -1474,9 +1474,18 @@ summary(lm(bbs_last$beta.mcmc ~ bbs_last$mean.anom.bird))
 #Again anomalies of fall precipitation interestingly explaining variation, tmax.c, tmean.c, tmax.bird.c,  
 #Sig LULC terms: Pct_wetland, scale.pdew, scale.pdur (negative relationship), scale.pdwet,
 #
-mod.last.a <- lm(data = bbs_last, alpha50.change ~ max.anom.wet + p.anom.wet + p.anom.dry + scale.pdur + Latitude)
+mod.last.a <- lm(data = bbs.last.corra, alpha50.change ~ max.anom.sp + p.anom.wet + p.anom.dry + diff.from.first.ur)
 summary(mod.last.a)
 Anova(mod.last.a)
+avPlots(mod.last.a)
+
+cookd.a <- cooks.distance(mod.last.a)
+plot(cookd.a)
+abline(h = 4*mean(cookd.a))
+influential.a <- as.numeric(names(cookd.a)[(cookd.a > 4*mean(cookd.a, na.rm = T))])
+influential.a
+bbs.last.corra <- bbs_last[-influential.a, ]
+
 
 bbs_last <- bbs_last %>% mutate(alpha50.s = scale(alpha50))
 
@@ -1485,35 +1494,35 @@ summary(betareg.last50)
 
 summary(mod.last50)
 
-reg1 <- lm(data = bbs.last.corr, beta50 ~ p.anom.wet + diff.from.first.ww)
+reg1 <- lm(data = bbs.last.corr, beta50 ~ p.anom.wet + diff.from.first.ww + change.cmrl)
 res1 <- resid(reg1)
-reg2 <- lm(data = bbs.last.corr, alpha50 ~ p.anom.wet + diff.from.first.ww)
+reg2 <- lm(data = bbs.last.corr, alpha50 ~ p.anom.wet + diff.from.first.ww + change.cmrl)
 res2 <- resid(reg2)
 
-reg3 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + diff.from.first.ww)
+reg3 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + diff.from.first.ww + change.cmrl)
 res3 <- resid(reg3)
-reg4 <- lm(data = bbs.last.corr, p.anom.wet ~ alpha50 + diff.from.first.ww)
+reg4 <- lm(data = bbs.last.corr, p.anom.wet ~ alpha50 + diff.from.first.ww + change.cmrl)
 res4 <- resid(reg4)
 
-reg5 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet)
+reg5 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + change.cmrl)
 res5 <- resid(reg5)
-reg6 <- lm(data = bbs.last.corr, diff.from.first.ww ~ alpha50 + p.anom.wet)
+reg6 <- lm(data = bbs.last.corr, diff.from.first.ww ~ alpha50 + p.anom.wet + change.cmrl)
 res6 <- resid(reg6)
 
-# reg7 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + diff.from.first.ww)
-# res7 <- resid(reg7)
-# reg8 <- lm(data = bbs.last.corr, diff.from.first.ur ~ alpha50 + p.anom.wet + diff.from.first.ww)
-# res8 <- resid(reg8)
+reg7 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + diff.from.first.ww)
+res7 <- resid(reg7)
+reg8 <- lm(data = bbs.last.corr, change.cmrl ~ alpha50 + p.anom.wet + diff.from.first.ww)
+res8 <- resid(reg8)
 
 mod.a <- lm(res1 ~ res2)
 mod.p <- lm(res3 ~ res4)
 mod.ww <- lm(res5 ~ res6)
-#mod.ur <- lm(res7 ~ res8)
+mod.cmrl <- lm(res7 ~ res8)
 
 ggplotRegression(mod.a)
 ggplotRegression(mod.p)
 ggplotRegression(mod.ww)
-#ggplotRegression(mod.ur)
+ggplotRegression(mod.cmrl)
 
 reg.a <- lm(data = bbs_last, beta50 ~ alpha50)
 ggplotRegression(reg.a)
@@ -1524,12 +1533,16 @@ ggplotRegression(reg.p)
 reg.ww <- lm(data = bbs_last, beta50 ~ diff.from.first.ww)
 ggplotRegression(reg.ww)
 
+mod.last50 <- lm(data = bbs.last.corr, beta50 ~ change.cmrl + alpha50 + p.anom.wet + diff.from.first.ww)
+summary(mod.last50)
+avPlots(mod.last50)
+
 cookd <- cooks.distance(mod.last50)
 plot(cookd)
 abline(h = 4*(mean(cookd, na.rm = T)))
 
 influential <- as.numeric(names(cookd)[(cookd > 4*mean(cookd, na.rm = T))])
-bbs.last.corr <- bbs_last[c(-18, -26, -27, -28, -29, -95), ]
+bbs.last.corr <- bbs_last[-influential, ]
 
 library(ggplot2)
 ggplot(bbs.last.corr, aes(x = diff.from.first.ww, y = beta50)) +
@@ -1621,7 +1634,7 @@ ggplotRegression <- function (fit) {
     labs(title = paste("Adj R2 = ",signif(summary(fit)$adj.r.squared, 5),
                        "Intercept =",signif(fit$coef[[1]],5 ),
                        " Slope =",signif(fit$coef[[2]], 5),
-                       " P =",signif(summary(fit)$coef[2,4], 5)), x = "Percent Urban", y = ("Beta Diversity"))}
+                       " P =",signif(summary(fit)$coef[2,4], 5)))}#, x = "Percent Urban", y = ("Beta Diversity"))}
 
 ggplotRegression(beta.ur)
 
@@ -1806,10 +1819,16 @@ data.scores$grp1 <- ww.mds
 
 mds_plot <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = ww.mds), level = 0.50) +
-  geom_point(aes(x = NMDS1, y = NMDS2, shape = ww.mds, colour = ww.mds), size=2) +
-  scale_colour_manual(values = c("#0072B2", "#009E73", "#999999"))
+  geom_point(aes(x = NMDS1, y = NMDS2, colour = ww.mds, shape = ww.mds), size=2) +
+  scale_colour_manual(name = "Wetland Cover Types", 
+                      labels = c("Emergent Wetland Dominated", "Mix", "Woody Wetland Dominated"),
+                      values = c("#0072B2", "#009E73", "#999999")) +
+  scale_shape_manual(name = "Wetland Cover Types",
+                     labels = c("Emergent Wetland Dominated", "Mix", "Woody Wetland Dominated"),
+                     values = c(0, 16, 3))
 
-mds_plot + labs(color = "Wetland Cover Types")
+mds_plot #+ labs(color = "Wetland Cover Types", shape = "Wetland Cover Type") + scale_shape_manual(values = c(0, 16, 3))
+
 
 adon.results <- adonis(occ_mds_cast ~ ww.mds, method = "jaccard", perm = 999)
 
