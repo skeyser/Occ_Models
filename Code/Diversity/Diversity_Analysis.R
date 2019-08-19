@@ -12,12 +12,11 @@ pacman::p_load("here", "tidyverse", "reshape2", "vegan", "data.table", "cowplot"
 
 
 #load in the workspace with data 
-load(here::here("R Workspace/Diversity_Script_Clean.RData"))
-#load(here::here("R Workspace/Diversity_Script_Full.RData"))
+#load(here::here("R Workspace/Diversity_Script_Clean.RData"))
+load(here::here("R Workspace/Diversity_Script_Full.RData"))
 
 
 #Mapping distribution of Beta-diversity across GoM
-pacman::p_load()
 
 states <- map_data("state")
 dim(states)
@@ -53,9 +52,9 @@ lc.mds <- lc.mds[!duplicated(lc.mds), ]
 #ww11.site <- unique(ww.mds$site.x)
 ww.mds <- lc.mds %>% arrange(site)
 ww.mds$groups <- NA
-ww.mds$groups[ww.mds$ratio.ww <= 1] <- "Emergent Wetland Dominated"
-#ww.mds$groups[ww.mds$ratio.ww >= 0.8 & ww.mds$ratio.ww <= 1.2] <- "Mix"
-ww.mds$groups[ww.mds$ratio.ww > 1] <- "Woody Wetland Dominated"
+ww.mds$groups[ww.mds$ratio.ww <= 0.5] <- "Emergent Wetland Dominated"
+ww.mds$groups[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mix"
+ww.mds$groups[ww.mds$ratio.ww > 1.5] <- "Woody Wetland Dominated"
 ww.mds <- ww.mds$groups
 
 ur.mds <- lc.mds %>% arrange(site)
@@ -79,13 +78,17 @@ data.scores$site <- rownames(data.scores)
 data.scores$grp1 <- ww.mds
 #data.scores$grp2 <- ur.mds
 
-
 mds_plot <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = ww.mds), level = 0.50) +
-  geom_point(aes(x = NMDS1, y = NMDS2, shape = , colour = ww.mds), size=2) +
-  scale_fill_manual(values = )
+  geom_point(aes(x = NMDS1, y = NMDS2, colour = ww.mds, shape = ww.mds), size=2) +
+  scale_colour_manual(name = "Wetland Cover Types", 
+                      labels = c("Emergent Wetland Dominated", "Mix", "Woody Wetland Dominated"),
+                      values = c("#0072B2", "#009E73", "#999999")) +
+  scale_shape_manual(name = "Wetland Cover Types",
+                     labels = c("Emergent Wetland Dominated", "Mix", "Woody Wetland Dominated"),
+                     values = c(0, 16, 3))
 
-mds_plot + labs(color = "Wetland Cover Types")
+mds_plot 
 
 adon.results <- adonis(mds_cast ~ ww.mds, method = "jaccard", perm = 999)
 
@@ -118,7 +121,7 @@ ww.mds <- lc.mds %>% arrange(site)
 ww.mds$groups <- NA
 ww.mds$groups[ww.mds$ratio.ww <= 1] <- "Emergent Wetland Dominated"
 ww.mds$groups[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mixed"
-ww.mds$groups[ww.mds$ratio.ww > 1] <- "Woody Wetland Dominated"
+ww.mds$groups[ww.mds$ratio.ww > 1.5] <- "Woody Wetland Dominated"
 ww.mds <- ww.mds$groups
 
 occ.mds <- occ.mds %>% arrange(site)
@@ -288,10 +291,8 @@ bbs_last <- bbs_last %>% mutate(alpha50.s = scale(alpha50))
 betareg.last50 <- betareg::betareg(data = bbs_last, beta50 ~ alpha50.s + p.anom.wet.s + p.anom.dry.s + scale.pdww, link = "logit")
 summary(betareg.last50)
 
-summary(mod.last50)
-
-
-
+pacman::p_load(betareg)
+install.packages("betareg")
 ################################################################################################################################
 #######################################Confirming Assumptions of Data before selecting Model####################################
 ################################################################################################################################
