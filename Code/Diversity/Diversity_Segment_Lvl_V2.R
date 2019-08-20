@@ -1393,9 +1393,16 @@ bbs_full <- as.data.frame(bbs_full)
 bbs_full <- bbs_full %>% mutate(scale.alpha = scale(alpha), scale.alphamcmc = scale(alpha.mcmc))
 
 bbs_full <- bbs_full %>% group_by(site) %>% mutate(alpha.change = alpha - first(alpha), alphamcmc.change = alpha.mcmc - first(alpha.mcmc),
-                                                   alpha50.change = alpha50 - first(alpha50))
+                                                   alpha50.change = alpha50 - first(alpha50), alpha.pchange = ((alpha - first(alpha)) / first(alpha)) * 100,
+                                                   alpha50.pchange = ((alpha50 - first(alpha50)) / first(alpha50)) * 100, alphamcmc.pchange = ((alpha.mcmc - first(alpha.mcmc)) / first(alpha.mcmc)) * 100)
+
+
+
+
 #Pulls out the first and last year
 bbs_short <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(c(1, n())) 
+
+
 
 #Pulls out just the last
 bbs_last <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(n())
