@@ -231,10 +231,11 @@ ggplotRegression(mod.ww)
 #Again anomalies of fall precipitation interestingly explaining variation, tmax.c, tmean.c, tmax.bird.c,  
 #Sig LULC terms: Pct_wetland, scale.pdew, scale.pdur (negative relationship), scale.pdwet,
 #
-mod.last.a <- lm(data = bbs_last, alpha50.change ~ max.anom.sp + p.anom.wet + p.anom.dry) #+ diff.from.first.ur + diff.from.first.ww)
+mod.last.a <- lmer(data = bbs_last, alpha50.pchange ~ max.anom.sp + p.anom.wet + p.anom.dry + diff.from.first.ur + (1 | Year))  #+ diff.from.first.ur + diff.from.first.ww)
 summary(mod.last.a)
 Anova(mod.last.a)
 avPlots(mod.last.a)
+tab_model(mod.last.a)
 
 cookd.a <- cooks.distance(mod.last.a)
 plot(cookd.a)
@@ -243,8 +244,10 @@ influential.a <- as.numeric(names(cookd.a)[(cookd.a > 4*mean(cookd.a, na.rm = T)
 influential.a
 bbs.last.corra <- bbs_last[-influential.a, ]
 
-mod.last.a <- lm(data = bbs.last.corra, alpha50.change ~ max.anom.sp + p.anom.wet + p.anom.dry) #+ diff.from.first.ur + diff.from.first.ww)
+mod.last.a <- lmer(data = bbs.last.corra, alpha50.pchange ~ max.anom.sp + p.anom.wet + p.anom.dry + diff.from.first.ur + (1 | Year)) # + diff.from.first.ur + diff.from.first.ww)
 summary(mod.last.a)
+Anova(mod.last.a)
+tab_model(mod.last.a)
 
 reg.a1 <- lm(data = bbs.last.corra, alpha50.change ~ p.anom.wet + p.anom.dry) #+ diff.from.first.ur + diff.from.first.ww)
 res.a1 <- resid(reg.a1)
@@ -274,8 +277,8 @@ res.a6 <- resid(reg.a6)
 mod.t1 <- lm(res.a1 ~ res.a2)
 mod.p1 <- lm(res.a3 ~ res.a4)
 mod.p2 <- lm(res.a5 ~ res.a6)
-# mod.ww1 <- lm(res.a7 ~ res.a8)
-# mod.ur <- lm(res.a9 ~ res.a10)
+# mod.ur <- lm(res.a7 ~ res.a8)
+# mod.ww1 <- lm(res.a9 ~ res.a10)
 
 ggplotRegression(mod.t1)
 ggplotRegression(mod.p1)
