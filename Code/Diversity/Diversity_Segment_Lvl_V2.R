@@ -388,8 +388,50 @@ bbs_total$Yr_bin[bbs_total$Year >= 2000 & bbs_total$Year <= 2004] <- 5
 bbs_total$Yr_bin[bbs_total$Year >= 2005 & bbs_total$Year <= 2009] <- 6
 bbs_total$Yr_bin[bbs_total$Year >= 2010 & bbs_total$Year <= 2014] <- 7
 bbs_total$Yr_bin[bbs_total$Year >= 2015 & bbs_total$Year <= 2018] <- 8
-  
-  
+
+#Creating DF with only Wetland Species for Calculating Beta Div
+#Load in the Army Corps Data
+#Bring in AOU for merging 
+aou <- species[, c("AOU", "Genus", "Species")]
+aou$species <- paste0(aou$Genus, " ", aou$Species)
+aou <- aou[, c("AOU", "species")]
+
+#Fixing some annoying name issues
+aou[aou$species == "Antigone canadensis", 2] <- "Grus canadensis"
+aou[aou$species == "Spinus psaltria", 2] <- "Carduelis psaltria"
+aou[aou$species == "Hydroprogne caspia", 2] <- "Sterna caspia" 
+
+#Read in the nesting DF
+nest <- read.csv(here::here("Functional_Traits/Army_Corps_Bird_Data.csv"), stringsAsFactors = F)
+
+#Create a list of birds from the complete DF
+bbs.spp <- data.frame(species = unique(final_sp_df$sci_name))
+bbs.spp$species <- as.character(bbs.spp$species)
+
+#Make list of birds from the nesting DF
+nest.spp <- nest[, c("AOU", "SCIENTIFIC_NAME")]
+nest.spp$SCIENTIFIC_NAME <- as.character(nest.spp$SCIENTIFIC_NAME)
+
+#Merge the species list with the AOU for future merging
+bbs.spp <- merge(bbs.spp, aou, by = "species")
+
+#Northern Flicker wasn't matching up 
+bbs.spp[bbs.spp$AOU == 4123, 2] <- 4120
+
+
+bbs_nest <- merge(bbs.spp, nest, by = "AOU")
+bbs_nest <- bbs_nest %>% dplyr::select(-c("SCIENTIFIC_NAME"))
+
+#Get habitats in with the full spp_df
+bbs_nest <- merge(final_sp_df, bbs_nest, by.x = "sci_name", by.y = "species")
+
+#Create vector of habitats we want
+habs <- c("Coastal", "Swamp/Marsh", "Shoreline")
+
+#Filter the DF with the specific habitats 
+bbs_nest <- bbs_nest %>% filter(grepl(paste(habs, collapse = "|"), HABITAT))
+
+
 #Mean SR for each route
 bbs_total$site <- as.character(bbs_total$site)
 Site.means <- bbs_total %>% group_by(site) %>%
@@ -423,15 +465,32 @@ colnames(Bins) <- l
 Bins$Year <- 1980:2019
 Bins$Yr_bin <- rep(2:9, times = 1, each = 5)
 
-
-
-
 #Read in Occ Data 50 cutoff
 occ <- read.csv(here::here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
 
 #Merge it with the year bins 
 occ <- merge(occ, Bins, by = "Year")
 occ$unique_id <- paste0(occ$site, "_", occ$Year)
+
+#Making a occ DF with only wetland birds
+occ.spp <- data.frame(species = unique(occ$Species))
+occ.spp$species <- as.character(occ.spp$species)
+
+#Merge the species list with the AOU for future merging
+occ.spp <- merge(occ.spp, aou, by = "species")
+
+#Northern Flicker wasn't matching up 
+bbs.spp[bbs.spp$AOU == 4123, 2] <- 4120
+
+#Bring in the AOU for cleaner merging 
+#Names of birds constantly changing 
+occ_nest <- merge(occ.spp, nest, by = "AOU")
+occ_nest <- occ_nest %>% dplyr::select(-c("SCIENTIFIC_NAME"))
+
+#Get habitats in with the full spp_df
+occ_nest <- merge(occ, occ_nest, by.x = "Species", by.y = "species")
+occ.wet <- occ_nest %>% filter(grepl(paste(habs, collapse = "|"), HABITAT))
+
 
 #Cast spp x site_yr.bin
 bbs_cast2 <- dcast(occ, unique_id ~ Species, value.var = "Occupancy", fun.aggregate = sum)
@@ -447,6 +506,7 @@ occSR <- occSR[order(occSR$unique_id), ]
 bbs_cast2 <- bbs_cast2[order(rownames(bbs_cast2)), ]
 occSR$SR50 <- rowSums(bbs_cast2)
 occSR$unique_id <- as.character(occSR$unique_id)
+
 #Initializing DFs for loops 
 n.sites <- length(unique(bbs_total$site))
 site.list <- as.character(unique(bbs_total$site))
