@@ -186,7 +186,7 @@ ggplotRegression <- function (fit) {
 #Occ 50 Results
 
 #This model explains 35% variation
-mod.last <- lm(data = bbs_last, beta50 ~ alpha50 + p.anom.wet + diff.from.first.ww)
+mod.last <- lm(data = bbs_last, beta50 ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
 summary(mod.last)
 Anova(mod.last)
 
@@ -200,9 +200,9 @@ influential.points <- as.numeric(names(mod.last.outlier)[(mod.last.outlier > 4*m
 bbs.last.corr <- bbs_last[-influential.points, ]
 
 #Run the model without the outliers 
-mod.last <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + diff.from.first.ww)
+mod.last <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
 summary(mod.last)
-Anova(mod.last)
+#Anova(mod.last)
 
 #Partial Regression Models 
 reg1 <- lm(data = bbs.last.corr, beta50 ~ p.anom.wet + diff.from.first.ww)
@@ -215,9 +215,9 @@ res3 <- resid(reg3)
 reg4 <- lm(data = bbs.last.corr, p.anom.wet ~ alpha50 + diff.from.first.ww)
 res4 <- resid(reg4)
 
-reg5 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet)
+reg5 <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + p.anom.dry + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
 res5 <- resid(reg5)
-reg6 <- lm(data = bbs.last.corr, diff.from.first.ww ~ alpha50 + p.anom.wet)
+reg6 <- lm(data = bbs.last.corr, mean.anom.bird ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ew + diff.from.first.ur + Duration)
 res6 <- resid(reg6)
 
 mod.a <- lm(res1 ~ res2)
@@ -231,11 +231,11 @@ ggplotRegression(mod.ww)
 #Again anomalies of fall precipitation interestingly explaining variation, tmax.c, tmean.c, tmax.bird.c,  
 #Sig LULC terms: Pct_wetland, scale.pdew, scale.pdur (negative relationship), scale.pdwet,
 #
-mod.last.a <- lmer(data = bbs_last, alpha50.pchange ~ max.anom.sp + p.anom.wet + p.anom.dry + diff.from.first.ur + (1 | Year))  #+ diff.from.first.ur + diff.from.first.ww)
+mod.last.a <- lm(data = bbs_last, alpha50.pchange ~ max.anom.sp + p.anom.wet + p.anom.dry + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)  #+ diff.from.first.ur + diff.from.first.ww)
 summary(mod.last.a)
-Anova(mod.last.a)
+#Anova(mod.last.a)
 avPlots(mod.last.a)
-tab_model(mod.last.a)
+#tab_model(mod.last.a)
 
 cookd.a <- cooks.distance(mod.last.a)
 plot(cookd.a)
@@ -244,10 +244,10 @@ influential.a <- as.numeric(names(cookd.a)[(cookd.a > 4*mean(cookd.a, na.rm = T)
 influential.a
 bbs.last.corra <- bbs_last[-influential.a, ]
 
-mod.last.a <- lmer(data = bbs.last.corra, alpha50.pchange ~ max.anom.sp + p.anom.wet + p.anom.dry + diff.from.first.ur + (1 | Year)) # + diff.from.first.ur + diff.from.first.ww)
+mod.last.a <- lm(data = bbs.last.corra, alpha50.pchange ~ max.anom.sp + p.anom.wet + p.anom.dry + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration) # + diff.from.first.ur + diff.from.first.ww)
 summary(mod.last.a)
 Anova(mod.last.a)
-tab_model(mod.last.a)
+#tab_model(mod.last.a)
 
 reg.a1 <- lm(data = bbs.last.corra, alpha50.change ~ p.anom.wet + p.anom.dry) #+ diff.from.first.ur + diff.from.first.ww)
 res.a1 <- resid(reg.a1)
@@ -285,6 +285,58 @@ ggplotRegression(mod.p1)
 ggplotRegression(mod.p2)
 # ggplotRegression(mod.ww1)
 # ggplotRegression(mod.ur)
+
+####################Wetland Bird Analyses#################################
+
+#Beta Div
+mod.last <- lm(data = bbs_last, beta.wet ~ alpha.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
+summary(mod.last)
+avPlots(mod.last)
+
+#Pull out outliers from the data set 
+mod.last.outlier <- cooks.distance(mod.last)
+plot(mod.last.outlier)
+abline(h = 4*mean(mod.last.outlier))
+influential.points <- as.numeric(names(mod.last.outlier)[(mod.last.outlier > 4*mean(mod.last.outlier, na.rm = T))])
+
+#Remove the outliers from the data 
+bbs.last.corr <- bbs_last[-influential.points, ]
+weird.sites <- bbs_last[influential.points, ]
+
+
+#Run the model without the outliers 
+mod.last <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
+summary(mod.last)
+#Anova(mod.last)
+
+
+#Alpha Div
+mod.last.a <- lm(data = bbs_last, alphawet.pchange ~ mean.anom.bird + p.anom.wet + p.anom.dry + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
+summary(mod.last.a)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #####Running models with a Beta regression#####
