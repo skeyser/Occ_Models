@@ -491,27 +491,34 @@ occ_nest <- occ_nest %>% dplyr::select(-c("SCIENTIFIC_NAME"))
 occ_nest <- merge(occ, occ_nest, by.x = "Species", by.y = "species")
 occ.wet <- occ_nest %>% filter(grepl(paste(habs, collapse = "|"), HABITAT))
 
-
 #Cast spp x site_yr.bin
 bbs_cast2 <- dcast(occ, unique_id ~ Species, value.var = "Occupancy", fun.aggregate = sum)
 rownames(bbs_cast2) <- bbs_cast2$unique_id
 bbs_cast2 <- bbs_cast2[, -1]
 
+#Cast spp x site_year for wetland spp
+wet_cast <- dcast(occ.wet, unique_id ~ Species, value.var = "Occupancy", fun.aggregate = sum)
+rownames(wet_cast) <- wet_cast$unique_id
+wet_cast <- wet_cast[, -1]
+
 #Make all detections 1
 bbs_cast2[bbs_cast2 >= 1] <- 1
+wet_cast[wet_cast >= 1] <- 1
 
 #Calculate SR for 50 cutoff
-occSR <- data.frame(unique_id = rownames(bbs_cast2), SR50 = NA)
+occSR <- data.frame(unique_id = rownames(bbs_cast2), SR50 = NA, SR.wet = NA)
 occSR <- occSR[order(occSR$unique_id), ]
 bbs_cast2 <- bbs_cast2[order(rownames(bbs_cast2)), ]
+wet_cast <- wet_cast[order(rownames(wet_cast)), ]
 occSR$SR50 <- rowSums(bbs_cast2)
+occSR$SR.wet <- rowSums(wet_cast)
 occSR$unique_id <- as.character(occSR$unique_id)
 
 #Initializing DFs for loops 
 n.sites <- length(unique(bbs_total$site))
 site.list <- as.character(unique(bbs_total$site))
 
-slopes_sites <- data.frame(site.list, slope = NA, slope.mcmc = NA, slope50 = NA)
+slopes_sites <- data.frame(site.list, slope = NA, slope.mcmc = NA, slope50 = NA, slope.wet = NA)
 
 bbs_div_means <- bbs_total
 bbs_div_means <- bbs_div_means %>% left_join(sr.mcmc, by = "unique_id") %>% left_join(occSR, by = "unique_id")
@@ -526,30 +533,34 @@ for (i in 1:n.sites){
     lm.temp <- lm(site_total_temp$Site_div ~ site_total_temp$Year)
     lm.temp2 <- lm(site_total_temp$SR_MCMC ~ site_total_temp$Year)
     lm.temp3 <- lm(site_total_temp$SR50 ~ site_total_temp$Year)
+    lm.temp4 <- lm(site_total_temp$SR.wet ~ site_total_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
     slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
     slope.temp3 <- summary(lm.temp3)$coefficients[2,1]
+    slope.temp4 <- summary(lm.temp4)$coefficients[2,1]
     slopes_sites[i, 2] <- slope.temp
     slopes_sites[i, 3] <- slope.temp2
     slopes_sites[i, 4] <- slope.temp3
+    slopes_sites[i, 5] <- slope.temp4
   }
 }
 
 hist(slopes_sites$slope, breaks = 50)
 hist(slopes_sites$slope.mcmc, breaks = 50)
 hist(slopes_sites$slope50, breaks = 50)
+hist(slopes_sites$slope.wet, breaks = 50)
 
 slopes_sites$site <- as.character(slopes_sites$site.list)
-slopes_sites <- slopes_sites %>% dplyr::select(site, slope, slope.mcmc, slope50)
+slopes_sites <- slopes_sites %>% dplyr::select(site, slope, slope.mcmc, slope50, slope.wet)
 
 #Mean alpha at the site level 
 bbs_div_means <- bbs_div_means[, unique(colnames(bbs_div_means))]
-site_means <- bbs_div_means %>% select(Site_div, SR_MCMC, SR50, site)
+site_means <- bbs_div_means %>% select(Site_div, SR_MCMC, SR50, SR.wet, site)
 site_means <- site_means %>% group_by(site) %>% summarise(MeanDiv = mean(Site_div), MeanDivMCMC = mean(SR_MCMC),
-                                                          MeanDiv50 = mean(SR50))
+                                                          MeanDiv50 = mean(SR50), MeanDivWet = mean(SR.wet))
 
 #Alpha diversity at the site x yr level
-site_alpha <- bbs_div_means %>% select(Site_div, SR50, SR_MCMC, SD_MCMC, unique_id)
+site_alpha <- bbs_div_means %>% select(Site_div, SR50, SR_MCMC, SR.wet, SD_MCMC, unique_id)
 
 #Mean alpha and alpha slopes at the site level 
 site_means2 <- merge(site_means, slopes_sites, by = "site")
@@ -592,10 +603,10 @@ bbs_cast[bbs_cast >= 1] <- 1
 mean.betas <- data.frame(site.list, mean.beta = NA)
 
 #Create matrix for storing Betas 
-beta.matrix <- data.frame(unique_id = bbs_simple$unique_id, beta = NA, beta50 = NA)
+beta.matrix <- data.frame(unique_id = bbs_simple$unique_id, beta = NA, beta50 = NA, beta.wet = NA)
 beta.matrix$unique_id <- as.character(beta.matrix$unique_id)
 
-#Reove duplites
+#Remove duplites
 beta.matrix <- beta.matrix[!duplicated(beta.matrix),]
 
 #Loop through the sites so that we calculate beta based on year bins 
@@ -630,6 +641,7 @@ for (n in 1:n.sites){
   }}
 
 
+#Loop for Occ50 Matrix
 for (n in 1:n.sites){
   site.temp <- site.list[n]
   #Find all the years for which that site was surveys
@@ -660,6 +672,38 @@ for (n in 1:n.sites){
     }
   }}
 
+
+#Loop for wetland spp
+for (n in 1:n.sites){
+  site.temp <- site.list[n]
+  #Find all the years for which that site was surveys
+  yrs.temp <- unique(bbs_total[which(bbs_total$site == site.temp),"Year"])
+  yrs.temp <- yrs.temp[yrs.temp >= 1]
+  #only consider sites that were observed in more than 5 years 
+  if (length(yrs.temp) > 1){ #select all sites that have mre than 1 year bin 
+    #Create a baseline year from years temp
+    #Sorting
+    yrs.temp <- yrs.temp[order(yrs.temp)]
+    #find the first 5 years 
+    first.yrs <- yrs.temp[yrs.temp <= (yrs.temp[1])] #pulls first year bin
+    print(paste0("Starting Year for ", site.temp, " is ", first.yrs))
+    site.yrs.first <- paste0(site.temp, "_", first.yrs)
+    #create average community of first 5 years 
+    wet_cast_first <- wet_cast[rownames(wet_cast) %in% site.yrs.first,]
+    first.comm.temp <- wet_cast_first 
+    #get remaining years 
+    other.yrs.temp <- yrs.temp[yrs.temp > (yrs.temp[1])]
+    #Now loop the remaining years 
+    for (y in 1:length(other.yrs.temp)){
+      other.yr.temp <- other.yrs.temp[y] #pull out another yr
+      other.site.temp <- paste0(site.temp, "_", other.yr.temp) #make the unique id
+      wet_cast_other <- wet_cast[rownames(wet_cast) == other.site.temp,] #pull the comm data
+      wet_cast_other <- rbind(wet_cast_other, first.comm.temp) #put the current yr and baseline
+      beta.temp <- vegdist(sqrt(sqrt(wet_cast_other)), method = "jaccard") #calc jaccard disim
+      beta.matrix$beta.wet[beta.matrix$unique_id == other.site.temp] <- beta.temp #store it in df
+    }
+  }}
+
 beta.total <- left_join(beta.matrix, beta.mcmc, by = "unique_id")
 beta.total <- beta.total %>% rename(beta.mcmc = mean.beta, beta.mcmc.sd = beta.sd)
 
@@ -679,7 +723,7 @@ bbs_total <- merge(bbs_total, site_alpha, by = "unique_id")
 
 
 #Calculate slopes for B diversity
-slopes_sites_beta <- data.frame(site.list, beta.slope = NA, beta.slope.mcmc = NA, beta50.slope = NA)
+slopes_sites_beta <- data.frame(site.list, beta.slope = NA, beta.slope.mcmc = NA, beta50.slope = NA, betawet.slope = NA)
 
 for (i in 1:n.sites){
   site.temp <- site.list[i]
@@ -689,12 +733,15 @@ for (i in 1:n.sites){
     lm.temp <- lm(bbs_total_temp$beta ~ bbs_total_temp$Year)
     lm.temp2 <- lm(bbs_total_temp$beta.mcmc ~ bbs_total_temp$Year)
     lm.temp3 <- lm(bbs_total_temp$beta50 ~ bbs_total_temp$Year)
+    lm.temp4 <- lm(bbs_total_temp$beta.wet ~ bbs_total_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
     slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
     slope.temp3 <- summary(lm.temp3)$coefficients[2,1]
+    slope.temp4 <- summary(lm.temp4)$coefficients[2,1]
     slopes_sites_beta[i,2] <- slope.temp
     slopes_sites_beta[i,3] <- slope.temp2
     slopes_sites_beta[i,4] <- slope.temp3
+    slopes_sites_beta[i,5] <- slope.temp4
   }
 }
 
@@ -707,21 +754,23 @@ t.test(slopes_sites_beta$beta.slope.mcmc, mu = 0)
 hist(slopes_sites_beta$beta50.slope)
 t.test(slopes_sites_beta$beta50.slope, mu = 0)
 
-#####Cleaned to this point#####
-###############################
+hist(slopes_sites_beta$betawet.slope)
+t.test(slopes_sites_beta$betawet.slope, mu = 0)
+
 
 #Create a DF that calculates beta and alpha diversity in the year_bin formats
 #for models 
-bbs_bin <- bbs_total %>% select(rteno.x, site, BCR, Site_div.x, rtename, Yr_bin, beta, beta50, beta.mcmc, SR_MCMC, SR50) %>%
+bbs_bin <- bbs_total %>% select(rteno.x, site, BCR, Site_div.x, rtename, Yr_bin, beta, beta50, beta.mcmc, beta.wet, SR_MCMC, SR50, SR.wet) %>%
   group_by(site, Yr_bin) %>% summarize(beta = mean(beta), alpha = mean(Site_div.x), beta.mcmc = mean(beta.mcmc),
-                                       alpha.mcmc = mean(SR_MCMC), alpha50 = mean(SR50), beta50 = mean(beta50))
+                                       alpha.mcmc = mean(SR_MCMC), alpha50 = mean(SR50), beta50 = mean(beta50), alpha.wet = mean(SR.wet), 
+                                       beta.wet = mean(beta.wet))
 
 
 bbs_bin$unique_id <- paste0(bbs_bin$site, "_", bbs_bin$Yr_bin)
 
 #Plots for Beta Diversity
 
-gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$beta50.slope)) + 
+gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$betawet.slope)) + 
   #geom_histogram(col = "black", fill = "black", bins = 10, binwidth = NULL) + 
   geom_density(alpha = 0.4, fill = "#440154FF") +
   labs(title = "") +
@@ -732,12 +781,12 @@ gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$beta50.slo
 #site_data_merge$Year <- site_data_merge$count_yr + 1900
 
 
-plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta50, group = BCR, 
+plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta.wet, group = BCR, 
                                           colour = factor(BCR, 
                                                           labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
-                geom_smooth(method = loess, se = T, aes(x = Year, y = beta50, group = BCR, 
+                geom_smooth(method = loess, se = T, aes(x = Year, y = beta.wet, group = BCR, 
                                                          colour = factor(BCR,
                                                                          labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie")))) +
                 #scale_color_brewer(palette = )
@@ -834,12 +883,12 @@ gghist <- ggplot(data = slopes_sites, aes(slopes_sites$slope)) +
   coord_flip()
 
 
-plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = SR_MCMC, group = BCR, 
+plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = SR.wet, group = BCR, 
                                            colour = factor(BCR, 
                                                            labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
                  #geom_point(size = 3) +
                  #geom_line()+
-                 geom_smooth(method = loess, se = T, aes(x = Year, y = SR_MCMC, group = BCR, 
+                 geom_smooth(method = loess, se = T, aes(x = Year, y = SR.wet, group = BCR, 
                                                           colour = factor(BCR, 
                                                                           labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
                  xlab("Year") +
@@ -993,7 +1042,7 @@ avgs$site.mo.yr <- paste0(avgs$Site, "_", avgs$Month, "_", avgs$yr_bin)
 #Pull the minumum year-bin for the linking up the 
 #climate data to the first year bin with a beta value
 min.betas <- aggregate(Yr_bin ~ site, bbs_bin, FUN = "min")
-max.betas <- aggregate(Yr_bin ~ site, bbs_bin, FUN = "max")
+max.betas <- aggregate(Year ~ site, bbs_total, FUN = "max")
 
 
 #Beta.mod at this point has a beta for each site and year combination
@@ -1028,6 +1077,11 @@ site.merge[site.merge$Site == "ALABAMA_PORT", 2] <- "DAUPHIN_IS_2"
 #Merges the first year bin that data exists for each rt to the site descriptions 
 min.betas <- merge(min.betas, site.merge, by = "site")
 colnames(min.betas)[colnames(min.betas) == "Yr_bin"] <- "min.yr.bin"
+
+#Merges the last year bin that data exists for each rt to the site descriptions
+max.betas <- merge(max.betas, site.merge, by = "site")
+colnames(max.betas)[colnames(max.betas) == "Year"] <- "max.yr.bin"
+
 
 #Merge the climate averages with the site data for ref
 avgs$Site <- gsub(" ", "_", avgs$Site)
@@ -1154,42 +1208,42 @@ colnames(prism.seg.dry)[7:10] <- paste0(colnames(prism.seg.dry)[7:10], "_", uniq
 colnames(prism.seg.wet)[7:10] <- paste0(colnames(prism.seg.wet)[7:10], "_", unique(prism.seg.wet$RainSeason)) 
 
 #Calculate Yr_bin & Seasonal Means for site 
-prism.seg.sp <- prism.seg.sp %>% group_by(Site, Yr_bin) %>% summarise(tmean_Spring = mean(tmean_Spring),
+prism.seg.sp <- prism.seg.sp %>% group_by(Site, Year) %>% summarise(tmean_Spring = mean(tmean_Spring),
                                                                       tmin_Spring = mean(tmin_Spring), 
                                                                       tmax_Spring = mean(tmax_Spring),
                                                                       precip_Spring = mean(precip_Spring)) %>%
-                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                unite("unique_id", c("Site", "Year")) %>% ungroup()
 
-prism.seg.s <- prism.seg.s %>% group_by(Site, Yr_bin) %>% summarise(tmean_Summer = mean(tmean_Summer),
+prism.seg.s <- prism.seg.s %>% group_by(Site, Year) %>% summarise(tmean_Summer = mean(tmean_Summer),
                                                                       tmin_Summer = mean(tmin_Summer), 
                                                                       tmax_Summer = mean(tmax_Summer),
                                                                       precip_Summer = mean(precip_Summer)) %>%
-                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                unite("unique_id", c("Site", "Year")) %>% ungroup()
 
-prism.seg.f <- prism.seg.f %>% group_by(Site, Yr_bin) %>% summarise(tmean_Fall = mean(tmean_Fall),
+prism.seg.f <- prism.seg.f %>% group_by(Site, Year) %>% summarise(tmean_Fall = mean(tmean_Fall),
                                                                       tmin_Fall = mean(tmin_Fall), 
                                                                       tmax_Fall = mean(tmax_Fall),
                                                                       precip_Fall = mean(precip_Fall)) %>%
-                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                unite("unique_id", c("Site", "Year")) %>% ungroup()
 
-prism.seg.w <- prism.seg.w %>% group_by(Site, Yr_bin) %>% summarise(tmean_Winter = mean(tmean_Winter),
+prism.seg.w <- prism.seg.w %>% group_by(Site, Year) %>% summarise(tmean_Winter = mean(tmean_Winter),
                                                                       tmin_Winter = mean(tmin_Winter), 
                                                                       tmax_Winter = mean(tmax_Winter),
                                                                       precip_Winter = mean(precip_Winter)) %>%
-                unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                unite("unique_id", c("Site", "Year")) %>% ungroup()
 
 
-prism.seg.wet <- prism.seg.wet %>% group_by(Site, Yr_bin) %>% summarise(tmean_Wet = mean(tmean_Wet),
+prism.seg.wet <- prism.seg.wet %>% group_by(Site, Year) %>% summarise(tmean_Wet = mean(tmean_Wet),
                                                                         tmin_Wet = mean(tmin_Wet),
                                                                         tmax_Wet = mean(tmax_Wet),
                                                                         precip_Wet = mean(precip_Wet)) %>%
-                 unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                 unite("unique_id", c("Site", "Year")) %>% ungroup()
 
-prism.seg.dry <- prism.seg.dry %>% group_by(Site, Yr_bin) %>% summarise(tmean_Dry = mean(tmean_Dry),
+prism.seg.dry <- prism.seg.dry %>% group_by(Site, Year) %>% summarise(tmean_Dry = mean(tmean_Dry),
                                                                         tmin_Dry = mean(tmin_Dry),
                                                                         tmax_Dry = mean(tmax_Dry),
                                                                         precip_Dry = mean(precip_Dry)) %>%
-                 unite("unique_id", c("Site", "Yr_bin")) %>% ungroup()
+                 unite("unique_id", c("Site", "Year")) %>% ungroup()
 
 
 #Bring all the seasons together 
@@ -1197,7 +1251,7 @@ prism.seg.means <- prism.seg.sp %>% left_join(prism.seg.s, by = "unique_id") %>%
                                     left_join(prism.seg.w, by = "unique_id") %>% left_join(prism.seg.dry, by = "unique_id") %>%
                                     left_join(prism.seg.wet, by = "unique_id")
 
-prism.seg.means <- prism.seg.means %>% separate(col = unique_id, into = c("Rteno", "Segment", "Yr_bin"))
+prism.seg.means <- prism.seg.means %>% separate(col = unique_id, into = c("Rteno", "Segment", "Year"))
 
 prism.seg.means$Site <- paste0(prism.seg.means$Rteno, "_", prism.seg.means$Segment) 
 
@@ -1245,29 +1299,40 @@ seg.climate <- prism.seg.means %>% mutate(tmean.c = (tmean - 32) / 1.8,
                         precip_Wet.c = (precip_Wet * 2.54),
                         precip_Dry.c = (precip_Dry * 2.54))
                         
-seg.climate <- seg.climate[, c("Site", "Rteno", "Yr_bin", "tmean.c", "tmax.c", "tmin.c", "pmean.c",
+seg.climate <- seg.climate[, c("Site", "Rteno", "Year", "tmean.c", "tmax.c", "tmin.c", "pmean.c",
                                "tmean.bird.c", "tmax.bird.c", "tmin.bird.c", "pmean.bird.c", "tmean_Spring.c",
                                "tmin_Spring.c", "tmax_Spring.c", "precip_Spring.c", "tmean_Summer.c", "tmax_Summer.c",
                                "tmin_Summer.c", "precip_Summer.c", "tmean_Fall.c", "tmin_Fall.c", "tmax_Fall.c", "precip_Fall.c",
                                "tmean_Winter.c", "tmin_Winter.c", "tmax_Winter.c", "precip_Winter.c", "precip_Dry.c", "precip_Wet.c",
                                "tmax_Wet.c", "tmin_Wet.c", "tmax_Dry.c", "tmin_Dry.c", "tmean_Dry.c", "tmean_Wet.c")]
 
-#Pull the min betas 
-# min.beta.merge <- min.betas[, c("site", "min.yr.bin")]
-# colnames(min.beta.merge)[colnames(min.beta.merge) == "site"] <- "Site"
-# colnames(max.betas)[colnames(max.betas) == "site"] <- "Site"
-# colnames(max.betas)[colnames(max.betas) == "Yr_bin"] <- "max.yr.bin" 
+#Pull the min betas
+min.betas <- separate(min.betas, col = "rt_yr", into = c("rteno", "yr"), sep = "_")
+min.betas$min.yr.bin <- min.betas$yr
+min.betas$rt_yr <- paste0(min.betas$rteno, "_", min.betas$yr)
+min.betas <- min.betas[, c("site", "min.yr.bin", "rteno.x", "Site", "rt_yr")]
 
+min.beta.merge <- min.betas[, c("site", "min.yr.bin")]
+colnames(min.beta.merge)[colnames(min.beta.merge) == "site"] <- "Site"
 
+#Pull the max betas
+max.betas <- max.betas[, c("site", "max.yr.bin")]
+colnames(max.betas)[colnames(max.betas) == "site"] <- "Site" 
 
-#seg.climate <- right_join(min.beta.merge, seg.climate, by = "Site") %>% right_join(max.betas, seg.climate, by = "Site")
+#
+duration <- merge(min.beta.merge, max.betas, by = "Site")
+duration <- duration %>% mutate(min.yr.bin = as.integer(min.yr.bin)) %>% mutate(Duration = max.yr.bin - min.yr.bin)
+duration <- duration[, c("Site", "Duration")]
+
+seg.climate <- right_join(min.beta.merge, seg.climate, by = "Site") %>% right_join(max.betas, seg.climate, by = "Site") %>%
+               right_join(duration, seg.climate, by = "Site")
 
 #Restrict to only the minimum year bins
-#seg.climate <- seg.climate[seg.climate$Yr_bin >= seg.climate$min.yr.bin & seg.climate$Yr_bin <= seg.climate$max.yr.bin, ]
+seg.climate <- seg.climate[seg.climate$Year >= seg.climate$min.yr.bin & seg.climate$Year <= seg.climate$max.yr.bin, ]
 
 #Calculate Anomalies
 seg.climate <- seg.climate %>% group_by(Site) %>% 
-  arrange(Yr_bin, .by_group = T) %>% 
+  arrange(Year, .by_group = T) %>% 
   mutate(mean.anom = tmean.c - first(tmean.c),
          mean.anom.s = scale(mean.anom),
          max.anom = tmax.c - first(tmax.c),
@@ -1344,9 +1409,9 @@ seg.climate <- seg.climate %>% group_by(Site) %>%
          min.anom.wet = tmin_Wet.c - first(tmin_Wet.c),
          min.anom.wet.s = scale(min.anom.wet))
          
-seg.climate <- seg.climate %>% mutate(Yr_bin = as.numeric(Yr_bin)) %>% mutate(Yr_bin = Yr_bin - 1) %>% mutate(Yr_bin = as.character(Yr_bin))
-seg.climate <- seg.climate[seg.climate$Yr_bin != 0, ]
-         
+#seg.climate <- seg.climate %>% mutate(Yr_bin = as.numeric(Yr_bin)) %>% mutate(Yr_bin = Yr_bin - 1) %>% mutate(Yr_bin = as.character(Yr_bin))
+#seg.climate <- seg.climate[seg.climate$Yr_bin != 0, ]
+seg.climate <- merge(seg.climate, Bins, by = "Year")         
 seg.climate$unique_id <- paste0(seg.climate$Site, "_", seg.climate$Yr_bin)
 
 #######################################################################################################
@@ -1413,6 +1478,7 @@ bbs_lulc <- bbs_lulc %>% group_by(site) %>%
   mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>%
   mutate(diff.from.first.ew = (pct.ew - first(pct.ew)), scale.pdew = scale(diff.from.first.ew)) %>%
   mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>%
+  mutate(diff.ratio.wet = (ratio.ww - first(ratio.ww))) %>%
   mutate(diff.from.first.ur = (pct.ur - first(pct.ur)), scale.pdur = scale(diff.from.first.ur)) %>%
   mutate(diff.from.first.ag = (pct.ag - first(pct.ag)), scale.pdag = scale(diff.from.first.ag)) %>%
   mutate(diff.from.first.wet = (pct_wetland - first(pct_wetland)), scale.pdwet = scale(diff.from.first.wet)) %>%
@@ -1436,15 +1502,15 @@ for (o in 1:length(bbs_ma$unique_id)){
   bbs_lulc[bbs_lulc$unique_id == mangrove.tmp$unique_id, "mangrove"] <- mangrove.val
 }
 
-bbs_lulc <- bbs_lulc %>% group_by(site) %>% mutate(pct.man = mangrove / total_cover_nb, diff.from.first.man = (pct.man - first(pct.man)),
-                                                   scale.pman = scale(pct.man), scale.pdman = scale(diff.from.first.man))
+bbs_lulc <- bbs_lulc %>% group_by(site) %>% mutate(pct.man = mangrove / total_cover_nb, diff.from.first.man = (pct.man - first(pct.man)))#,
+                                                   #scale.pman = scale(pct.man), scale.pdman = scale(diff.from.first.man))
 
 #Merge with the site centroid DF
 #bbs_full <- bbs_lulc %>% left_join(temp.avgs, by = "unique_id") %>% ungroup()
 bbs_full <- merge(bbs_lulc, seg.climate, by = "unique_id")
 
 #Models for beta-diversity
-bbs_full <- bbs_full %>% rename(beta.reg = beta) %>% dplyr::select(-c(mangrove, pct.man, diff.from.first.man, scale.pman, scale.pdman))
+bbs_full <- bbs_full %>% rename(beta.reg = beta) #%>% dplyr::select(-c(mangrove, pct.man, diff.from.first.man, scale.pman, scale.pdman))
 
 bbs_full <- bbs_full[complete.cases(bbs_full),]
 
@@ -1453,19 +1519,19 @@ bbs_full <- as.data.frame(bbs_full)
 bbs_full <- bbs_full %>% mutate(scale.alpha = scale(alpha), scale.alphamcmc = scale(alpha.mcmc))
 
 bbs_full <- bbs_full %>% group_by(site) %>% mutate(alpha.change = alpha - first(alpha), alphamcmc.change = alpha.mcmc - first(alpha.mcmc),
-                                                   alpha50.change = alpha50 - first(alpha50), alpha.pchange = ((alpha - first(alpha)) / first(alpha)) * 100,
-                                                   alpha50.pchange = ((alpha50 - first(alpha50)) / first(alpha50)) * 100, alphamcmc.pchange = ((alpha.mcmc - first(alpha.mcmc)) / first(alpha.mcmc)) * 100)
+                                                   alpha50.change = alpha50 - first(alpha50), alphawet.change = alpha.wet - first(alpha.wet), alpha.pchange = ((alpha - first(alpha)) / first(alpha)) * 100,
+                                                   alpha50.pchange = ((alpha50 - first(alpha50)) / first(alpha50)) * 100, alphamcmc.pchange = ((alpha.mcmc - first(alpha.mcmc)) / first(alpha.mcmc)) * 100, alphawet.pchange = ((alpha.wet - first(alpha.wet)) / first(alpha.wet)) * 100)
 
 
 
 
 #Pulls out the first and last year
-bbs_short <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(c(1, n())) 
+bbs_short <- bbs_full %>% group_by(site) %>% arrange(Year.x) %>% slice(c(1, n())) 
 
 
 
 #Pulls out just the last
-bbs_last <- bbs_full %>% group_by(site) %>% arrange(Yr_bin.x) %>% slice(n())
+bbs_last <- bbs_full %>% group_by(site) %>% arrange(Year.x) %>% slice(n())
 rtxy <- read.csv(here::here("Data_Envi/PRISM Data/SegmentXY.csv"))
 
 bbs_last <- merge(bbs_last, rtxy, by = "site")
@@ -1502,8 +1568,8 @@ Anova(lm.cmrl)
 cmrl.occ <- merge(cmrl.occ, Bins, by = "Year")
 
 #Get the change in CMRL 
-cmrl.occ <- cmrl.occ %>% group_by(site, Yr_bin) %>% arrange(Year) %>% summarise(CMRL = mean(Latitude)) %>% 
-                                                                      mutate(change.cmrl = CMRL - first(CMRL),
+cmrl.occ <- cmrl.occ %>% group_by(site) %>% arrange(Year) %>% #summarise(CMRL = mean(Latitude)) %>% 
+                                                                      mutate(change.cmrl = Latitude - first(Latitude),
                                                                       change.cmrl.km = change.cmrl * 111)
 #Find the mean by site
 cmrl.mean <- cmrl.occ %>% group_by(site) %>% summarise(mean.change = mean(change.cmrl.km))
