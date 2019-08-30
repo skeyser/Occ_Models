@@ -8,7 +8,7 @@ rm(list = ls())
 
 #Load in the necessary packages
 pacman::p_load("here", "tidyverse", "reshape2", "vegan", "data.table", "cowplot", "lme4", "sjPlot", 
-               "sjstats", "car", "ggfortify", "ggmap", "maps", "viridis")
+               "sjstats", "car", "ggfortify", "ggmap", "maps", "viridis", 'MuMIn')
 
 
 #load in the workspace with data 
