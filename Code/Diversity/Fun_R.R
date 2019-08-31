@@ -1,3 +1,5 @@
+#Hi Git
+
 #Cleaning command 
 rm(list = objects(all.names = TRUE))
 install.packages("pacman")
