@@ -17,7 +17,7 @@ rm(list = ls())
 #install.packages("pacman")
 #library("pacman")
 pacman::p_load("here", "tidyverse", "reshape2", "vegan", "data.table", "cowplot", "lme4", "sjPlot", 
-               "sjstats", "car")
+               "sjstats", "car", "betapart")
 
 #Packages to call in the function without loading
 #pacman::p_load(MASS, effects, nlme, lsr, lmerTest, MUMIn)
@@ -319,7 +319,7 @@ final_sp_df <- transform(final_sp_df, Phylo.V2.code = as.numeric(interaction(Phy
 final_sp_df <- transform(final_sp_df, bcr.id = as.numeric(interaction(BCR, drop = T)))
 final_sp_df <- transform(final_sp_df, ObsN.id = as.numeric(interaction(ObsN, drop = T)))
 
-final_sp_df <- final_sp_df %>% select(sci_name, English, spp.id, Detected, Phylo.V1, Phylo.V1.code,
+final_sp_df <- final_sp_df %>% dplyr::select(sci_name, English, spp.id, Detected, Phylo.V1, Phylo.V1.code,
                                       Phylo.V2, Phylo.V2.code, rteno.x, rteno.id, rt_yr, Segment, 
                                       Year, year.id, Day, Month, BCR, bcr.id, site, site.id, 
                                       ObsN, ObsN.id, BodyMass, Nocturnal, Category, Inverts,
@@ -340,7 +340,7 @@ final_sp_df <- final_sp_df %>% select(sci_name, English, spp.id, Detected, Phylo
 site.list <- unique(final_sp_df$rteno.x)
 rt.xy <- rts_gom[rts_gom$rteno %in% site.list,]
 rt.xy <- rt.xy[rt.xy$BCR != 19, ]
-rt.xy <- rt.xy %>% select(rtename, rteno, countrynum, Latitude,
+rt.xy <- rt.xy %>% dplyr::select(rtename, rteno, countrynum, Latitude,
                           Longitude)
 
 #Create a spp by site matrix
@@ -555,12 +555,12 @@ slopes_sites <- slopes_sites %>% dplyr::select(site, slope, slope.mcmc, slope50,
 
 #Mean alpha at the site level 
 bbs_div_means <- bbs_div_means[, unique(colnames(bbs_div_means))]
-site_means <- bbs_div_means %>% select(Site_div, SR_MCMC, SR50, SR.wet, site)
+site_means <- bbs_div_means %>% dplyr::select(Site_div, SR_MCMC, SR50, SR.wet, site)
 site_means <- site_means %>% group_by(site) %>% summarise(MeanDiv = mean(Site_div), MeanDivMCMC = mean(SR_MCMC),
                                                           MeanDiv50 = mean(SR50), MeanDivWet = mean(SR.wet))
 
 #Alpha diversity at the site x yr level
-site_alpha <- bbs_div_means %>% select(Site_div, SR50, SR_MCMC, SR.wet, SD_MCMC, unique_id)
+site_alpha <- bbs_div_means %>% dplyr::select(Site_div, SR50, SR_MCMC, SR.wet, SD_MCMC, unique_id)
 
 #Mean alpha and alpha slopes at the site level 
 site_means2 <- merge(site_means, slopes_sites, by = "site")
@@ -603,7 +603,10 @@ bbs_cast[bbs_cast >= 1] <- 1
 mean.betas <- data.frame(site.list, mean.beta = NA)
 
 #Create matrix for storing Betas 
-beta.matrix <- data.frame(unique_id = bbs_simple$unique_id, beta = NA, beta50 = NA, beta.wet = NA)
+beta.matrix <- data.frame(unique_id = bbs_simple$unique_id, beta.turn = NA, beta.nest = NA, beta.jac = NA, 
+                          beta.wet.turn = NA, beta.wet.nest = NA, beta.wet.jac = NA,
+                          beta50.turn = NA, beta50.nest = NA, beta50.jac = NA)
+
 beta.matrix$unique_id <- as.character(beta.matrix$unique_id)
 
 #Remove duplites
@@ -635,8 +638,12 @@ for (n in 1:n.sites){
       other.site.temp <- paste0(site.temp, "_", other.yr.temp) #make the unique id
       bbs_cast_other <- bbs_cast[rownames(bbs_cast) == other.site.temp,] #pull the comm data
       bbs_cast_other <- rbind(bbs_cast_other, first.comm.temp) #put the current yr and baseline
-      beta.temp <- vegdist(sqrt(sqrt(bbs_cast_other)), method = "jaccard") #calc jaccard disim
-      beta.matrix$beta[beta.matrix$unique_id == other.site.temp] <- beta.temp #store it in df
+      #beta.temp <- vegdist(sqrt(sqrt(bbs_cast_other)), method = "jaccard") #calc jaccard disim
+      beta.temp <- betapart::beta.multi(bbs_cast_other, index.family = "jaccard")
+      #beta.matrix$beta[beta.matrix$unique_id == other.site.temp] <- beta.temp
+      beta.matrix$beta.turn[beta.matrix$unique_id == other.site.temp] <- as.numeric(beta.temp[1]) #store it in df
+      beta.matrix$beta.nest[beta.matrix$unique_id == other.site.temp] <- as.numeric(beta.temp[2])
+      beta.matrix$beta.jac[beta.matrix$unique_id == other.site.temp] <- as.numeric(beta.temp[3])
     }
   }}
 
@@ -667,8 +674,12 @@ for (n in 1:n.sites){
       other.site.temp <- paste0(site.temp, "_", other.yr.temp) #make the unique id
       bbs_cast_other <- bbs_cast2[rownames(bbs_cast2) == other.site.temp,] #pull the comm data
       bbs_cast_other <- rbind(bbs_cast_other, first.comm.temp) #put the current yr and baseline
-      beta.temp <- vegdist(sqrt(sqrt(bbs_cast_other)), method = "jaccard") #calc jaccard disim
-      beta.matrix$beta50[beta.matrix$unique_id == other.site.temp] <- beta.temp #store it in df
+      beta.temp <- betapart::beta.multi(bbs_cast_other, index.family = "jaccard")
+      beta.matrix$beta50.turn[beta.matrix$unique_id == other.site.temp] <- as.numeric(beta.temp[1]) #store it in df
+      beta.matrix$beta50.nest[beta.matrix$unique_id == other.site.temp] <- as.numeric(beta.temp[2])
+      beta.matrix$beta50.jac[beta.matrix$unique_id == other.site.temp] <- as.numeric(beta.temp[3])
+      #beta.temp <- vegdist(sqrt(sqrt(bbs_cast_other)), method = "jaccard") #calc jaccard disim
+      #beta.matrix$beta50[beta.matrix$unique_id == other.site.temp] <- beta.temp #store it in df
     }
   }}
 
@@ -699,8 +710,12 @@ for (n in 1:n.sites){
       other.site.temp <- paste0(site.temp, "_", other.yr.temp) #make the unique id
       wet_cast_other <- wet_cast[rownames(wet_cast) == other.site.temp,] #pull the comm data
       wet_cast_other <- rbind(wet_cast_other, first.comm.temp) #put the current yr and baseline
-      beta.temp <- vegdist(sqrt(sqrt(wet_cast_other)), method = "jaccard") #calc jaccard disim
-      beta.matrix$beta.wet[beta.matrix$unique_id == other.site.temp] <- beta.temp #store it in df
+      beta.temp <- betapart::beta.multi(wet_cast_other, index.family = "jaccard")
+      beta.matrix$beta.wet.turn[beta.matrix$unique_id == other.site.temp] <- as.numeric(beta.temp[1]) #store it in df
+      beta.matrix$beta.wet.nest[beta.matrix$unique_id == other.site.temp] <- as.numeric(beta.temp[2])
+      beta.matrix$beta.wet.jac[beta.matrix$unique_id == other.site.temp] <- as.numeric(beta.temp[3])
+      #beta.temp <- vegdist(sqrt(sqrt(wet_cast_other)), method = "jaccard") #calc jaccard disim
+      #beta.matrix$beta.wet[beta.matrix$unique_id == other.site.temp] <- beta.temp #store it in df
     }
   }}
 
@@ -723,54 +738,82 @@ bbs_total <- merge(bbs_total, site_alpha, by = "unique_id")
 
 
 #Calculate slopes for B diversity
-slopes_sites_beta <- data.frame(site.list, beta.slope = NA, beta.slope.mcmc = NA, beta50.slope = NA, betawet.slope = NA)
+slopes_sites_beta <- data.frame(site.list, betaturn.slope = NA, betanest.slope = NA, betajac.slope = NA, 
+                                beta50turn.slope = NA, beta50nest.slope = NA, beta50jac.slope = NA, 
+                                betawetturn.slope = NA, betawetnest.slope = NA, betawetjac.slope = NA,
+                                beta.mcmc.slope = NA)
 
 for (i in 1:n.sites){
   site.temp <- site.list[i]
   bbs_total_temp <- bbs_total[bbs_total$site == site.temp,]
   bbs_total_temp <- bbs_total_temp[complete.cases(bbs_total_temp),]
   if (nrow(bbs_total_temp) > 1){
-    lm.temp <- lm(bbs_total_temp$beta ~ bbs_total_temp$Year)
-    lm.temp2 <- lm(bbs_total_temp$beta.mcmc ~ bbs_total_temp$Year)
-    lm.temp3 <- lm(bbs_total_temp$beta50 ~ bbs_total_temp$Year)
-    lm.temp4 <- lm(bbs_total_temp$beta.wet ~ bbs_total_temp$Year)
+    lm.temp <- lm(bbs_total_temp$beta.turn ~ bbs_total_temp$Year)
+    lm.temp2 <- lm(bbs_total_temp$beta.nest ~ bbs_total_temp$Year)
+    lm.temp3 <- lm(bbs_total_temp$beta.jac ~ bbs_total_temp$Year)
+    lm.temp4 <- lm(bbs_total_temp$beta50.turn ~ bbs_total_temp$Year)
+    lm.temp5 <- lm(bbs_total_temp$beta50.nest ~ bbs_total_temp$Year)
+    lm.temp6 <- lm(bbs_total_temp$beta50.jac ~ bbs_total_temp$Year)
+    lm.temp7 <- lm(bbs_total_temp$beta.wet.turn ~ bbs_total_temp$Year)
+    lm.temp8 <- lm(bbs_total_temp$beta.wet.nest ~ bbs_total_temp$Year)
+    lm.temp9 <- lm(bbs_total_temp$beta.wet.jac ~ bbs_total_temp$Year)
+    lm.temp10 <- lm(bbs_total_temp$beta.mcmc ~ bbs_total_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
     slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
     slope.temp3 <- summary(lm.temp3)$coefficients[2,1]
     slope.temp4 <- summary(lm.temp4)$coefficients[2,1]
+    slope.temp5 <- summary(lm.temp5)$coefficients[2,1]
+    slope.temp6 <- summary(lm.temp6)$coefficients[2,1]
+    slope.temp7 <- summary(lm.temp7)$coefficients[2,1]
+    slope.temp8 <- summary(lm.temp8)$coefficients[2,1]
+    slope.temp9 <- summary(lm.temp9)$coefficients[2,1]
+    slope.temp10 <- summary(lm.temp10)$coefficients[2,1]
     slopes_sites_beta[i,2] <- slope.temp
     slopes_sites_beta[i,3] <- slope.temp2
     slopes_sites_beta[i,4] <- slope.temp3
     slopes_sites_beta[i,5] <- slope.temp4
+    slopes_sites_beta[i,6] <- slope.temp5
+    slopes_sites_beta[i,7] <- slope.temp6
+    slopes_sites_beta[i,8] <- slope.temp7
+    slopes_sites_beta[i,9] <- slope.temp8
+    slopes_sites_beta[i,10] <- slope.temp9
+    slopes_sites_beta[i,11] <- slope.temp10
   }
 }
 
-hist(slopes_sites_beta$beta.slope)
-t.test(slopes_sites_beta$beta.slope, mu = 0)
+hist(slopes_sites_beta$betajac.slope)
+t.test(slopes_sites_beta$betajac.slope, mu = 0)
 
-hist(slopes_sites_beta$beta.slope.mcmc)
-t.test(slopes_sites_beta$beta.slope.mcmc, mu = 0)
+hist(slopes_sites_beta$beta.mcmc.slope)
+t.test(slopes_sites_beta$beta.mcmc.slope, mu = 0)
 
-hist(slopes_sites_beta$beta50.slope)
-t.test(slopes_sites_beta$beta50.slope, mu = 0)
+hist(slopes_sites_beta$beta50jac.slope)
+t.test(slopes_sites_beta$beta50jac.slope, mu = 0)
 
-hist(slopes_sites_beta$betawet.slope)
-t.test(slopes_sites_beta$betawet.slope, mu = 0)
+hist(slopes_sites_beta$betawetjac.slope)
+t.test(slopes_sites_beta$betawetjac.slope, mu = 0)
 
 
 #Create a DF that calculates beta and alpha diversity in the year_bin formats
 #for models 
-bbs_bin <- bbs_total %>% select(rteno.x, site, BCR, Site_div.x, rtename, Yr_bin, beta, beta50, beta.mcmc, beta.wet, SR_MCMC, SR50, SR.wet) %>%
-  group_by(site, Yr_bin) %>% summarize(beta = mean(beta), alpha = mean(Site_div.x), beta.mcmc = mean(beta.mcmc),
-                                       alpha.mcmc = mean(SR_MCMC), alpha50 = mean(SR50), beta50 = mean(beta50), alpha.wet = mean(SR.wet), 
-                                       beta.wet = mean(beta.wet))
+bbs_bin <- bbs_total %>% dplyr::select(rteno.x, site, BCR, Site_div.x, rtename, Yr_bin, beta.turn, beta.nest, beta.jac, 
+                                       beta.wet.turn, beta.wet.nest, beta.wet.jac, beta50.turn, beta50.nest, beta50.jac,
+                                       beta.mcmc, SR_MCMC, SR50, SR.wet) %>%
+  group_by(site, Yr_bin) %>% summarize(
+                                       beta.turn = mean(beta.turn), beta.nest = mean(beta.nest), beta.jac = mean(beta.jac),
+                                       beta.wet.turn = mean(beta.wet.turn), beta.wet.nest = mean(beta.wet.nest), beta.wet.jac = mean(beta.wet.jac),
+                                       beta50.turn = mean(beta50.turn), beta50.nest = mean(beta50.nest), beta50.jac = mean(beta50.jac),
+                                       beta.mcmc = mean(beta.mcmc), alpha = mean(Site_div.x), alpha.mcmc = mean(SR_MCMC), alpha50 = mean(SR50), alpha.wet = mean(SR.wet), 
+                                       )
 
 
 bbs_bin$unique_id <- paste0(bbs_bin$site, "_", bbs_bin$Yr_bin)
 
 #Plots for Beta Diversity
+bbs_total <- bbs_total[!bbs_total$BCR == 36, ]
 
-gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$betawet.slope)) + 
+
+gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$beta50jac.slope)) + 
   #geom_histogram(col = "black", fill = "black", bins = 10, binwidth = NULL) + 
   geom_density(alpha = 0.4, fill = "#440154FF") +
   labs(title = "") +
@@ -780,15 +823,14 @@ gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$betawet.sl
 
 #site_data_merge$Year <- site_data_merge$count_yr + 1900
 
-
-plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta.wet, group = BCR, 
+plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta50.turn, group = BCR, 
                                           colour = factor(BCR, 
-                                                          labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie")))) +
+                                                          labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
-                geom_smooth(method = loess, se = T, aes(x = Year, y = beta.wet, group = BCR, 
+                geom_smooth(method = loess, se = T, aes(x = Year, y = beta50.turn, group = BCR, 
                                                          colour = factor(BCR,
-                                                                         labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Tamaulipan Brushlands", "Gulf Coastal Prairie")))) +
+                                                                         labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                 #scale_color_brewer(palette = )
                 xlab("Year") +
                 ylab(expression(paste(beta, "-diversity"))) +
@@ -1128,7 +1170,7 @@ avgs <- avgs %>% group_by(site, Month) %>%
 #Same as above for anomalies, need to merge the data for betas & anomalies 
 #using the join field of State_Rteno
 
-temp.agg <- avgs %>% ungroup(avgs) %>% select(site, yr_bin, tmean.c, tmax.c, tmin.c, precipitation.c,
+temp.agg <- avgs %>% ungroup(avgs) %>% dplyr::select(site, yr_bin, tmean.c, tmax.c, tmin.c, precipitation.c,
                             anomalies, max.anomalies, min.anomalies, precip.anomalies)
 
 
@@ -1327,8 +1369,20 @@ duration <- duration[, c("Site", "Duration")]
 seg.climate <- right_join(min.beta.merge, seg.climate, by = "Site") %>% right_join(max.betas, seg.climate, by = "Site") %>%
                right_join(duration, seg.climate, by = "Site")
 
-#Restrict to only the minimum year bins
-seg.climate <- seg.climate[seg.climate$Year >= seg.climate$min.yr.bin & seg.climate$Year <= seg.climate$max.yr.bin, ]
+#Create a baseline climate range (10 yrs prior to first survey)
+seg.climate <- seg.climate %>% mutate(climate.base = as.numeric(min.yr.bin) - 10)
+
+#Pull out 10 years prior to the start for creating a baseline
+climate.base <- seg.climate[seg.climate$Year >= seg.climate$climate.base & seg.climate$Year < seg.climate$min.yr.bin, ]
+climate.base.info <- climate.base %>% group_by(Site) %>% filter(row_number() == 1) %>%
+                     dplyr::select(-c("min.yr.bin", "Rteno", "Year", "max.yr.bin", "Duration", "climate.base"))
+climate.base <- climate.base %>% dplyr::select(-c("min.yr.bin", "Rteno", "Year", "max.yr.bin", "Duration", "climate.base")) %>%
+                                 group_by(Site) %>% summarise_all("mean")
+
+#####Stopped here#####
+#Need to take mean of all columns and preserve other info
+seg.climate
+seg.climate <- rbind(climate.base, seg.climate)
 
 #Calculate Anomalies
 seg.climate <- seg.climate %>% group_by(Site) %>% 
