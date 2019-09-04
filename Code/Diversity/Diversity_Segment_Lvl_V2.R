@@ -1374,14 +1374,22 @@ seg.climate <- seg.climate %>% mutate(climate.base = as.numeric(min.yr.bin) - 10
 
 #Pull out 10 years prior to the start for creating a baseline
 climate.base <- seg.climate[seg.climate$Year >= seg.climate$climate.base & seg.climate$Year < seg.climate$min.yr.bin, ]
-climate.base.info <- climate.base %>% group_by(Site) %>% filter(row_number() == 1) %>%
-                     dplyr::select(-c("min.yr.bin", "Rteno", "Year", "max.yr.bin", "Duration", "climate.base"))
+
+#Take site info from the first row of each group 
+climate.base.info <- climate.base %>% group_by(Site) %>% filter(row_number() == 1) %>% 
+                     dplyr::select(c("Site", "min.yr.bin", "Rteno", "Year", "max.yr.bin", "Duration", "climate.base"))
+
+#Calculate basseline mean for all of the climate variables for each group
 climate.base <- climate.base %>% dplyr::select(-c("min.yr.bin", "Rteno", "Year", "max.yr.bin", "Duration", "climate.base")) %>%
                                  group_by(Site) %>% summarise_all("mean")
 
-#####Stopped here#####
-#Need to take mean of all columns and preserve other info
-seg.climate
+#Merge the "info" with the means
+climate.base <- right_join(climate.base, climate.base.info, by = "Site")
+
+#Remove the rows where the mean was calculated
+seg.climate <- seg.climate[seg.climate$Year >= seg.climate$min.yr.bin, ]
+
+#Bind the new baselines back into the complete data set
 seg.climate <- rbind(climate.base, seg.climate)
 
 #Calculate Anomalies
@@ -1564,7 +1572,7 @@ bbs_lulc <- bbs_lulc %>% group_by(site) %>% mutate(pct.man = mangrove / total_co
 bbs_full <- merge(bbs_lulc, seg.climate, by = "unique_id")
 
 #Models for beta-diversity
-bbs_full <- bbs_full %>% rename(beta.reg = beta) #%>% dplyr::select(-c(mangrove, pct.man, diff.from.first.man, scale.pman, scale.pdman))
+#bbs_full <- bbs_full %>% rename(beta.reg = beta) #%>% dplyr::select(-c(mangrove, pct.man, diff.from.first.man, scale.pman, scale.pdman))
 
 bbs_full <- bbs_full[complete.cases(bbs_full),]
 
