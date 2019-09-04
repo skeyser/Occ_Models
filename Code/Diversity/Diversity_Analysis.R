@@ -4,7 +4,7 @@
 ##############################################8/19/2019#######################################
 ##############################################################################################
 
-rm(list = ls())
+#rm(list = ls())
 
 #Load in the necessary packages
 pacman::p_load("here", "tidyverse", "reshape2", "vegan", "data.table", "cowplot", "lme4", "sjPlot", 
@@ -13,7 +13,7 @@ pacman::p_load("here", "tidyverse", "reshape2", "vegan", "data.table", "cowplot"
 
 #load in the workspace with data 
 #load(here::here("R Workspace/Diversity_Script_Clean.RData"))
-load(here::here("R Workspace/Diversity_Script_Full.RData"))
+#load(here::here("R Workspace/Diversity_Script_Full.RData"))
 
 
 #Mapping distribution of Beta-diversity across GoM
@@ -23,7 +23,7 @@ dim(states)
 head(states)
 gom <- subset(states, region %in% c("texas", "florida", "alabama", "arkansas", "mississippi", "louisiana", "georgia"))
 map_gom <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(bbs_last$Longitude) - 1.5, max(bbs_last$Longitude)), ylim = c(min(bbs_last$Latitude), max(bbs_last$Latitude) + 2.5), ratio = 1.2) +
-  geom_point(data = bbs_last, aes(x = Longitude, y = Latitude, color = beta50), size = 3)
+  geom_point(data = bbs_last, aes(x = Longitude, y = Latitude, color = beta50.turn), size = 3)
  
 map_gom + scale_color_viridis(name = expression(paste(beta, "-diversity"))) + theme_map() + theme(legend.position = c(0.09, .75), legend.title = element_text(size = 15), legend.text = element_text(size = 15))  
 
@@ -57,12 +57,12 @@ ww.mds$groups[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mix"
 ww.mds$groups[ww.mds$ratio.ww > 1.5] <- "Woody Wetland Dominated"
 ww.mds <- ww.mds$groups
 
-ur.mds <- lc.mds %>% arrange(site)
-ur.mds$groups <- NA
-ur.mds$groups[ur.mds$pct.ur <= .33] <- "L"
-ur.mds$groups[ur.mds$pct.ur > .33 & ur.mds$pct.ur < .66] <- "M"
-ur.mds$groups[ur.mds$pct.ur >= .66] <- "H"
-ur.mds <- ur.mds$groups
+# ur.mds <- lc.mds %>% arrange(site)
+# ur.mds$groups <- NA
+# ur.mds$groups[ur.mds$pct.ur <= .33] <- "L"
+# ur.mds$groups[ur.mds$pct.ur > .33 & ur.mds$pct.ur < .66] <- "M"
+# ur.mds$groups[ur.mds$pct.ur >= .66] <- "H"
+# ur.mds <- ur.mds$groups
 
 bbs.mds <- bbs.mds %>% arrange(site)
 mds_cast <- dcast(mds.full, unique_id ~ sci_name, value.var = "Detected", fun.aggregate = sum)
@@ -183,10 +183,113 @@ ggplotRegression <- function (fit) {
 #########################Model runs for the last year of each##################################
 ###############################################################################################
 
-#Occ 50 Results
+
+#Global Model Definitions
+
+mod.glob.jac <- lm(data = bbs_last, beta50.jac ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
+mod.glob.turn <- lm(data = bbs_last, beta50.turn ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
+mod.glob.nest <- lm(data = bbs_last, beta50.nest ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
+mod.glob.wjac <- lm(data = bbs_last, beta.wet.jac ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
+mod.glob.wturn <- lm(data = bbs_last, beta.wet.turn ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
+mod.glob.wnest <- lm(data = bbs_last, beta.wet.nest ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
+
+
+
+#Jac Models
+#options(na.action = "na.fail")
+summary(mod.glob.jac)
+
+dmod.j <- MuMIn::dredge(mod.glob.jac, extra = c("R^2", F = function(x)
+  summary(x)$fstatistic[[1]]))
+subset(dmod.j, delta < 4)
+
+best.mod.j <- summary(get.models(dmod.j, 1)[[1]])
+
+#Jac Wetland 
+summary(mod.glob.wjac)
+
+dmod.wj <- MuMIn::dredge(mod.glob.wjac, extra = c("R^2", F = function(x)
+  summary(x)$fstatistic[[1]]))
+subset(dmod.wj, delta < 4)
+
+best.mod.wj <- summary(get.models(dmod.wj, 1)[[1]])
+
+#Turnover 
+summary(mod.glob.turn)
+
+dmod.turn <- MuMIn::dredge(mod.glob.turn, extra = c("R^2", F = function(x)
+  summary(x)$fstatistic[[1]]))
+subset(dmod.turn, delta < 4)
+
+best.mod.turn <- summary(get.models(dmod.turn, 1)[[1]])
+
+#Turnover Wetland
+summary(mod.glob.wturn)
+
+dmod.wturn <- MuMIn::dredge(mod.glob.wturn, extra = c("R^2", F = function(x)
+  summary(x)$fstatistic[[1]]))
+subset(dmod.wturn, delta < 4)
+
+best.mod.wturn <- summary(get.models(dmod.wturn, 1)[[1]])
+
+
+#Nestedness 
+summary(mod.glob.nest)
+
+dmod.nest <- MuMIn::dredge(mod.glob.nest, extra = c("R^2", F = function(x)
+  summary(x)$fstatistic[[1]]))
+subset(dmod.nest, delta < 4)
+
+best.mod.nest <- summary(get.models(dmod.nest, 1)[[1]])
+
+
+#Nestedness Wetland
+summary(mod.glob.wnest)
+
+dmod.wnest <- MuMIn::dredge(mod.glob.wnest, extra = c("R^2", F = function(x)
+  summary(x)$fstatistic[[1]]))
+subset(dmod.wnest, delta < 4)
+
+best.mod.wnest <- summary(get.models(dmod.wnest, 1)[[1]])
+
+
+
+####CMRL####
+
+#Change in total beta
+mod.cmrl.change <- lm(data = bbs_last, beta50.jac ~ change.cmrl.km)
+
+summary(mod.cmrl.change)
+
+#Change in beta driven by species replacement 
+#Indicates that changes in southerly species driven by some sort of environmental filter
+mod.cmrl.change <- lm(data = bbs_last, beta50.turn ~ change.cmrl.km)
+
+summary(mod.cmrl.change)
+
+#Change in beta driven by species loss and gain as part of a nested community 
+mod.cmrl.change <- lm(data = bbs_last, beta50.nest ~ change.cmrl.km)
+
+summary(mod.cmrl.change)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #This model explains 35% variation
-mod.last <- lm(data = bbs_last, beta50 ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
+mod.last <- lm(data = bbs_last, beta50.jac ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
 summary(mod.last)
 Anova(mod.last)
 
@@ -200,7 +303,7 @@ influential.points <- as.numeric(names(mod.last.outlier)[(mod.last.outlier > 4*m
 bbs.last.corr <- bbs_last[-influential.points, ]
 
 #Run the model without the outliers 
-mod.last <- lm(data = bbs.last.corr, beta50 ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
+mod.last <- lm(data = bbs.last.corr, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
 summary(mod.last)
 #Anova(mod.last)
 
@@ -313,28 +416,6 @@ summary(mod.last)
 #Alpha Div
 mod.last.a <- lm(data = bbs_last, alphawet.pchange ~ mean.anom.bird + p.anom.wet + p.anom.dry + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + Duration)
 summary(mod.last.a)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
