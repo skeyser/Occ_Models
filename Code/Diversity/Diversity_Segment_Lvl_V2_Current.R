@@ -1470,8 +1470,9 @@ bbs_lulc$Emergent_Wetlands <- bbs_lulc$Emergent_Wetlands + 0.000001
 bbs_lulc$Woody_Wetlands <- bbs_lulc$Woody_Wetlands + 0.000001
 
 
-bbs_lulc$mangrove <- 0
-
+bbs_lulc$mangrove <- NA
+bbs_ma <- bbs_ma[bbs_ma$mangrove > 0, ]
+bbs_ma$unique_id <- paste0(bbs_ma$seg.sites, "_", bbs_ma$Yr_bin)
 #Write a loop to place values in the mangrove DF into the BBS_LULC DF
 for (o in 1:length(bbs_ma$unique_id)){
   mangrove.tmp <- bbs_ma[o, ]
@@ -1620,10 +1621,10 @@ bbs_short <- bbs_full %>% group_by(site) %>% arrange(Year.x) %>% slice(c(1, n())
 
 
 #Pulls out just the last
-bbs_last <- bbs_full %>% group_by(site) %>% arrange(Year.x) %>% slice(n())
+bbs_last <- bbs_full %>% group_by(rteno.x.x) %>% arrange(Year.x) %>% slice(n())
 rtxy <- read.csv(here::here("Data_Envi/PRISM Data/SegmentXY.csv"))
 
-bbs_last <- merge(bbs_last, rtxy, by = "site")
+bbs_last <- merge(bbs_last, rtxy, by.x = "rteno.x.x", by.y = "site")
 
 
 #############################################################################################
