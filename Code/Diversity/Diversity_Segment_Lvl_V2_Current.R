@@ -1086,6 +1086,9 @@ avgs$site.mo.yr <- paste0(avgs$Site, "_", avgs$Month, "_", avgs$yr_bin)
 min.betas <- aggregate(Year ~ site, bbs_total, FUN = "min")
 max.betas <- aggregate(Year ~ site, bbs_total, FUN = "max")
 
+min.bin <- aggregate(Yr_bin ~ site, bbs_total, FUN = "min")
+max.bin <- aggregate(Yr_bin ~ site, bbs_total, FUN = "max")
+
 
 #Beta.mod at this point has a beta for each site and year combination
 #betas.mod <- betas
@@ -1113,16 +1116,34 @@ site.merge[site.merge$Site == "EGLIN_A.F.B.", 2] <- "EGLIN_A_F_B_"
 site.merge[site.merge$Site == "SEMINOLE_HLS", 2] <- "SEMINOLE_HILLS"
 site.merge[site.merge$Site == "ALABAMA_PORT", 2] <- "DAUPHIN_IS_2"
 
-
+# #Merges the first year bin that data exists for each rt to the site descriptions 
+# min.betas <- merge(min.betas, site.merge, by = "site")
+# colnames(min.betas)[colnames(min.betas) == "Year"] <- "min.yr.bin"
+# 
+# #Merges the last year bin that data exists for each rt to the site descriptions
+# max.betas <- merge(max.betas, site.merge, by = "site")
+# colnames(max.betas)[colnames(max.betas) == "Year"] <- "max.yr.bin"
 
 
 #Merges the first year bin that data exists for each rt to the site descriptions 
 min.betas <- merge(min.betas, site.merge, by = "site")
-colnames(min.betas)[colnames(min.betas) == "Year"] <- "min.yr.bin"
+colnames(min.betas)[colnames(min.betas) == "Year"] <- "min.yr"
+
+min.bin <- merge(min.bin, site.merge, by = "site")
+colnames(min.bin)[colnames(min.bin) == "Yr_bin"] <- "min.yr.bin"
+min.bin <- min.bin[, c("site", "min.yr.bin")]
 
 #Merges the last year bin that data exists for each rt to the site descriptions
 max.betas <- merge(max.betas, site.merge, by = "site")
-colnames(max.betas)[colnames(max.betas) == "Year"] <- "max.yr.bin"
+colnames(max.betas)[colnames(max.betas) == "Year"] <- "max.yr"
+max.betas <- max.betas[, c("site", "max.yr")]
+
+max.bin <- merge(max.bin, site.merge, by = "site")
+colnames(max.bin)[colnames(max.bin) == "Yr_bin"] <- "max.yr.bin"
+max.bin <- max.bin[, c("site", "max.yr.bin")]
+
+durs <- min.betas %>% left_join(min.bin, by = "site") %>% left_join(max.betas, by = "site") %>%
+  left_join(max.bin, by = "site")
 
 
 #Merge the climate averages with the site data for ref
@@ -1192,7 +1213,8 @@ prism.seg2 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRI
 prism.seg3 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRISMsegs_2010_2019.csv"), stringsAsFactors = F)
 
 #Bind data, clear NA's from spacing in csv, and separate dates
-prism.seg <- rbind(prism.base, prism.seg1, prism.seg2, prism.seg3)
+#prism.seg <- rbind(prism.base, prism.seg1, prism.seg2, prism.seg3)
+prism.seg <- rbind(prism.seg1, prism.seg2, prism.seg3)
 prism.seg <- prism.seg[complete.cases(prism.seg), ]
 prism.seg <- separate(prism.seg, col = Date, into = c("Year", "Month"), by = "-", remove = T)
 
@@ -1356,20 +1378,40 @@ seg.climate <- seg.climate[, c("Site", "Rteno", "Year", "tmean.c", "tmax.c", "tm
 #min.betas$rt_yr <- paste0(min.betas$rteno, "_", min.betas$yr)
 #min.betas <- min.betas[, c("site", "min.yr.bin", "rteno.x", "Site", "rt_yr")]
 
-min.beta.merge <- min.betas[, c("site", "min.yr.bin")]
-colnames(min.beta.merge)[colnames(min.beta.merge) == "site"] <- "Site"
 
-#Pull the max betas
-max.betas <- max.betas[, c("site", "max.yr.bin")]
-colnames(max.betas)[colnames(max.betas) == "site"] <- "Site" 
 
-#
-duration <- merge(min.beta.merge, max.betas, by = "Site")
-duration <- duration %>% mutate(min.yr.bin = as.integer(min.yr.bin)) %>% mutate(Duration = max.yr.bin - min.yr.bin)
-duration <- duration[, c("Site", "Duration")]
+# min.beta.merge <- min.betas[, c("site", "min.yr.bin")]
+# colnames(min.beta.merge)[colnames(min.beta.merge) == "site"] <- "Site"
+# 
+# #Pull the max betas
+# max.betas <- max.betas[, c("site", "max.yr.bin")]
+# colnames(max.betas)[colnames(max.betas) == "site"] <- "Site" 
+# 
+# #
+# duration <- merge(min.beta.merge, max.betas, by = "Site")
+# duration <- duration %>% mutate(min.yr.bin = as.integer(min.yr.bin)) %>% mutate(Duration = max.yr.bin - min.yr.bin)
+# duration <- duration[, c("Site", "Duration")]
+# 
+# seg.climate <- right_join(min.beta.merge, seg.climate, by = "Site") %>% right_join(max.betas, seg.climate, by = "Site") %>%
+#   right_join(duration, seg.climate, by = "Site")
+duration <- durs %>% mutate(Duration.bin = max.yr.bin - min.yr.bin) %>% mutate(Duration = max.yr - min.yr)
+duration <- duration[, c("site", "Duration", "Duration.bin")]
+colnames(duration)[colnames(duration) == "site"] <- "Site"
 
-seg.climate <- right_join(min.beta.merge, seg.climate, by = "Site") %>% right_join(max.betas, seg.climate, by = "Site") %>%
-  right_join(duration, seg.climate, by = "Site")
+colnames(durs)[colnames(durs) == "Site"] <- "rtename"
+colnames(durs)[colnames(durs) == "site"] <- "Site"
+
+
+seg.climate <- right_join(durs, seg.climate, by = "Site") %>% right_join(duration, seg.climate, by = "Site")
+
+seg.climate <- merge(seg.climate, Bins, by = "Year")
+seg.climate <- seg.climate %>% group_by(Site, Yr_bin) %>% summarise_if(is.numeric, mean)
+
+
+
+
+
+
 
 #Create a baseline climate range (10 yrs prior to first survey)
 #seg.climate <- seg.climate %>% mutate(climate.base = as.numeric(min.yr.bin) - 10)
@@ -1398,13 +1440,24 @@ seg.climate <- right_join(min.beta.merge, seg.climate, by = "Site") %>% right_jo
 
 #seg.climate <- seg.climate %>% mutate(Yr_bin = as.numeric(Yr_bin)) %>% mutate(Yr_bin = Yr_bin - 1) %>% mutate(Yr_bin = as.character(Yr_bin))
 #seg.climate <- seg.climate[seg.climate$Yr_bin != 0, ]
-seg.climate <- merge(seg.climate, Bins, by = "Year")         
+#seg.climate <- merge(seg.climate, Bins, by = "Year")         
 seg.climate$unique_id <- paste0(seg.climate$Site, "_", seg.climate$Yr_bin)
 
-seg.climate <- seg.climate[seg.climate$Year == seg.climate$min.yr.bin | seg.climate$Year == seg.climate$max.yr.bin, ]
-seg.climate$unique_id <- paste0(seg.climate$Site, "_", seg.climate$Year)
-bbs_clim <- merge(bbs_total, seg.climate, by = "unique_id")
-bbs_clim$unique_id <- paste0(bbs_clim$site, "_", bbs_clim$Yr_bin.x)
+
+seg.climate <- seg.climate[seg.climate$Yr_bin == seg.climate$min.yr.bin | seg.climate$Yr_bin == seg.climate$max.yr.bin, ]
+# seg.climate$unique_id <- paste0(seg.climate$Site, "_", seg.climate$Year)
+# bbs_clim <- merge(bbs_total, seg.climate, by = "unique_id")
+# bbs_clim$unique_id <- paste0(bbs_clim$site, "_", bbs_clim$Yr_bin.x)
+durs.merge <- durs %>% dplyr::select(-c("rteno.x", "rt_yr"))
+
+bbs_ends <- bbs_total
+bbs_ends <- bbs_ends %>% rename(Site = site) %>% left_join(durs.merge, by = "Site")
+bbs_ends <- bbs_ends[bbs_ends$Year == bbs_ends$min.yr | bbs_ends$Year == bbs_ends$max.yr, ]
+bbs_ends$unique_id <- paste0(bbs_ends$Site, "_", bbs_ends$Yr_bin)
+bbs_ends <- bbs_ends[!duplicated(bbs_ends$unique_id), ]
+
+bbs_clim <- left_join(bbs_ends, seg.climate, by = "unique_id")
+
 #######################################################################################################
 
 
@@ -1432,7 +1485,7 @@ bbs_lulc[bbs_lulc$Year == 1986, 2] <- 1985
 bbs_lulc[bbs_lulc$Year == 1996, 2] <- 1995
 bbs_lulc[bbs_lulc$Year == 2001, 2] <- 2000
 bbs_lulc[bbs_lulc$Year == 2006, 2] <- 2005
-bbs_lulc[bbs_lulc$Year == 2015, 2] <- 2015
+bbs_lulc[bbs_lulc$Year == 2016, 2] <- 2015
 
 bbs_lulc <- merge(Bins, bbs_lulc, by = "Year")
 bbs_lulc$site <- paste0(bbs_lulc$Route, "_", bbs_lulc$Segment)
@@ -1470,16 +1523,20 @@ bbs_lulc$Emergent_Wetlands <- bbs_lulc$Emergent_Wetlands + 0.000001
 bbs_lulc$Woody_Wetlands <- bbs_lulc$Woody_Wetlands + 0.000001
 
 
-bbs_lulc$mangrove <- NA
+#bbs_lulc$mangrove <- NA
 bbs_ma <- bbs_ma[bbs_ma$mangrove > 0, ]
-bbs_ma$unique_id <- paste0(bbs_ma$seg.sites, "_", bbs_ma$Yr_bin)
+bbs_ma$unique_id <- paste0(bbs_ma$seg.sites, "_", bbs_ma$year)
 #Write a loop to place values in the mangrove DF into the BBS_LULC DF
-for (o in 1:length(bbs_ma$unique_id)){
-  mangrove.tmp <- bbs_ma[o, ]
-  mangrove.val <- mangrove.tmp[5]
-  bbs_lulc[bbs_lulc$unique_id == mangrove.tmp$unique_id, "mangrove"] <- mangrove.val
-}
+# for (o in 1:length(bbs_ma$unique_id)){
+#   mangrove.tmp <- bbs_ma[o, ]
+#   mangrove.val <- mangrove.tmp[5]
+#   mangrove.val <- mangrove.val[1,1]
+#   bbs_lulc[bbs_lulc$unique_id == mangrove.tmp$unique_id, "mangrove"] <- mangrove.val
+# }
 
+bbs_lulc <- bbs_ma %>% dplyr::select(c("unique_id", "mangrove")) %>% full_join(bbs_lulc, by = "unique_id") 
+
+bbs_lulc[is.na(bbs_lulc$mangrove), 2] <- 0
 #bbs_lulc <- bbs_lulc %>% group_by(site) %>% mutate(pct.man = mangrove / total_cover_nb, diff.from.first.man = (pct.man - first(pct.man)))#,
 #scale.pman = scale(pct.man), scale.pdman = scale(diff.from.first.man))
 
@@ -1492,23 +1549,23 @@ bbs_full <- merge(bbs_lulc, bbs_clim, by = "unique_id")
 
 
 #Calculate the % of Emergent, Woody Wetlands, and Urban
-bbs_full <- bbs_full %>% group_by(site.x) %>%
+bbs_full <- bbs_full %>% group_by(Site.x) %>%
   mutate(total_cover_nb = Urban + Ag + Grassland + Forest + Woody_Wetlands + Emergent_Wetlands + Bare + Water,
          pct.wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb, pct.ag = Ag / total_cover_nb,
          pct.ww = Woody_Wetlands / total_cover_nb, pct.ew = Emergent_Wetlands / total_cover_nb, pct.ur = Urban / total_cover_nb,
          pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb, pct.man = (mangrove / total_cover_nb)) %>%
-  mutate(diff.from.first.ww = (pct.ww - first(pct.ww)), scale.pdww = scale(diff.from.first.ww)) %>%
-  mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>%
-  mutate(diff.from.first.ew = (pct.ew - first(pct.ew)), scale.pdew = scale(diff.from.first.ew)) %>%
+  mutate(diff.from.first.ww = (pct.ww - first(pct.ww))) %>%
+  mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>% 
+  mutate(diff.from.first.ew = (pct.ew - first(pct.ew))) %>%
   mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>%
   mutate(diff.ratio.wet = (ratio.ww - first(ratio.ww))) %>%
   mutate(diff.from.first.man = (pct.man - first(pct.man))) %>%
-  mutate(diff.from.first.ur = (pct.ur - first(pct.ur)), scale.pdur = scale(diff.from.first.ur)) %>%
-  mutate(diff.from.first.ag = (pct.ag - first(pct.ag)), scale.pdag = scale(diff.from.first.ag)) %>%
-  mutate(diff.from.first.wet = (pct.wetland - first(pct.wetland)), scale.pdwet = scale(diff.from.first.wet)) %>%
-  mutate(diff.from.first.for = (pct.for - first(pct.for)), scale.pdfor = scale(diff.from.first.for)) %>%
-  mutate(diff.from.first.bare = (pct.bare - first(pct.bare)), scale.pdbare = scale(diff.from.first.bare)) %>%
-  mutate(diff.from.first.wat = (pct.wat - first(pct.wat)), scale.pdwat = scale(diff.from.first.wat)) %>%
+  mutate(diff.from.first.ur = (pct.ur - first(pct.ur))) %>%
+  mutate(diff.from.first.ag = (pct.ag - first(pct.ag))) %>%
+  mutate(diff.from.first.wet = (pct.wetland - first(pct.wetland))) %>%
+  mutate(diff.from.first.for = (pct.for - first(pct.for))) %>%
+  mutate(diff.from.first.bare = (pct.bare - first(pct.bare))) %>%
+  mutate(diff.from.first.wat = (pct.wat - first(pct.wat))) %>%
   # mutate(scale.ww = scale(Woody_Wetlands), scale.ew = scale(Emergent_Wetlands),
   #        scale.ur = scale(Urban), scale.ag = scale(Ag), scale.wetland = scale(pct_wetland),
   #        scale.pur = scale(pct.ur), scale.pwet = scale(pct_wetland), scale.pww = scale(pct.ww),
@@ -1518,8 +1575,8 @@ bbs_full <- bbs_full %>% group_by(site.x) %>%
 
 
 #Calculate Anomalies
-bbs_full <- bbs_full %>% group_by(Site) %>%
-  arrange(Year, .by_group = T) %>%
+bbs_full <- bbs_full %>% group_by(Site.x) %>%
+  arrange(Year.x, .by_group = T) %>%
   mutate(mean.anom = tmean.c - first(tmean.c),
          mean.anom.s = scale(mean.anom),
          max.anom = tmax.c - first(tmax.c),
@@ -1604,6 +1661,8 @@ bbs_full <- bbs_full %>% group_by(Site) %>%
 
 #bbs_full <- bbs_full[complete.cases(bbs_full),]
 
+bbs_last <- bbs_full %>% group_by(Site.x) %>% slice(n())
+
 #bbs_full <- as.data.frame(bbs_full)
 
 bbs_full <- bbs_full %>% mutate(scale.alpha = scale(alpha), scale.alphamcmc = scale(alpha.mcmc))
@@ -1680,3 +1739,130 @@ cmrl.occ$unique_id <- paste0(cmrl.occ$site, "_", cmrl.occ$Yr_bin)
 bbs_full <- merge(bbs_full, cmrl.occ, by = "unique_id")
 
 #save.image(here::here("R Workspace/Diversity_Script_Full.RData"))
+
+
+##################################################################################
+##################################################################################
+##Rt level## 
+bbs_rt <- merge(bbs_lulc, bbs_clim, by = "unique_id")
+bbs_rt <- bbs_full %>% group_by(rteno.x.y, Yr_bin) %>% summarize_if(is.numeric, mean)
+
+bbs_rt <- bbs_rt %>% group_by(rteno.x.y) %>%
+  mutate(total_cover_nb = Urban + Ag + Grassland + Forest + Woody_Wetlands + Emergent_Wetlands + Bare + Water,
+         pct.wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb, pct.ag = Ag / total_cover_nb,
+         pct.ww = Woody_Wetlands / total_cover_nb, pct.ew = Emergent_Wetlands / total_cover_nb, pct.ur = Urban / total_cover_nb,
+         pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb, pct.man = (mangrove / total_cover_nb)) %>%
+  mutate(diff.from.first.ww = (pct.ww - first(pct.ww))) %>%
+  mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>% 
+  mutate(diff.from.first.ew = (pct.ew - first(pct.ew))) %>%
+  mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>%
+  mutate(diff.ratio.wet = (ratio.ww - first(ratio.ww))) %>%
+  mutate(diff.from.first.man = (pct.man - first(pct.man))) %>%
+  mutate(diff.from.first.ur = (pct.ur - first(pct.ur))) %>%
+  mutate(diff.from.first.ag = (pct.ag - first(pct.ag))) %>%
+  mutate(diff.from.first.wet = (pct.wetland - first(pct.wetland))) %>%
+  mutate(diff.from.first.for = (pct.for - first(pct.for))) %>%
+  mutate(diff.from.first.bare = (pct.bare - first(pct.bare))) %>%
+  mutate(diff.from.first.wat = (pct.wat - first(pct.wat))) %>%
+  # mutate(scale.ww = scale(Woody_Wetlands), scale.ew = scale(Emergent_Wetlands),
+  #        scale.ur = scale(Urban), scale.ag = scale(Ag), scale.wetland = scale(pct_wetland),
+  #        scale.pur = scale(pct.ur), scale.pwet = scale(pct_wetland), scale.pww = scale(pct.ww),
+  #        scale.pew = scale(pct.ew), scale.pag = scale(pct.ag), scale.pwat = scale(pct.wat), scale.pfor = scale(pct.for),
+  #        scale.pbar = scale(pct.bare)) %>%
+  ungroup()
+
+
+#Calculate Anomalies
+bbs_rt <- bbs_rt %>% group_by(rteno.x.y) %>%
+  arrange(Year.x, .by_group = T) %>%
+  mutate(mean.anom = tmean.c - first(tmean.c),
+         mean.anom.s = scale(mean.anom),
+         max.anom = tmax.c - first(tmax.c),
+         max.anom.s = scale(max.anom),
+         min.anom = tmin.c - first(tmin.c),
+         min.anom.s = scale(min.anom),
+         
+         p.anom = pmean.c - first(pmean.c),
+         p.anom.s = scale(p.anom),
+         
+         mean.anom.bird = tmean.bird.c - first(tmean.bird.c),
+         mean.anom.bird.s = scale(mean.anom.bird),
+         max.anom.bird = tmax.bird.c - first(tmax.bird.c),
+         max.anom.bird.s = scale(max.anom.bird),
+         min.anom.bird = tmin.bird.c - first(tmin.bird.c),
+         min.anom.bird.s = scale(min.anom.bird),
+         
+         p.anom.bird = pmean.bird.c - first(pmean.bird.c),
+         p.anom.bird.s = scale(p.anom.bird),
+         
+         mean.anom.sp = tmean_Spring.c - first(tmean_Spring.c),
+         mean.anom.sp.s = scale(mean.anom.sp),
+         max.anom.sp = tmax_Spring.c - first(tmax_Spring.c),
+         max.anom.sp.s = scale(max.anom.sp),
+         min.anom.sp = tmin_Spring.c - first(tmin_Spring.c),
+         min.anom.sp.s = scale(min.anom.sp),
+         
+         p.anom.sp = precip_Spring.c - first(precip_Spring.c),
+         
+         mean.anom.s = tmean_Summer.c - first(tmean_Summer.c),
+         mean.anom.s.s = scale(mean.anom.s),
+         max.anom.s = tmax_Summer.c - first(tmax_Summer.c),
+         max.anom.s.s = scale(max.anom.s),
+         min.anom.s = tmin_Summer.c - first(tmin_Summer.c),
+         min.anom.s = scale(min.anom.s),
+         
+         p.anom.s = precip_Summer.c - first(precip_Summer.c),
+         p.anom.s.s = scale(p.anom.s),
+         
+         mean.anom.f = tmean_Fall.c - first(tmean_Fall.c),
+         mean.anom.f.s = scale(mean.anom.f),
+         max.anom.f = tmax_Fall.c - first(tmax_Fall.c),
+         max.anom.f.s = scale(max.anom.f),
+         min.anom.f = tmin_Fall.c - first(tmin_Fall.c),
+         min.anom.f.s = scale(min.anom.f),
+         
+         p.anom.f = precip_Fall.c - first(precip_Fall.c),
+         
+         mean.anom.w = tmean_Winter.c - first(tmean_Winter.c),
+         mean.anom.w.s = scale(mean.anom.w),
+         max.anom.w = tmax_Winter.c - first(tmax_Winter.c),
+         max.anom.w.s = scale(max.anom.w),
+         min.anom.w = tmin_Winter.c - first(tmin_Winter.c),
+         min.anom.w.s = scale(min.anom.w),
+         
+         p.anom.w = precip_Winter.c - first(precip_Winter.c),
+         p.anom.w.s = scale(p.anom.w),
+         p.anom.wet = precip_Wet.c - first(precip_Wet.c),
+         p.anom.wet.s = scale(p.anom.wet),
+         p.anom.dry = precip_Dry.c - first(precip_Dry.c),
+         p.anom.dry.s = scale(p.anom.dry),
+         
+         mean.anom.dry = tmean_Dry.c - first(tmean_Dry.c),
+         mean.anom.dry.s = scale(mean.anom.dry),
+         max.anom.dry = tmax_Dry.c - first(tmax_Dry.c),
+         max.anom.dry.s = scale(max.anom.dry),
+         min.anom.dry = tmin_Dry.c - first(tmin_Dry.c),
+         min.anom.dry.s = scale(min.anom.dry),
+         
+         mean.anom.wet = tmean_Wet.c - first(tmean_Wet.c),
+         mean.anon.wet.s = scale(mean.anom.wet),
+         max.anom.wet = tmax_Wet.c - first(tmax_Wet.c),
+         max.anom.wet.s = scale(max.anom.wet),
+         min.anom.wet = tmin_Wet.c - first(tmin_Wet.c),
+         min.anom.wet.s = scale(min.anom.wet))
+
+
+
+
+
+bbs_rt <- bbs_rt[!is.na(bbs_rt$beta50.jac), ]
+
+dmod.j <- MuMIn::dredge(mod, extra = c("R^2", F = function(x)
+  summary(x)$fstatistic[[1]]))
+subset(dmod.j, delta < 4)
+bestmod.j <- summary(get.models(dmod.j, 1)[[1]])
+
+
+
+mod <- lm(data = bbs_rt, beta50.jac ~ SR50 + Duration + mean.anom.bird + max.anom.bird + min.anom.bird + p.anom.wet + p.anom.dry + p.anom + diff.from.first.man + diff.from.first.ww + diff.from.first.ur + diff.from.first.wat + diff.ratio.wet + diff.from.first.for + diff.from.first.ag)
+summary(mod)
