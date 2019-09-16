@@ -52,9 +52,9 @@ lc.mds <- lc.mds[!duplicated(lc.mds), ]
 #ww11.site <- unique(ww.mds$site.x)
 ww.mds <- lc.mds %>% arrange(site)
 ww.mds$groups <- NA
-ww.mds$groups[ww.mds$ratio.ww <= 0.5] <- "Emergent Wetland Dominated"
-ww.mds$groups[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mix"
-ww.mds$groups[ww.mds$ratio.ww > 1.5] <- "Woody Wetland Dominated"
+ww.mds$groups[ww.mds$ratio.ww <= 1] <- "Emergent Wetland Dominated"
+#ww.mds$groups[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mix"
+ww.mds$groups[ww.mds$ratio.ww > 1] <- "Woody Wetland Dominated"
 ww.mds <- ww.mds$groups
 
 # ur.mds <- lc.mds %>% arrange(site)
@@ -81,12 +81,12 @@ data.scores$grp1 <- ww.mds
 mds_plot <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = ww.mds), level = 0.50) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = ww.mds, shape = ww.mds), size=2) +
-  scale_colour_manual(name = "Wetland Cover Types", 
-                      labels = c("Emergent Wetland Dominated", "Mix", "Woody Wetland Dominated"),
-                      values = c("#0072B2", "#009E73", "#999999")) +
+  scale_colour_manual(name = "Wetland Cover Types",  
+                      labels = c("Emergent Wetland Dominated", "Woody Wetland Dominated"),
+                      values = c("#55C667FF", "#440154FF")) + #"#009E73"
   scale_shape_manual(name = "Wetland Cover Types",
-                     labels = c("Emergent Wetland Dominated", "Mix", "Woody Wetland Dominated"),
-                     values = c(0, 16, 3))
+                     labels = c("Emergent Wetland Dominated", "Woody Wetland Dominated"), # "Mix",
+                     values = c(0, 16))
 
 mds_plot 
 
@@ -100,10 +100,10 @@ print(adon.results)
 #########################MDS for the Occupancy Cutoffs##################################
 ########################################################################################
 
-occ.mds <- occ50[occ50$Year == 1980,]
+occ.mds <- occ[occ$Year == 1980,]
 occ.mds <- occ.mds %>% arrange(site)
 
-lc.mds <- bbs_lulc %>% dplyr::select(site, Year, ratio.ww, pct_wetland)
+lc.mds <- bbs_lulc %>% dplyr::select(site, Year, ratio.ww)
 lc.mds <- lc.mds[lc.mds$Year == 1980,]
 
 occ.mds.list <- unique(occ.mds$site)
@@ -111,7 +111,7 @@ wetland.site <- unique(lc.mds$site)
 
 occ.mds.full <- merge(lc.mds, occ.mds, by = "site")
 
-lc.mds <- dplyr::select(occ.mds.full, c(ratio.ww, pct_wetland, site))
+lc.mds <- dplyr::select(occ.mds.full, c(ratio.ww, site))
 lc.mds <- lc.mds[!duplicated(lc.mds), ]
 
 #ww.mds <- ww.mds[ww.mds$site %in% mds.list,]
@@ -120,8 +120,8 @@ lc.mds <- lc.mds[!duplicated(lc.mds), ]
 ww.mds <- lc.mds %>% arrange(site)
 ww.mds$groups <- NA
 ww.mds$groups[ww.mds$ratio.ww <= 1] <- "Emergent Wetland Dominated"
-ww.mds$groups[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mixed"
-ww.mds$groups[ww.mds$ratio.ww > 1.5] <- "Woody Wetland Dominated"
+#ww.mds$groups[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mixed"
+ww.mds$groups[ww.mds$ratio.ww > 1] <- "Woody Wetland Dominated"
 ww.mds <- ww.mds$groups
 
 occ.mds <- occ.mds %>% arrange(site)
@@ -142,13 +142,12 @@ data.scores$grp1 <- ww.mds
 mds_plot <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = ww.mds), level = 0.50) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = ww.mds, shape = ww.mds), size=2) +
-  scale_colour_manual(name = "Wetland Cover Types", 
-                      labels = c("Emergent Wetland Dominated", "Mix", "Woody Wetland Dominated"),
-                      values = c("#0072B2", "#009E73", "#999999")) +
+  scale_colour_manual(name = "Wetland Cover Types",  
+                      labels = c("Emergent Wetland Dominated", "Woody Wetland Dominated"),
+                      values = c("#55C667FF", "#440154FF")) + #"#009E73"
   scale_shape_manual(name = "Wetland Cover Types",
-                     labels = c("Emergent Wetland Dominated", "Mix", "Woody Wetland Dominated"),
-                     values = c(0, 16, 3))
-
+                     labels = c("Emergent Wetland Dominated", "Woody Wetland Dominated"), # "Mix",
+                     values = c(0, 16))
 mds_plot #+ labs(color = "Wetland Cover Types", shape = "Wetland Cover Type") + scale_shape_manual(values = c(0, 16, 3))
 
 
@@ -177,8 +176,57 @@ ggplotRegression <- function (fit) {
 
 #######################################################################################################
 
+bbs_last <- bbs_last[!is.na(bbs_last$beta.jac), ]
+
+mod <- lmer(data = bbs_last, beta50.jac ~ SR50 + p.anom + mean.anom + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1 | rteno.x.y))
+summary(mod)
+Anova(mod)
+tab_model(mod)
+
+mod2 <- lmer(data = bbs_last, beta50.nest ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod2)
+Anova(mod2)
+tab_model(mod2)
+
+mod3 <- lmer(data = bbs_last, beta50.turn ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod3)
+Anova(mod3)
+tab_model(mod3)
+
+mod4 <- lmer(data = bbs_last, beta.wet.jac ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod4)
+Anova(mod4)
+tab_model(mod4)
+
+mod5 <- lmer(data = bbs_last, beta.wet.turn ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod4)
+Anova(mod4)
+tab_model(mod5)
+
+mod6 <- lmer(data = bbs_last, beta.wet.nest ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod4)
+Anova(mod4)
+tab_model(mod6)
+
+mod7 <- lm(data = bbs_last, beta50.jac ~ change.cmrl)
+summary(mod7)
+
+mod8 <- lm(data = bbs_last, beta50.nest ~ change.cmrl)
+summary(mod8)
+
+mod9 <- lm(data = bbs_last, beta50.turn ~ change.cmrl)
+summary(mod9)
+
+mod10 <- lmer(data = bbs_last, alpha50.pchange ~ p.anom.wet + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod10)
+Anova(mod10)
+tab_model(mod10)
 
 
+mod11 <- lmer(data = bbs_last, alphawet.pchange ~ p.anom.wet + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod11)
+Anova(mod11)
+tab_model(mod11)
 ###############################################################################################
 #########################Model runs for the last year of each##################################
 ###############################################################################################
@@ -186,12 +234,13 @@ ggplotRegression <- function (fit) {
 
 #Global Model Definitions
 
-mod.glob.jac <- lm(data = bbs_last, beta50.jac ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
-mod.glob.turn <- lm(data = bbs_last, beta50.turn ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
-mod.glob.nest <- lm(data = bbs_last, beta50.nest ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
-mod.glob.wjac <- lm(data = bbs_last, beta.wet.jac ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
-mod.glob.wturn <- lm(data = bbs_last, beta.wet.turn ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
-mod.glob.wnest <- lm(data = bbs_last, beta.wet.nest ~ alpha50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.ag + diff.from.first.for + Duration)
+mod.glob.jac <- lmer(data = bbs_last, beta50.jac ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.for + Duration + (1|rteno.x.x))
+mod.glob.turn <- lm(data = bbs_last, beta50.turn ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.for + Duration)
+mod.glob.nest <- lm(data = bbs_last, beta50.nest ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.for + Duration)
+mod.glob.wjac <- lm(data = bbs_last, beta.wet.jac ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.for + Duration)
+mod.glob.wturn <- lm(data = bbs_last, beta.wet.turn ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.for + Duration)
+mod.glob.wnest <- lm(data = bbs_last, beta.wet.nest ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + min.anom.bird + max.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.bare + diff.from.first.wat + diff.from.first.for + Duration)
+
 
 
 
