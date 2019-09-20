@@ -813,27 +813,27 @@ bbs_bin$unique_id <- paste0(bbs_bin$site, "_", bbs_bin$Yr_bin)
 bbs_total <- bbs_total[!bbs_total$BCR == 36, ]
 
 
-gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$beta50jac.slope)) + 
+gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$betawetnest.slope)) + 
   #geom_histogram(col = "black", fill = "black", bins = 10, binwidth = NULL) + 
-  geom_density(alpha = 0.4, fill = "#440154FF") +
+  geom_density(alpha = 0.4, fill = "#F98C0AFF") + #042333b2(Magma) #450A69FF(Viridis) #F98C0AFF (plasma)
   labs(title = "") +
-  labs(x = expression(paste("Slopes of ", beta, "-diversity")), y = "# of Sites") +
-  theme_cowplot(font_size = 20, line_size = 1.2) +
+  labs(x = expression(paste("Slopes of Wetland Bird ", beta, "-diversity"[italic("Nest")])), y = "# of Sites") +
+  theme_cowplot(font_size = 15, line_size = 1.2) +
   coord_flip()
 
 #site_data_merge$Year <- site_data_merge$count_yr + 1900
 
-plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta50.turn, group = BCR, 
+plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta.wet.nest, group = BCR, 
                                     colour = factor(BCR, 
                                                     labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
-                geom_smooth(method = loess, se = T, aes(x = Year, y = beta50.turn, group = BCR, 
+                geom_smooth(method = loess, se = T, aes(x = Year, y = beta.wet.nest, group = BCR, 
                                                         colour = factor(BCR,
                                                                         labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                 #scale_color_brewer(palette = )
                 xlab("Year") +
-                ylab(expression(paste(beta, "-diversity"))) +
+                ylab(expression(paste("Wetland Bird ", beta[italic("Nest")]))) +
                 labs(colour = "Bird Conservation Region") +
                 #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
                 #scale_x_continuous(limits = c(1980,2017), expand = c(0, 0), 
@@ -841,24 +841,24 @@ plot_beta <- (ggplot(bbs_total, aes(x = Year, y = beta50.turn, group = BCR,
                 #scale_y_continuous(limits = c(0,1), expand = c(0, 0), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1)) +
                 theme_bw() +
                 theme(axis.line = element_line(colour = "black", size =1.2),
-                      axis.text.x = element_text(size = 20),
-                      axis.text.y = element_text(size = 20),
-                      axis.title.x = element_text(vjust = -1, size = 14),
-                      axis.title.y = element_text(vjust = 1.5, size = 14),
+                      axis.text.x = element_text(size = 15),
+                      axis.text.y = element_text(size = 15),
+                      axis.title.x = element_text(vjust = -1, size = 15),
+                      axis.title.y = element_text(vjust = 1.5, size = 15),
                       axis.ticks = element_line(size = 1.2),
                       panel.grid.major = element_blank(),
                       panel.grid.minor = element_blank(),
                       panel.border = element_blank(),
                       panel.background = element_blank(),
                       plot.margin = unit(c(1,1,2,2), "lines"),
-                      text = element_text(size=20))) 
+                      text = element_text(size=15))) 
 
-plot_beta <- plot_beta + scale_color_viridis(discrete = T)
+plot_beta <- plot_beta + scale_color_viridis(option = "plasma", discrete = T)
 
 ggdraw() + 
   draw_plot(plot_beta + theme(legend.justification = "top"), 
             x = 0, y = 0, width = .9, height = 1) +
-  draw_plot(gghist_beta, x = 0.65, y = .025, width = .2, height = .75, scale = 1) 
+  draw_plot(gghist_beta, x = 0.72, y = .030, width = .2, height = .75, scale = 1) 
 
 #Species Richness Trends GoM
 #Add a column to Summary_Stats to indicate 5 year bin to look at long term trends
@@ -961,6 +961,10 @@ ggdraw() +
             x = 0, y = 0, width = .9, height = 1) +
   draw_plot(gghist, x = 0.75, y = .025, width = .2, height = .75, scale = 1) 
 #draw_plot_label(c("A", "B"), c(0, 1.5), c(.75, 0.75), size = 12)
+
+
+ 
+
 
 ######################################################
 #############Plots for thesis proposal################
