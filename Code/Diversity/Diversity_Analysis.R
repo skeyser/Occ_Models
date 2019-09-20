@@ -178,52 +178,110 @@ ggplotRegression <- function (fit) {
 
 bbs_last <- bbs_last[!is.na(bbs_last$beta.jac), ]
 
-mod <- lmer(data = bbs_last, beta50.jac ~ SR50 + p.anom + mean.anom + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1 | rteno.x.y))
+mod <- lm(data = rtlvl_small, beta50.jac ~ SR50 + p.anom + mean.anom + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration)
 summary(mod)
-Anova(mod)
-tab_model(mod)
 
-mod2 <- lmer(data = bbs_last, beta50.nest ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+mod2 <- lm(data = rtlvl_small, beta50.nest ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration)
 summary(mod2)
-Anova(mod2)
-tab_model(mod2)
 
-mod3 <- lmer(data = bbs_last, beta50.turn ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+mod3 <- lm(data = rtlvl_small, beta50.turn ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration)
 summary(mod3)
-Anova(mod3)
-tab_model(mod3)
 
-mod4 <- lmer(data = bbs_last, beta.wet.jac ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+mod4 <- lm(data = rtlvl_small, beta.wet.jac ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration)
 summary(mod4)
-Anova(mod4)
-tab_model(mod4)
 
-mod5 <- lmer(data = bbs_last, beta.wet.turn ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
-summary(mod4)
-Anova(mod4)
-tab_model(mod5)
+mod5 <- lm(data = rtlvl_small, beta.wet.turn ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration)
+summary(mod5)
 
-mod6 <- lmer(data = bbs_last, beta.wet.nest ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
-summary(mod4)
-Anova(mod4)
-tab_model(mod6)
+mod6 <- lm(data = rtlvl_small, beta.wet.nest ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration)
+summary(mod6)
 
-mod7 <- lm(data = bbs_last, beta50.jac ~ change.cmrl)
+
+
+mod7 <- lmer(data = seglvl_10, beta50.jac ~ SR50 + p.anom + mean.anom + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1 | rteno.x.y))
 summary(mod7)
+Anova(mod7)
+tab_model(mod7)
 
-mod8 <- lm(data = bbs_last, beta50.nest ~ change.cmrl)
+mod8 <- lmer(data = seglvl_10, beta50.nest ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
 summary(mod8)
+Anova(mod8)
+tab_model(mod8)
 
-mod9 <- lm(data = bbs_last, beta50.turn ~ change.cmrl)
+mod9 <- lmer(data = seglvl_10, beta50.turn ~ SR50 + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
 summary(mod9)
+Anova(mod9)
+tab_model(mod9)
 
-mod10 <- lmer(data = bbs_last, alpha50.pchange ~ p.anom.wet + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+mod10 <- lmer(data = seglvl_10, beta.wet.jac ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod10)
+Anova(mod10)
+tab_model(mod10)
+
+mod11 <- lmer(data = seglvl_10, beta.wet.turn ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod11)
+Anova(mod11)
+tab_model(mod11)
+
+mod12 <- lmer(data = seglvl_10, beta.wet.nest ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod12)
+Anova(mod12)
+tab_model(mod12)
+
+
+
+mod13 <- lmer(data = seglvl_small, beta50.jac ~ SR50 + p.anom + mean.anom + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1 | rteno.x.y))
+summary(mod13)
+Anova(mod13)
+tab_model(mod13)
+
+mod14 <- lmer(data = seglvl_small, beta50.nest ~ SR50 + p.anom + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod14)
+Anova(mod14)
+tab_model(mod14)
+
+mod15 <- lmer(data = seglvl_small, beta50.turn ~ SR50 + p.anom + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod15)
+Anova(mod15)
+tab_model(mod15)
+
+mod16 <- lmer(data = seglvl_small, beta.wet.jac ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod16)
+Anova(mod16)
+tab_model(mod16)
+
+mod17 <- lmer(data = seglvl_small, beta.wet.turn ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod17)
+Anova(mod17)
+tab_model(mod17)
+
+mod18 <- lmer(data = seglvl_small, beta.wet.nest ~ SR.wet + p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+summary(mod18)
+Anova(mod18)
+tab_model(mod18)
+
+
+mod19 <- lm(data = seglvl_small, beta50.jac ~ change.cmrl)
+summary(mod19)
+
+mod20 <- lm(data = seglvl_small, beta50.nest ~ change.cmrl)
+summary(mod20)
+
+mod21 <- lm(data = seglvl_small, beta50.turn ~ change.cmrl)
+summary(mod21)
+
+
+
+
+
+mod10 <- lmer(data = seglvl_small, alpha50.pchange ~ p.anom.wet + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
 summary(mod10)
 Anova(mod10)
 tab_model(mod10)
 
 
-mod11 <- lmer(data = bbs_last, alphawet.pchange ~ p.anom.wet + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
+
+mod11 <- lmer(data = seglvl_small, alphawet.pchange ~ p.anom.wet + mean.anom.bird + diff.from.first.ww + diff.from.first.ew + diff.from.first.ur + diff.from.first.man + Duration + (1|rteno.x.x))
 summary(mod11)
 Anova(mod11)
 tab_model(mod11)
