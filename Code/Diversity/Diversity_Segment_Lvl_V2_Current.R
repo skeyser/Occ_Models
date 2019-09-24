@@ -1217,8 +1217,8 @@ prism.seg2 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRI
 prism.seg3 <- read.csv(file = here::here("Data_Envi/PRISM Data/Segment_Level/PRISMsegs_2010_2019.csv"), stringsAsFactors = F)
 
 #Bind data, clear NA's from spacing in csv, and separate dates
-#prism.seg <- rbind(prism.base, prism.seg1, prism.seg2, prism.seg3)
-prism.seg <- rbind(prism.seg1, prism.seg2, prism.seg3)
+prism.seg <- rbind(prism.base, prism.seg1, prism.seg2, prism.seg3)
+#prism.seg <- rbind(prism.seg1, prism.seg2, prism.seg3)
 prism.seg <- prism.seg[complete.cases(prism.seg), ]
 prism.seg <- separate(prism.seg, col = Date, into = c("Year", "Month"), by = "-", remove = T)
 
@@ -1228,14 +1228,14 @@ colnames(prism.seg)[colnames(prism.seg) == "tmax..degrees.F."] <- "tmax"
 colnames(prism.seg)[colnames(prism.seg) == "tmin..degrees.F."] <- "tmin"
 colnames(prism.seg)[colnames(prism.seg) == "tmean..degrees.F."] <- "tmean"
 
-prism.seg <- prism.seg[!prism.seg$Year < 1980, ]
+prism.seg <- prism.seg[!prism.seg$Year < 1975, ]
 
 #Bin set up
-Bins <- data.frame(matrix(ncol = 2, nrow = 40))
+Bins <- data.frame(matrix(ncol = 2, nrow = 45))
 l <- c("Year", "Yr_bin")
 colnames(Bins) <- l
-Bins$Year <- 1980:2019
-Bins$Yr_bin <- rep(1:8, times = 1, each = 5)
+Bins$Year <- 1975:2019
+Bins$Yr_bin <- rep(0:8, times = 1, each = 5)
 
 # Bins2 <- data.frame(matrix(ncol = 2, nrow = 10))
 # l2 <- c("Year", "Yr_bin")
@@ -1251,10 +1251,10 @@ prism.seg <- merge(prism.seg, Bins, by = "Year")
 #Bin months for season (use only spring and summer)
 prism.seg$Month <- as.numeric(prism.seg$Month)
 prism.seg$season <- "Winter"
-prism.seg$season[prism.seg$Month >= 03 & prism.seg$Month <= 05] <- "Spring"
-prism.seg$season[prism.seg$Month >= 06 & prism.seg$Month <= 08] <- "Summer"
-prism.seg$season[prism.seg$Month >= 09 & prism.seg$Month <= 11] <- "Fall"
-prism.seg$season[prism.seg$Month >= 12 & prism.seg$Month <= 02] <- "Winter"
+prism.seg$season[prism.seg$Month >= 04 & prism.seg$Month <= 06] <- "Spring"
+prism.seg$season[prism.seg$Month >= 07 & prism.seg$Month <= 09] <- "Summer"
+prism.seg$season[prism.seg$Month >= 10 & prism.seg$Month <= 12] <- "Fall"
+prism.seg$season[prism.seg$Month >= 01 & prism.seg$Month <= 03] <- "Winter"
 prism.seg$RainSeason <- "Dry"
 prism.seg$RainSeason[prism.seg$Month >= 11 & prism.seg$Month <= 04] <- "Dry"
 prism.seg$RainSeason[prism.seg$Month >= 05 & prism.seg$Month <= 10] <- "Wet"
@@ -1409,11 +1409,46 @@ colnames(durs)[colnames(durs) == "site"] <- "Site"
 seg.climate <- right_join(durs, seg.climate, by = "Site") %>% right_join(duration, seg.climate, by = "Site")
 
 seg.climate <- merge(seg.climate, Bins, by = "Year")
-seg.climate <- seg.climate %>% group_by(Site, Yr_bin) %>% summarise_if(is.numeric, mean)
 
+#Df for looking at climate responses over the time series
+gom.climate.test <- seg.climate %>% group_by(Year, Site) %>% filter(Year > 1975) %>% 
+               summarize_if(is.numeric, mean)
 
+gom.climate <- seg.climate %>% group_by(Year) %>% filter(Year > 1975) %>% 
+  summarize_if(is.numeric, mean)
 
+mod.clim <- lmer(data = gom.climate.test, tmean_Spring.c ~ Year + (1|Site), REML = F)
+summary(mod.clim)
+Anova(mod.clim)
 
+ggplot(data = gom.climate, aes(x = Year, y = tmean.bird.c, group = 1)) + geom_point() + geom_smooth()
+
+#First 5 years of each survey averaged
+first.yrs <- seg.climate %>% group_by(Site) %>% arrange(Year) %>%
+        mutate(Year = as.numeric(Year),
+               index.yr.min = min.yr - Year,
+               index.yr.max = max.yr - Year,
+               Year = as.character(Year)) %>%
+        filter(between(index.yr.min, 0, 4) | between(index.yr.max, 0, 4)) %>%
+        slice(1:5) %>% summarize_if(is.numeric, mean) %>% ungroup()
+
+#Last 5 years of the survey averaged
+last.yrs <- seg.climate %>% group_by(Site) %>% arrange(Year) %>%
+  mutate(Year = as.numeric(Year),
+         index.yr.min = min.yr - Year,
+         index.yr.max = max.yr - Year,
+         Year = as.character(Year)) %>%
+  filter(between(index.yr.min, 0, 4) | between(index.yr.max, 0, 4)) %>%
+  slice(6:n()) %>% summarize_if(is.numeric, mean) %>% ungroup()
+
+#Attach a year
+first.yrs$Year <- first.yrs$min.yr
+last.yrs$Year <- last.yrs$max.yr
+
+#Bind the two together
+seg.climate <- rbind(first.yrs, last.yrs)
+seg.climate <- seg.climate %>% dplyr::select(-c("Yr_bin.x", "Yr_bin.y", "index.yr.min", "index.yr.max"))
+seg.climate <- merge(seg.climate, Bins, by = "Year")
 
 
 
@@ -1448,7 +1483,9 @@ seg.climate <- seg.climate %>% group_by(Site, Yr_bin) %>% summarise_if(is.numeri
 seg.climate$unique_id <- paste0(seg.climate$Site, "_", seg.climate$Yr_bin)
 
 
-seg.climate <- seg.climate[seg.climate$Yr_bin == seg.climate$min.yr.bin | seg.climate$Yr_bin == seg.climate$max.yr.bin, ]
+#seg.climate <- seg.climate[seg.climate$Yr_bin == seg.climate$min.yr.bin | seg.climate$Yr_bin == seg.climate$max.yr.bin, ]
+
+
 # seg.climate$unique_id <- paste0(seg.climate$Site, "_", seg.climate$Year)
 # bbs_clim <- merge(bbs_total, seg.climate, by = "unique_id")
 # bbs_clim$unique_id <- paste0(bbs_clim$site, "_", bbs_clim$Yr_bin.x)
