@@ -17,7 +17,7 @@ pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan")
 #Load in data sets for analysis 
 
 #Segments level df .4km buffer
-seg.df <- read.csv(here::here("Data_BBS/Generated DFs/"), stringsAsFactors = F)
+seg.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Seg_Last.csv"), stringsAsFactors = F)
 
 #Route level df 0.4km buffer
 rt.df <- read.csv(here::here("Data_BBS/Generated DFs/"), stringsAsFactors = F)
@@ -26,10 +26,16 @@ rt.df <- read.csv(here::here("Data_BBS/Generated DFs/"), stringsAsFactors = F)
 occ <- read.csv(here:here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
 
 #LULC Data for MDS plot & PERMANOVA
-bbs_lulc <- read.csv(here::here("Data_Envi/"), stringsAsFactors = F)
+bbs_lulc <- read.csv(here::here("Data_Envi/DF4Analysis_LULC.csv"), stringsAsFactors = F)
+
+#Climate and Diversity only DF Segment Level
+bbs_clim <- read.csv(here::here("Data_BBS/Generated DFs/DF_div_clim.csv"), stringsAsFactors = F)
+
+#Climate and Diversity only DF Rt Level
+bbs_clim_rt <- read.csv(here::here("Data_BBS/Generated DFs/"), stringsAsFactors = F)
 
 #BBS Simple Df 
-bbs_simple <- read.csv(here::here("Data_BBS/Generated DFs/"), stringsAsFactors = F)
+bbs_simple <- read.csv(here::here("Data_BBS/Generated DFs/BBS_Simple.csv"), stringsAsFactors = F)
 
 ###################################################################################
 
