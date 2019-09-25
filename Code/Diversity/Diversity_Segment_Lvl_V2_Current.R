@@ -1707,10 +1707,12 @@ bbs_full <- bbs_full %>% group_by(Site.x) %>%
   mutate(diff.from.first.ww = (pct.ww - first(pct.ww))) %>%
   mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>%
   mutate(ratio.man = (mangrove / Emergent_Wetlands)) %>%
+  mutate(ratio.manww = (mangrove / Woody_Wetlands)) %>%
   mutate(diff.from.first.ew = (pct.ew - first(pct.ew))) %>%
   mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>%
   mutate(diff.ratio.wet = (ratio.ww - first(ratio.ww))) %>%
   mutate(diff.from.first.man = (pct.man - first(pct.man))) %>%
+  mutate(diff.from.first.wwnm = (pct.wwnm - first(pct.wwnm))) %>%
   mutate(diff.from.first.ur = (pct.ur - first(pct.ur))) %>%
   mutate(diff.from.first.ag = (pct.ag - first(pct.ag))) %>%
   mutate(diff.from.first.wet = (pct.wetland - first(pct.wetland))) %>%
@@ -1747,9 +1749,9 @@ bbs_last <- bbs_last %>% rename(SR = Site_div.x, min.yr = min.yr.x, max.yr = max
                             "p.anom.bird", "mean.anom.sp", "max.anom.sp", "min.anom.sp", "p.anom.sp", "mean.anom.s", "max.anom.s", "min.anom.s", "p.anom.s",
                             "mean.anom.f", "max.anom.f", "min.anom.f", "p.anom.f", "mean.anom.w", "max.anom.w", "min.anom.w", "p.anom.w", "mean.anom.dry", 
                             "max.anom.dry", "min.anom.dry", "p.anom.dry", "mean.anom.wet", "max.anom.wet", "min.anom.wet", "p.anom.wet", "pct.wetland", "pct.ag",
-                            "pct.ww", "pct.man", "pct.wwnm", "pct.ew", "pct.grass", "pct.ur", "pct.for", "pct.wat", "pct.bare", "ratio.ww", "ratio.man", "ratio.ew",
+                            "pct.ww", "pct.man", "pct.wwnm", "pct.ew", "pct.grass", "pct.ur", "pct.for", "pct.wat", "pct.bare", "ratio.ww", "ratio.man", "ratio.ew", "ratio.manww",
                             "diff.from.first.ww", "diff.from.first.man", "diff.from.first.ew", "diff.from.first.ag", "diff.from.first.for", "diff.from.first.ur",
-                            "diff.from.first.bare", "diff.from.first.wet", "diff.from.first.grass", "diff.from.first.bare", "diff.from.first.wat"))
+                            "diff.from.first.wwnm", "diff.from.first.bare", "diff.from.first.wet", "diff.from.first.grass", "diff.from.first.bare", "diff.from.first.wat"))
 
 #Pulls out just the last
 #bbs_last <- bbs_full %>% group_by(rteno) %>% arrange(Year.x) %>% slice(n())
