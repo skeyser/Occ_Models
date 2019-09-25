@@ -99,6 +99,7 @@ print(adon.results)
 ########################################################################################
 #########################MDS for the Occupancy Cutoffs##################################
 ########################################################################################
+occ <- read.csv(here::here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
 
 occ.mds <- occ[occ$Year == 1980,]
 occ.mds <- occ.mds %>% arrange(site)
