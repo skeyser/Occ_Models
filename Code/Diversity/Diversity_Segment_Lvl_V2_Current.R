@@ -1686,15 +1686,18 @@ bbs_full <- merge(bbs_lulc, bbs_clim, by = "unique_id")
 lulc.df <- bbs_lulc %>% group_by(rteno.x) %>%
   mutate(total_cover_nb = Urban + Ag + Grassland + Forest + Woody_Wetlands + Emergent_Wetlands + Bare + Water,
          pct.wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb, pct.ag = Ag / total_cover_nb,
-         pct.grass = Grassland / total_cover_nb,
-         pct.ww = Woody_Wetlands / total_cover_nb, pct.ew = Emergent_Wetlands / total_cover_nb, pct.ur = Urban / total_cover_nb,
-         pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb, pct.man = (mangrove / total_cover_nb),
-         WW_NoMan = Woody_Wetlands - mangrove, pct.wwnm = WW_NoMan / total_cover_nb)
+         pct.grass = Grassland / total_cover_nb, pct.ww = Woody_Wetlands / total_cover_nb, pct.ew = Emergent_Wetlands / total_cover_nb, 
+         pct.ur = Urban / total_cover_nb,pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb, 
+         pct.man = (mangrove / total_cover_nb),WW_NoMan = Woody_Wetlands - mangrove, pct.wwnm = WW_NoMan / total_cover_nb, ratio.ww = (Woody_Wetlands / Emergent_Wetlands),
+         ratio.ew = (Emergent_Wetlands / Woody_Wetlands), ratio.man = (mangrove / Emergent_Wetlands), ratio.mnww = (mangrove / WW_NoMan))
 
-lulc.df <- lulc.df %>% rename(Site = rteno.x, rtname = site) %>% dplyr::select(c("unique_id", "Year", "Site", "rtname", "Segment", "Background", "Urban", 
+lulc.df <- lulc.df %>% separate(unique_id, into = c("rt", "segment", "Yr_bin"), sep = "_") %>% unite("unique_id", c("rt", "segment"), sep = "_")
+
+lulc.df <- lulc.df %>% rename(Site = rteno.x, rtname = site) %>% dplyr::select(c("unique_id", "Yr_bin", "Site", "rtname", "Segment", "Background", "Urban", 
                                                                                  "Ag", "mangrove", "Grassland", "Forest", "Woody_Wetlands","Emergent_Wetlands", 
                                                                                  "WW_NoMan", "Bare", "Water", "total_cover", "tot_wetland", "total_cover_nb", "pct.wetland",
-                                                                                 "pct.ag", "pct.ww", "pct.man", "pct.wwnm", "pct.grass", "pct.for","pct.ur", "pct.wat", "pct.bare")) 
+                                                                                 "pct.ag", "pct.ww", "pct.man", "pct.wwnm", "pct.grass", "pct.for","pct.ur", "pct.wat", "pct.bare",
+                                                                                 "ratio.ww", "ratio.ew", "ratio.man", "ratio.mnww")) 
 
 
 #write.csv(lulc.df, here::here("Data_Envi/DF4Analysis_LULC.csv"))
