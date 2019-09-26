@@ -1677,6 +1677,8 @@ site.lulc <- unique(bbs_lulc$rteno.x)
 length(site.clim %in% site.lulc)
 
 bbs_lulc <- bbs_lulc[bbs_lulc$rteno.x %in% site.clim, ]
+bbs_lulc <- bbs_lulc %>% dplyr::select(-c("Yr_bin", "Year"))
+
 
 bbs_full <- merge(bbs_lulc, bbs_clim, by = "unique_id")
 
@@ -1707,7 +1709,7 @@ bbs_full <- bbs_full %>% group_by(Site.x) %>%
   mutate(diff.from.first.ww = (pct.ww - first(pct.ww))) %>%
   mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>%
   mutate(ratio.man = (mangrove / Emergent_Wetlands)) %>%
-  mutate(ratio.manww = (mangrove / Woody_Wetlands)) %>%
+  mutate(ratio.manww = (mangrove / WW_NoMan)) %>%
   mutate(diff.from.first.ew = (pct.ew - first(pct.ew))) %>%
   mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>%
   mutate(diff.ratio.wet = (ratio.ww - first(ratio.ww))) %>%
@@ -1736,7 +1738,7 @@ bbs_last <- bbs_last[!is.na(bbs_last$beta50.jac),]
 
 #Fix up the craziness of this DF
 bbs_last <- bbs_last %>% rename(SR = Site_div.x, min.yr = min.yr.x, max.yr = max.yr.x, min.yr.bin = min.yr.bin.x, max.yr.bin = max.yr.bin.x, 
-                                Segment = Segment.x, rtename = rtename.x, Site = Site.x) %>% 
+                                Segment = Segment.x, rtename = rtename.x, Site = Site.x, Year = Year.x) %>% 
             dplyr::select(c("unique_id", "rteno", "Site", "Year", "Yr_bin", "rt_yr", "min.yr", "max.yr", "min.yr.bin", "max.yr.bin",
                             "BCR", "Duration", "Duration.bin", "beta.jac", "beta.turn", "beta.nest", "beta.wet.jac", "beta.wet.turn",
                             "beta.wet.nest", "beta50.jac", "beta50.turn", "beta50.nest", "beta.mcmc", "beta.mcmc.sd", "alpha.change", 
@@ -1809,7 +1811,7 @@ cmrl.last <- cmrl.occ %>% rename(CMRL = Latitude, Site = site) %>% arrange(Yr_bi
 #Put the cmrl with the last mod DF
 bbs_last <- merge(bbs_last, cmrl.last, by = "Site")
 
-#write.csv(bbs_last, here::here("Data_BBS/Generated DFs/DF4Analysis_Seg_Last.csv"))
+#write.csv(bbs_last, here::here("Data_BBS/Generated DFs/DF4Analysis_Seg_Last_Complete.csv"))
 
 #bbs_last <- bbs_last %>% mutate(scale.cmrl = scale(change.cmrl.km))
 
@@ -1817,130 +1819,3 @@ cmrl.occ$unique_id <- paste0(cmrl.occ$site, "_", cmrl.occ$Yr_bin)
 bbs_full <- merge(bbs_full, cmrl.occ, by = "unique_id")
 
 #save.image(here::here("R Workspace/Diversity_Script_Full.RData"))
-
-
-##################################################################################
-##################################################################################
-##Rt level## 
-bbs_rt <- merge(bbs_lulc, bbs_clim, by = "unique_id")
-bbs_rt <- bbs_full %>% group_by(rteno.x.y, Yr_bin) %>% summarize_if(is.numeric, mean)
-
-bbs_rt <- bbs_rt %>% group_by(rteno.x.y) %>%
-  mutate(total_cover_nb = Urban + Ag + Grassland + Forest + Woody_Wetlands + Emergent_Wetlands + Bare + Water,
-         pct.wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb, pct.ag = Ag / total_cover_nb,
-         pct.ww = Woody_Wetlands / total_cover_nb, pct.ew = Emergent_Wetlands / total_cover_nb, pct.ur = Urban / total_cover_nb,
-         pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb, pct.man = (mangrove / total_cover_nb)) %>%
-  mutate(diff.from.first.ww = (pct.ww - first(pct.ww))) %>%
-  mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>% 
-  mutate(diff.from.first.ew = (pct.ew - first(pct.ew))) %>%
-  mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>%
-  mutate(diff.ratio.wet = (ratio.ww - first(ratio.ww))) %>%
-  mutate(diff.from.first.man = (pct.man - first(pct.man))) %>%
-  mutate(diff.from.first.ur = (pct.ur - first(pct.ur))) %>%
-  mutate(diff.from.first.ag = (pct.ag - first(pct.ag))) %>%
-  mutate(diff.from.first.wet = (pct.wetland - first(pct.wetland))) %>%
-  mutate(diff.from.first.for = (pct.for - first(pct.for))) %>%
-  mutate(diff.from.first.bare = (pct.bare - first(pct.bare))) %>%
-  mutate(diff.from.first.wat = (pct.wat - first(pct.wat))) %>%
-  # mutate(scale.ww = scale(Woody_Wetlands), scale.ew = scale(Emergent_Wetlands),
-  #        scale.ur = scale(Urban), scale.ag = scale(Ag), scale.wetland = scale(pct_wetland),
-  #        scale.pur = scale(pct.ur), scale.pwet = scale(pct_wetland), scale.pww = scale(pct.ww),
-  #        scale.pew = scale(pct.ew), scale.pag = scale(pct.ag), scale.pwat = scale(pct.wat), scale.pfor = scale(pct.for),
-  #        scale.pbar = scale(pct.bare)) %>%
-  ungroup()
-
-
-#Calculate Anomalies
-bbs_rt <- bbs_rt %>% group_by(rteno.x.y) %>%
-  arrange(Year.x, .by_group = T) %>%
-  mutate(mean.anom = tmean.c - first(tmean.c),
-         mean.anom.s = scale(mean.anom),
-         max.anom = tmax.c - first(tmax.c),
-         max.anom.s = scale(max.anom),
-         min.anom = tmin.c - first(tmin.c),
-         min.anom.s = scale(min.anom),
-         
-         p.anom = pmean.c - first(pmean.c),
-         p.anom.s = scale(p.anom),
-         
-         mean.anom.bird = tmean.bird.c - first(tmean.bird.c),
-         mean.anom.bird.s = scale(mean.anom.bird),
-         max.anom.bird = tmax.bird.c - first(tmax.bird.c),
-         max.anom.bird.s = scale(max.anom.bird),
-         min.anom.bird = tmin.bird.c - first(tmin.bird.c),
-         min.anom.bird.s = scale(min.anom.bird),
-         
-         p.anom.bird = pmean.bird.c - first(pmean.bird.c),
-         p.anom.bird.s = scale(p.anom.bird),
-         
-         mean.anom.sp = tmean_Spring.c - first(tmean_Spring.c),
-         mean.anom.sp.s = scale(mean.anom.sp),
-         max.anom.sp = tmax_Spring.c - first(tmax_Spring.c),
-         max.anom.sp.s = scale(max.anom.sp),
-         min.anom.sp = tmin_Spring.c - first(tmin_Spring.c),
-         min.anom.sp.s = scale(min.anom.sp),
-         
-         p.anom.sp = precip_Spring.c - first(precip_Spring.c),
-         
-         mean.anom.s = tmean_Summer.c - first(tmean_Summer.c),
-         mean.anom.s.s = scale(mean.anom.s),
-         max.anom.s = tmax_Summer.c - first(tmax_Summer.c),
-         max.anom.s.s = scale(max.anom.s),
-         min.anom.s = tmin_Summer.c - first(tmin_Summer.c),
-         min.anom.s = scale(min.anom.s),
-         
-         p.anom.s = precip_Summer.c - first(precip_Summer.c),
-         p.anom.s.s = scale(p.anom.s),
-         
-         mean.anom.f = tmean_Fall.c - first(tmean_Fall.c),
-         mean.anom.f.s = scale(mean.anom.f),
-         max.anom.f = tmax_Fall.c - first(tmax_Fall.c),
-         max.anom.f.s = scale(max.anom.f),
-         min.anom.f = tmin_Fall.c - first(tmin_Fall.c),
-         min.anom.f.s = scale(min.anom.f),
-         
-         p.anom.f = precip_Fall.c - first(precip_Fall.c),
-         
-         mean.anom.w = tmean_Winter.c - first(tmean_Winter.c),
-         mean.anom.w.s = scale(mean.anom.w),
-         max.anom.w = tmax_Winter.c - first(tmax_Winter.c),
-         max.anom.w.s = scale(max.anom.w),
-         min.anom.w = tmin_Winter.c - first(tmin_Winter.c),
-         min.anom.w.s = scale(min.anom.w),
-         
-         p.anom.w = precip_Winter.c - first(precip_Winter.c),
-         p.anom.w.s = scale(p.anom.w),
-         p.anom.wet = precip_Wet.c - first(precip_Wet.c),
-         p.anom.wet.s = scale(p.anom.wet),
-         p.anom.dry = precip_Dry.c - first(precip_Dry.c),
-         p.anom.dry.s = scale(p.anom.dry),
-         
-         mean.anom.dry = tmean_Dry.c - first(tmean_Dry.c),
-         mean.anom.dry.s = scale(mean.anom.dry),
-         max.anom.dry = tmax_Dry.c - first(tmax_Dry.c),
-         max.anom.dry.s = scale(max.anom.dry),
-         min.anom.dry = tmin_Dry.c - first(tmin_Dry.c),
-         min.anom.dry.s = scale(min.anom.dry),
-         
-         mean.anom.wet = tmean_Wet.c - first(tmean_Wet.c),
-         mean.anon.wet.s = scale(mean.anom.wet),
-         max.anom.wet = tmax_Wet.c - first(tmax_Wet.c),
-         max.anom.wet.s = scale(max.anom.wet),
-         min.anom.wet = tmin_Wet.c - first(tmin_Wet.c),
-         min.anom.wet.s = scale(min.anom.wet))
-
-
-
-
-
-bbs_rt <- bbs_rt[!is.na(bbs_rt$beta50.jac), ]
-
-dmod.j <- MuMIn::dredge(mod, extra = c("R^2", F = function(x)
-  summary(x)$fstatistic[[1]]))
-subset(dmod.j, delta < 4)
-bestmod.j <- summary(get.models(dmod.j, 1)[[1]])
-
-
-
-mod <- lm(data = bbs_rt, beta50.jac ~ SR50 + Duration + mean.anom.bird + max.anom.bird + min.anom.bird + p.anom.wet + p.anom.dry + p.anom + diff.from.first.man + diff.from.first.ww + diff.from.first.ur + diff.from.first.wat + diff.ratio.wet + diff.from.first.for + diff.from.first.ag)
-summary(mod)
