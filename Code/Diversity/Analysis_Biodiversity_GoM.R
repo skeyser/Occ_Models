@@ -238,40 +238,48 @@ ggplot(data = div.df, aes(y = Site, x = bwet.ratiolog, color = BCR)) + geom_poin
 #Linear Mixed Effects Models @ segment level
 
 #Jaccard Index Wetland and Entire Community
-mod1 <- lmer(data = seg.df, beta50.jac ~ p.anom.wet + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR50 + Duration + (1|rteno), REML = F)
+mod1 <- lmer(data = seg.df, beta50.jac ~ p.anom.wet + min.anom.sp + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR50 + Duration + (1|rteno), REML = F)
 summary(mod1)
 Anova(mod1)
+tab_model(mod1)
 
-mod2 <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + mean.anom.bird + diff.from.first.man  + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR50 + Duration + (1|rteno), REML = F)
+mod2 <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + mean.anom.bird + diff.from.first.man  + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR.wet + Duration + (1|rteno), REML = F)
 summary(mod2)
 Anova(mod2)
+tab_model(mod2)
 
 #Turnover Component Wetland and Entire Community
 mod3 <- lmer(data = seg.df, beta50.turn ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR50 + Duration + (1|rteno), REML = F)
 summary(mod3)
 Anova(mod3)
+tab_model(mod3)
 
-mod4 <- lmer(data = seg.df, beta.wet.turn ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR50 + Duration + (1|rteno), REML = F)
+mod4 <- lmer(data = seg.df, beta.wet.turn ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR.wet + Duration + (1|rteno), REML = F)
 summary(mod4)
 Anova(mod4)
+tab_model(mod4)
 
 #Nestedness Compoentn Wetland and Entire Community
 mod5 <- lmer(data = seg.df, beta50.nest ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR50 + Duration + (1|rteno), REML = F)
 summary(mod5)
 Anova(mod5)
+tab_model(mod5)
 
-mod6 <- lmer(data = seg.df, beta.wet.nest ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR50 + Duration + (1|rteno), REML = F)
+mod6 <- lmer(data = seg.df, beta.wet.nest ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR.wet + Duration + (1|rteno), REML = F)
 summary(mod6)
 Anova(mod6)
+tab_model(mod6)
 
 #Change SR 
-mod7 <- lmer(data = seg.df, alpha50.pchangeabs ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + Duration + (1|rteno), REML = F)
+mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + Duration + SR50 + (1|rteno), REML = F)
 summary(mod7)
 Anova(mod7)
+tab_model(mod7)
 
-mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + Duration + (1|rteno), REML = F)
+mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + Duration + SR.wet + (1|rteno), REML = F)
 summary(mod8)
 Anova(mod8)
+tab_model(mod8)
 
 ########################################################################################################################################################################################################
 
@@ -281,21 +289,21 @@ Anova(mod8)
 mod9 <- lm(data = rt.df, beta50.jac ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur  + SR50 + Duration)
 summary(mod9)
 
-mod10 <- lm(data = rt.df, beta.wet.jac ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR50 + Duration)
+mod10 <- lm(data = rt.df, beta.wet.jac ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR.wet + Duration)
 summary(mod10)
 
 #Turnover Index Models
 mod11 <- lm(data = rt.df, beta50.turn ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR50 + Duration)
 summary(mod11)
 
-mod12 <- lm(data = rt.df, beta.wet.turn ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR50 + Duration)
+mod12 <- lm(data = rt.df, beta.wet.turn ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR.wet + Duration)
 summary(mod12)
 
 #Nestedness Index Models 
 mod13 <- lm(data = rt.df, beta50.nest ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR50 + Duration)
 summary(mod13)
 
-mod14 <- lm(data = rt.df, beta.wet.nest ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR50 + Duration)
+mod14 <- lm(data = rt.df, beta.wet.nest ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR.wet + Duration)
 summary(mod14)
 
 #Change SR
@@ -306,7 +314,36 @@ mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom + mean.anom.bird + diff.from
 summary(mod16)
 
 ########################################################################################################################################################################################################
+bbs_clim_rt1 <- bbs_total %>% group_by(rteno.x) %>% arrange(Year) %>% filter(Year <= 1999) %>% 
+  select(c("rteno.x", "Year", "Latitude", "SR50", "SR.wet")) %>% summarize_if(is.numeric, mean) %>% ungroup() 
+bbs_clim_rt2 <- bbs_total %>% group_by(rteno.x) %>% arrange(Year) %>% filter(Year >= 2000) %>% 
+  select(c("rteno.x", "Year", "Latitude", "SR50", "SR.wet")) %>% summarize_if(is.numeric, mean) %>% ungroup() 
 
+bbs_clim_rt2 <- bbs_clim_rt2[bbs_clim_rt2$rteno.x %in% bbs_clim_rt1$rteno.x, ]
+bbs_clim_rt1 <- bbs_clim_rt1[bbs_clim_rt1$rteno.x %in% bbs_clim_rt2$rteno.x, ]
+
+
+ggplot() + 
+  geom_smooth(data = bbs_clim_rt1, aes(x = Latitude, y = SR50), color = "red") +
+  geom_smooth(data = bbs_clim_rt2, aes(x = Latitude, y = SR50), color = "black") +
+  xlab("Latitude") +
+  ylab("Detection-corrected Species Richness")
+  
+
+########################################################################################################################################################################################################
+
+#-Wetland, -WW, +Ag  
+mod22 <- lmer(data = seg.df, SR ~ pct.wetland + (1|rteno), REML = F)
+summary(mod22)
+Anova(mod22)
+
+#-WW, +EW, -WWNM, +Ag
+mod23 <- lm(data = rt.df, SR.wet ~ pct.wwnm)
+summary(mod23)
+Anova(mod23)
+tab_model(mod23)
+
+########################################################################################################################################################################################################
 #CMRL - Beta div plots
 mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl)
 summary(mod17)
@@ -317,7 +354,7 @@ summary(mod18)
 mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl)
 summary(mod19)
 
-mod20 <- lmer(data = seg.df, change.cmrl ~ min.anom.sp + (1|rteno), REML = F)
+mod20 <- lmer(data = seg.df, change.cmrl ~ min.anom.sp + poly(min.anom.sp, 2) + (1|rteno), REML = F)
 summary(mod20)
 Anova(mod20)
 tab_model(mod20)
