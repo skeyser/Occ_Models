@@ -1447,7 +1447,7 @@ last.yrs$Year <- last.yrs$max.yr
 
 #Bind the two together
 seg.climate <- rbind(first.yrs, last.yrs)
-seg.climate <- seg.climate %>% dplyr::select(-c("Yr_bin.x", "Yr_bin.y", "index.yr.min", "index.yr.max"))
+seg.climate <- seg.climate %>% dplyr::select(-c("Yr_bin", "index.yr.min", "index.yr.max"))
 seg.climate <- merge(seg.climate, Bins, by = "Year")
 
 
@@ -1741,7 +1741,7 @@ bbs_last <- bbs_last[!is.na(bbs_last$beta50.jac),]
 
 #Fix up the craziness of this DF
 bbs_last <- bbs_last %>% rename(SR = Site_div.x, min.yr = min.yr.x, max.yr = max.yr.x, min.yr.bin = min.yr.bin.x, max.yr.bin = max.yr.bin.x, 
-                                Segment = Segment.x, rtename = rtename.x, Site = Site.x, Year = Year.x) %>% 
+                                Segment = Segment.x, rtename = rtename.x, Site = Site.x, Yr_bin = Yr_bin.x, Year = Year.x) %>% 
             dplyr::select(c("unique_id", "rteno", "Site", "Year", "Yr_bin", "rt_yr", "min.yr", "max.yr", "min.yr.bin", "max.yr.bin",
                             "BCR", "Duration", "Duration.bin", "beta.jac", "beta.turn", "beta.nest", "beta.wet.jac", "beta.wet.turn",
                             "beta.wet.nest", "beta50.jac", "beta50.turn", "beta50.nest", "beta.mcmc", "beta.mcmc.sd", "alpha.change", 
