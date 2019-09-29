@@ -1828,12 +1828,22 @@ Anova(lm.cmrl)
 
 cmrl.occ <- merge(cmrl.occ, Bins, by = "Year")
 
+#Find the mean by site
+cmrl.mean <- cmrl.occ %>% group_by(rteno.x, Yr_bin) %>% summarise(Latitude = mean(Latitude))
+
+
 #Get the change in CMRL 
 cmrl.occ <- cmrl.occ %>% group_by(rteno.x) %>% arrange(Year) %>% #summarise(CMRL = mean(Latitude)) %>% 
   mutate(change.cmrl = Latitude - first(Latitude),
          change.cmrl.km = change.cmrl * 111)
-#Find the mean by site
-cmrl.mean <- cmrl.occ %>% group_by(rteno.x) %>% summarise(mean.change = mean(change.cmrl.km))
+
+# cmrl.mean <- cmrl.mean %>% group_by(rteno.x) %>% arrange(Yr_bin) %>% #summarise(CMRL = mean(Latitude)) %>% 
+#   mutate(change.cmrl = Latitude - first(Latitude),
+#          change.cmrl.km = change.cmrl * 111)
+
+
+# #Find the mean by site
+# cmrl.mean <- cmrl.occ %>% group_by(rteno.x) %>% summarise(mean.change = mean(change.cmrl.km))
 
 #Plot some results
 ggplot(data = cmrl.occ, aes(x = Year, y = Latitude, group = site)) + 
@@ -1844,7 +1854,9 @@ cmrl.last <- cmrl.occ %>% arrange(Yr_bin) %>% slice(n())
 
 #Put the cmrl with the last mod DF
 cmrl.last$unique_id <- paste0(cmrl.last$rteno.x, "_", cmrl.last$Yr_bin)
+cmrl.last <- cmrl.last %>% rename(CMRL = Latitude)
 
+bbs_last <- bbs_last %>% dplyr::select(-c("Year"))
 bbs_last <- merge(bbs_last, cmrl.last, by = "unique_id")
 
 
@@ -1855,8 +1867,9 @@ bbs_full <- merge(bbs_full, cmrl.occ, by = "unique_id")
 
 #save.image(here::here("R Workspace/Diversity_Script_Full.RData"))
 
+
 bbs_last <- bbs_last %>% rename(SR = Site_div, min.yr = min.yr.x, max.yr = max.yr.x, min.yr.bin = min.yr.bin.x, max.yr.bin = max.yr.bin.x, 
-                          rtename = rtename.x, Site = Site.x, Yr_bin = Yr_bin.x) %>% 
+                          rtename = rtename.x, Site = Site.x) %>% 
   dplyr::select(c("unique_id", "rteno", "Site", "Year", "Yr_bin", "rt_yr", "min.yr", "max.yr", "min.yr.bin", "max.yr.bin",
                   "BCR", "Duration", "Duration.bin", "beta.jac", "beta.turn", "beta.nest", "beta.wet.jac", "beta.wet.turn",
                   "beta.wet.nest", "beta50.jac", "beta50.turn", "beta50.nest", "alpha.change", 
@@ -1871,7 +1884,8 @@ bbs_last <- bbs_last %>% rename(SR = Site_div, min.yr = min.yr.x, max.yr = max.y
                   "max.anom.dry", "min.anom.dry", "p.anom.dry", "mean.anom.wet", "max.anom.wet", "min.anom.wet", "p.anom.wet", "pct.wetland", "pct.ag",
                   "pct.ww", "pct.man", "pct.wwnm", "pct.ew", "pct.grass", "pct.ur", "pct.for", "pct.wat", "pct.bare", "ratio.ww", "ratio.man", "ratio.ew", "ratio.manww",
                   "diff.from.first.ww", "diff.from.first.man", "diff.from.first.ew", "diff.from.first.ag", "diff.from.first.for", "diff.from.first.ur",
-                  "diff.from.first.wwnm", "diff.from.first.bare", "diff.from.first.wet", "diff.from.first.grass", "diff.from.first.bare", "diff.from.first.wat"))
+                  "diff.from.first.wwnm", "diff.from.first.bare", "diff.from.first.wet", "diff.from.first.grass", "diff.from.first.bare", "diff.from.first.wat",
+                  "change.cmrl", "change.cmrl.km", "CMRL"))
 
 #write.csv(bbs_last, here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last.csv"))
 
