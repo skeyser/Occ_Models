@@ -335,12 +335,17 @@ prd$uci <- err$fit + 1.96 * err$se.fit
 cmrl.plot <- ggplot(prd, aes(x = min.anom.sp, y = fit)) +
   theme_bw() +
   geom_line() +
-  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity") +
+  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#481567FF", fill = "#481567FF") +
   geom_point(data = rt.df, aes(x = min.anom.sp, y = change.cmrl.km)) +
   xlab(expression(paste("Change in Minimum Spring Temp ( ", degree ~ C, " )"))) +
   ylab('Change in CMRL (km)') +
+  labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
+                     "Intercept =",signif(mod21$coef[[1]],5 ),
+                     " Slope =",signif(mod21$coef[[3]], 5),
+                     " P =",signif(summary(mod21)$coef[3,4], 5))) +
+  scale_x_continuous(breaks = seq(-0.5, 2.5, 0.5))
   
-  
+cmrl.plot
 #######################################################################################################
 ##########################Plotting Function for partial regression#####################################
 #######################################################################################################
