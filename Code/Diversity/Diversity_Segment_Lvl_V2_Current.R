@@ -811,7 +811,11 @@ bbs_bin$unique_id <- paste0(bbs_bin$site, "_", bbs_bin$Yr_bin)
 
 #Plots for Beta Diversity
 bbs_total <- bbs_total[!bbs_total$BCR == 36, ]
-
+bbs_total$BCR_name <- NA
+bbs_total$BCR_name[bbs_total$BCR == "31"] <- "Peninsular Florida"
+bbs_total$BCR_name[bbs_total$BCR == "37"] <- "Gulf Coast Prairie"
+bbs_total$BCR_name[bbs_total$BCR == "27"] <- "Southeastern Coastal Plain"
+bbs_total$BCR_name[bbs_total$BCR == "26"] <- "Mississippi Alluvial Valley"
 
 gghist_beta <- ggplot(data = slopes_sites_beta, aes(slopes_sites_beta$betawetnest.slope)) + 
   #geom_histogram(col = "black", fill = "black", bins = 10, binwidth = NULL) + 
@@ -893,7 +897,7 @@ dev.off()
 n.sites <- length(unique(bbs_total$site))
 site.list <- as.character(unique(bbs_total$site))
 
-slopes_sites <- data.frame(site.list, slope = NA, slope.mcmc = NA)
+slopes_sites <- data.frame(site.list, slope = NA, slope50 = NA, slope.wet = NA)
 
 for (i in 1:n.sites){
   site.temp <- site.list[i]
@@ -901,11 +905,14 @@ for (i in 1:n.sites){
   bbs_temp <- bbs_temp[!duplicated(bbs_temp$unique_id),]
   if (nrow(bbs_temp) > 1){
     lm.temp <- lm(bbs_temp$Site_div.x ~ bbs_temp$Year)
-    lm.temp2 <- lm(bbs_temp$SR_MCMC ~ bbs_temp$Year)
+    lm.temp2 <- lm(bbs_temp$SR50 ~ bbs_temp$Year)
+    lm.temp3 <- lm(bbs_temp$SR.wet ~ bbs_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
     slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
-    slopes_sites[i,2] <- slope.temp
+    slope.temp3 <- summary(lm.temp3)$coefficients[2,1]
+    slopes_sites[i, 2] <- slope.temp
     slopes_sites[i, 3] <- slope.temp2
+    slopes_sites[i, 4] <- slope.temp3
   }
 }
 
@@ -925,14 +932,14 @@ gghist <- ggplot(data = slopes_sites, aes(slopes_sites$slope)) +
   coord_flip()
 
 
-plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = SR.wet, group = BCR, 
-                                     colour = factor(BCR, 
-                                                     labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
+plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = SR50, group = BCR_name, 
+                                     colour = factor(BCR_name))) + 
+                                                     #labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                  #geom_point(size = 3) +
                  #geom_line()+
-                 geom_smooth(method = loess, se = T, aes(x = Year, y = SR.wet, group = BCR, 
-                                                         colour = factor(BCR, 
-                                                                         labels = c("BCR 26", "BCR 27", "BCR 31", "BCR 36", "BCR 37")))) +
+                 geom_smooth(method = loess, se = T, aes(x = Year, y = Site_div, group = BCR_name)) + 
+                                                         #colour = factor(BCR, 
+                                                        #                 labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                  xlab("Year") +
                  ylab(expression(paste("Detection-correct ", alpha, "-diversity"))) +
                  labs(colour = "Bird Conservation Region") +
@@ -952,7 +959,8 @@ plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = SR.wet, group = BCR,
                        panel.border = element_blank(),
                        panel.background = element_blank(),
                        plot.margin = unit(c(1,1,2,2), "lines"),
-                       text = element_text(size=14)))
+                       text = element_text(size=14))) +
+                scale_color_viridis(discrete = T)
 
 
 plot_alpha
@@ -987,6 +995,12 @@ ggdraw() +
 # 
 # box4
 ######################################################
+
+#write.csv(bbs_total, here::here("Data_BBS/Generated DFs/bbs_div_df_seg.csv"))
+
+slopes <- merge(slopes_sites, slopes_sites_beta, by = "site.list")
+#write.csv(slopes, here::here("Data_BBS/Generated DFs/bbs_slopes_seg.csv"))
+
 
 
 ###############################################################################################################
