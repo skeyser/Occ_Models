@@ -913,7 +913,7 @@ dev.off()
 n.sites <- length(unique(bbs_total$site))
 site.list <- as.character(unique(bbs_total$site))
 
-slopes_sites <- data.frame(site.list, slope = NA, slope50 = NA)
+slopes_sites <- data.frame(site.list, slope = NA, slope50 = NA, slope.wet = NA)
 
 for (i in 1:n.sites){
   site.temp <- site.list[i]
@@ -922,17 +922,34 @@ for (i in 1:n.sites){
   if (nrow(bbs_temp) > 1){
     lm.temp <- lm(bbs_temp$Site_div.x ~ bbs_temp$Year)
     lm.temp2 <- lm(bbs_temp$SR50 ~ bbs_temp$Year)
+    lm.temp3 <- lm(bbs_temp$SR.wet ~ bbs_temp$Year)
     slope.temp <- summary(lm.temp)$coefficients[2,1]
     slope.temp2 <- summary(lm.temp2)$coefficients[2,1]
-    slopes_sites[i,2] <- slope.temp
+    slope.temp3 <- summary(lm.temp3)$coefficients[2,1]
+    slopes_sites[i, 2] <- slope.temp
     slopes_sites[i, 3] <- slope.temp2
+    slopes_sites[i, 4] <- slope.temp3
   }
 }
+
+slopes <- merge(slopes_sites, slopes_sites_beta, by= "site.list")
+#write.csv(slopes, here::here("Data_BBS/Generated DFs/bbs_slopes_rt.csv"))
 
 plot(slopes_sites$slope ~ slopes_sites$site.list)
 abline(h = 0)
 
+plot(slopes_sites$slope50 ~ slopes_sites$site.list)
+abline(h = 0)
+
+plot(slopes_sites$slope.wet ~ slopes_sites$site.list)
+abline(h = 0)
+
+
 t.test(slopes_sites$slope, mu = 0)
+t.test(slopes_sites$slope50, mu = 0)
+t.test(slopes_sites$slope.wet, mu = 0)
+
+
 
 hist(slopes_sites$slope, breaks = 8, xlim = c(-1.5, 2.0), ylim = c(0, 50), main = "", 
      xlab = expression(paste("Slopes of ", alpha, "-diversity")), ylab = "# Sites")
