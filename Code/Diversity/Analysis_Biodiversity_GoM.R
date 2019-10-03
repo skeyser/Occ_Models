@@ -196,6 +196,7 @@ data.scores <- merge(data.scores, man.mds, by = "site")
 data.scores <- data.scores %>% separate(site, into = c("rteno", "seg"), sep = "_")
 data.scores$site <- paste0(data.scores$rteno, "_", data.scores$seg)
 
+
 mds_plot <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group1), level = 0.50) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = group1, shape = group1), size=2) +
@@ -219,6 +220,11 @@ mds_plot <- ggplot(data = data.scores) +
         plot.margin = unit(c(1,1,2,2), "lines"),
         text = element_text(size=14))
 mds_plot #+ labs(color = "Wetland Cover Types", shape = "Wetland Cover Type") + scale_shape_manual(values = c(0, 16, 3))
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot1.tiff"), plot = mds_plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
 
 mds_plot2 <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group2), level = 0.50) +
@@ -245,6 +251,10 @@ mds_plot2 <- ggplot(data = data.scores) +
 
 mds_plot2
 
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot2.tiff"), plot = mds_plot2,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
 
 adon.results <- adonis(occ_mds_cast ~ data.scores$group1, method = "jaccard", perm = 999)
 
@@ -440,12 +450,13 @@ summary(mod19)
 
 mod20 <- lmer(data = seg.df, change.cmrl ~ min.anom.sp + poly(min.anom.sp, 2) + (1|rteno), REML = F)
 summary(mod20)
-Anova(mod20)
+car::Anova(mod20)
 tab_model(mod20)
 
-mod21 <- lm(data = rt.df, change.cmrl ~ min.anom.sp + poly(min.anom.sp, 2))
+mod21 <- lm(data = rt.df, change.cmrl.km ~ min.anom.sp + I(min.anom.sp^2))
 summary(mod21)
 
+set.seed(100)
 prd <- data.frame(min.anom.sp = seq(from  = range(rt.df$min.anom.sp)[1], to = range(rt.df$min.anom.sp)[2], length.out = 100))
 err <- predict(mod21, newdata = prd, se.fit = T)
 
@@ -460,13 +471,20 @@ cmrl.plot <- ggplot(prd, aes(x = min.anom.sp, y = fit)) +
   geom_point(data = rt.df, aes(x = min.anom.sp, y = change.cmrl.km)) +
   xlab(expression(paste("Change in Minimum Spring Temp ( ", degree ~ C, " )"))) +
   ylab('Change in CMRL (km)') +
-  labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
-                     "Intercept =",signif(mod21$coef[[1]],5 ),
-                     " Slope =",signif(mod21$coef[[3]], 5),
-                     " P =",signif(summary(mod21)$coef[3,4], 5))) +
+  # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
+  #                    "Intercept =",signif(mod21$coef[[1]],5 ),
+  #                    " Slope =",signif(mod21$coef[[3]], 5),
+  #                    " P =",signif(summary(mod21)$coef[3,4], 5))) +
   scale_x_continuous(breaks = seq(-0.5, 2.5, 0.5))
   
 cmrl.plot
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_SpTemp.tiff"), plot = cmrl.plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+
 #######################################################################################################
 ##########################Plotting Function for partial regression#####################################
 #######################################################################################################
