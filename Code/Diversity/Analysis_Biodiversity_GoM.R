@@ -564,7 +564,7 @@ gghist_beta <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$beta50jac.slope)
   #geom_histogram(col = "black", fill = "black", bins = 10, binwidth = NULL) + 
   geom_density(alpha = 0.4, fill = "#450A69FF") + #042333b2(Magma) #450A69FF(Viridis) #F98C0AFF (plasma)
   labs(title = "") +
-  labs(x = expression(paste("Slopes of ", beta, "-diversity"[italic("Nest")])), y = "# of Sites") +
+  labs(x = expression(paste("Slopes of ", beta[italic("Jac")])), y = "# of Sites") +
   theme_cowplot(font_size = 15, line_size = 1.2) + 
   coord_flip()
 
@@ -580,7 +580,7 @@ plot_beta <- (ggplot(bbs_total_seg, aes(x = Year, y = beta50.jac, group = BCR,
                                                                         labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                 #scale_color_brewer(palette = )
                 xlab("Year") +
-                ylab(expression(paste(beta[italic("Jaccard")]))) +
+                ylab(expression(paste(beta[italic("Jac")]))) +
                 labs(colour = "Bird Conservation Region") +
                 #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
                 #scale_x_continuous(limits = c(1980,2017), expand = c(0, 0), 
@@ -617,7 +617,7 @@ gghist_beta <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$betawetjac.slope
   #geom_histogram(col = "black", fill = "black", bins = 10, binwidth = NULL) + 
   geom_density(alpha = 0.4, fill = "#042333b2") + #042333b2(Magma) #450A69FF(Viridis) #F98C0AFF (plasma)
   labs(title = "") +
-  labs(x = expression(paste("Slopes of Wetland Bird", beta, "-diversity"[italic("Jaccard")]), width = 10), y = "# of Sites") +
+  labs(x = expression(paste("Slopes of ", beta[italic("Wetland Jac")]), width = 10), y = "# of Sites") +
   theme_cowplot(font_size = 15, line_size = 1.2) +
   coord_flip()
 
@@ -633,7 +633,7 @@ plot_beta <- (ggplot(bbs_total_seg, aes(x = Year, y = beta.wet.jac, group = BCR,
                                                                         labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                 #scale_color_brewer(palette = )
                 xlab("Year") +
-                ylab(expression(paste("Wetland Bird ", beta[italic("Jaccard")]))) +
+                ylab(expression(paste("Wetland Bird ", beta[italic("Jac")]))) +
                 labs(colour = "Bird Conservation Region") +
                 #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
                 #scale_x_continuous(limits = c(1980,2017), expand = c(0, 0), 
@@ -764,24 +764,25 @@ ggdraw() +
   draw_plot(gghist_beta, x = 0.72, y = .030, width = .2, height = .75, scale = 1) 
 
 #Alpha Change
-gghist <- ggplot(data = slopes_sites, aes(slopes_sites$slope)) + 
-  geom_histogram(col = "black", fill = "black", bins = 30, binwidth = 0.25) +
+gghist <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$slope50)) + 
+  #geom_histogram(col = "black", fill = "black", bins = 30, binwidth = 0.25) +
+  geom_density(alpha = 0.4, fill = "#450A69FF") +
   labs(title = "") +
   labs(x = expression(paste("Slopes of ", alpha, "-diversity")), y = "# of Sites") +
   theme_cowplot(font_size = 14, line_size = 1.2) +
   coord_flip()
 
 
-plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = SR50, group = BCR_name, 
+plot_alpha <- (ggplot(bbs_total_seg, aes(x = Year, y = Site_div.x, group = BCR_name, 
                                      colour = factor(BCR_name))) + 
                  #labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                  #geom_point(size = 3) +
                  #geom_line()+
-                 geom_smooth(method = loess, se = T, aes(x = Year, y = Site_div, group = BCR_name)) + 
+                 geom_smooth(method = loess, se = T, aes(x = Year, y = Site_div.x, group = BCR_name)) + 
                  #colour = factor(BCR, 
                  #                 labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                  xlab("Year") +
-                 ylab(expression(paste("Detection-correct ", alpha, "-diversity"))) +
+                 ylab(expression(paste(alpha, "-diversity"))) +
                  labs(colour = "Bird Conservation Region") +
                  #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
                  #scale_x_continuous(limits = c(1980,2017), expand = c(0, 0), 
@@ -803,7 +804,7 @@ plot_alpha <- (ggplot(bbs_total, aes(x = Year, y = SR50, group = BCR_name,
   scale_color_viridis(discrete = T)
 
 
-plot_alpha
+#plot_alpha
 ggdraw() + 
   draw_plot(plot_alpha + theme(legend.justification = "top"), 
             x = 0, y = 0, width = .9, height = 1) +
