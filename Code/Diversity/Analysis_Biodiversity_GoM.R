@@ -455,6 +455,9 @@ summary(mod18)
 mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl)
 summary(mod19)
 
+mod24 <- lm(data = rt.df, alpha50.pchange ~ change.cmrl)
+summary(mod24)
+
 mod20 <- lmer(data = seg.df, change.cmrl.km ~ mean.anom.sp + I(mean.anom.sp^2) + (1|Route), REML = F)
 summary(mod20)
 car::Anova(mod20)
@@ -812,4 +815,62 @@ ggdraw() +
 
 #Alpha Change Wet
 
+#Alpha Plot Corrected Vs Uncorrected 
+plot_alpha_cor <- ggplot() + 
+  geom_smooth(data = bbs_total_seg, aes(x = Year, y = Site_div.x), colour = "red") + 
+  geom_smooth(data = bbs_total_seg, aes(x = Year, y = SR50), colour = "black")
+
+plot_alpha_cor
+
+#Beta Plot Facet Time series
+
+plot_beta_cor <- ggplot(data = bbs_total_seg, aes(x = Duration, y = beta50.jac, group = rteno.x)) + 
+  geom_jitter(data = bbs_total_seg, aes(x = Duration, y = beta50.jac), color = "lightgray") + 
+  geom_smooth(method = lm, se = T, aes(colour = factor(BCR_name), fill = factor(BCR_name))) + 
+  #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta.mcmc), method = loess) + 
+  #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta50.jac), method = loess) 
+  scale_color_viridis(discrete = T, option = "E") +
+  scale_fill_viridis(discrete = T, option = "E") +
+  xlab("Duration (Years)") + 
+  ylab(expression(paste("Detection-corrected ", beta[italic("Jac")]))) + 
+  labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
+  theme_bw() + 
+  theme(strip.text = element_text(size = 12, face = "bold"),
+        strip.background = element_blank(),
+        legend.text = element_text(size = 12), legend.title = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12), axis.title.y = element_text(size = 12),
+        axis.text = element_text(size = 12)) 
+  
+plot_beta_fac <- plot_beta_cor + facet_wrap(~ BCR_name, ncol = 2)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotBeta.tiff"), plot = plot_beta_fac,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+#Alpha Plot Facet Time series
+
+plot_alpha_cor <- ggplot(data = bbs_total_seg, aes(x = Duration, y = SR50, group = rteno.x)) + 
+  geom_jitter(data = bbs_total_seg, aes(x = Duration, y = SR50), color = "lightgray") + 
+  geom_smooth(method = lm, se = T, aes(colour = factor(BCR_name), fill = factor(BCR_name))) + 
+  #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta.mcmc), method = loess) + 
+  #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta50.jac), method = loess) 
+  scale_color_viridis(discrete = T) +
+  scale_fill_viridis(discrete = T) +
+  xlab("Duration (Years)") + 
+  ylab(expression(paste("Detection-corrected ", alpha, "-diversity"))) + 
+  labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
+  theme_bw() + 
+  theme(strip.text = element_text(size = 12, face = "bold"),
+        strip.background = element_blank(),
+        legend.text = element_text(size = 12), legend.title = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12), axis.title.y = element_text(size = 12),
+        axis.text = element_text(size = 12)) 
+
+plot_alpha_fac <- plot_alpha_cor + facet_wrap(~ BCR_name, ncol = 2)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotAlpha.tiff"), plot = plot_alpha_fac,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
 
