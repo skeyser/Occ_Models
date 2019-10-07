@@ -14,6 +14,14 @@ pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis
 
 #################################################################################
 
+#################################################################################
+#Checking Color Palettes for manual color changes 
+q_colors <- 20
+v_colors <- viridis(q_colors, option = "plasma")
+show_col(v_colors)
+
+
+
 #Load in data sets for analysis 
 
 #Segments level df .4km buffer
@@ -154,12 +162,12 @@ print(adon.results2)
 occ.mds <- occ[occ$Year <= 1990,]
 occ.mds <- occ.mds %>% arrange(site)
 
-lc.mds <- bbs_lulc %>% dplyr::select(Site, Year, Emergent_Wetlands, Woody_Wetlands, mangrove, WW_NoMan, pct.man)
-lc.mds <- lc.mds[lc.mds$Year <= 1990,]
+lc.mds <- bbs_lulc %>% dplyr::select(Site, Yr_bin, Emergent_Wetlands, Woody_Wetlands, mangrove, WW_NoMan, pct.man)
+lc.mds <- lc.mds[lc.mds$Yr_bin <= 3,]
 
 lc.mds <- lc.mds %>% group_by(Site) %>% rename(site = Site) %>% summarise(Emergent_Wetlands = mean(Emergent_Wetlands), Woody_Wetlands = mean(Woody_Wetlands),
                                                                           mangrove = mean(mangrove), WW_NoMan = mean(WW_NoMan), pct.man = mean(pct.man)) %>% 
-          mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands), ratio.ew = (Emergent_Wetlands / Woody_Wetlands), ratio.man = (mangrove / Emergent_Wetlands)) %>% ungroup()
+          mutate(ratio.ww = (WW_NoMan / Emergent_Wetlands), ratio.ew = (Emergent_Wetlands / Woody_Wetlands), ratio.man = (mangrove / Emergent_Wetlands)) %>% ungroup()
 
 occ.mds.list <- unique(occ.mds$site)
 wetland.site <- unique(lc.mds$site)
@@ -174,7 +182,7 @@ lc.mds <- lc.mds[!duplicated(lc.mds), ]
 #ww11.site <- unique(ww.mds$site.x)
 ww.mds <- lc.mds %>% arrange(site)
 ww.mds$group1 <- NA
-ww.mds$group1[ww.mds$ratio.ew > 1.5] <- "Emergent Wetland Dominated"
+ww.mds$group1[ww.mds$ratio.ww < 0.5] <- "Emergent Wetland Dominated"
 ww.mds$group1[ww.mds$ratio.ww >= 0.5 & ww.mds$ratio.ww <= 1.5] <- "Mixed Wetland"
 ww.mds$group1[ww.mds$ratio.ww > 1.5] <- "Woody Wetland Dominated"
 ww.mds <- ww.mds[, c("site", "ratio.ww", "ratio.ew", "group1")]
@@ -209,7 +217,7 @@ mds_plot <- ggplot(data = data.scores) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = group1, shape = group1), size=2) +
   scale_colour_manual(name = "Wetland Cover Types",  
                       labels = c("Emergent Wetland Dominated", "Mixed Wetland", "Woody Wetland Dominated"),
-                      values = c("#0C2A50FF", "#7E4E90FF", "#F68F45FF")) + #"#009E73"
+                      values = c("#FAC62DFF", "#781C6DFF", "#0C0826FF")) + #"#009E73"
   scale_shape_manual(name = "Wetland Cover Types",
                      labels = c("Emergent Wetland Dominated", "Mixed Wetland", "Woody Wetland Dominated"), # "Mix",
                      values = c(15, 16, 17)) +
@@ -236,9 +244,9 @@ dev.off()
 mds_plot2 <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group2), level = 0.50) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = group2, shape = group2), size=2) +
-  scale_colour_viridis(name = "Wetland Cover Types",  
-                      labels = c("Mangrove Dominated Wetlands", "Mangrove-Present Wetland", "Non-mangrove Dominated Wetlands"), discrete = T) +
-                      #values = c("#440154FF", "#FDE725FF", "#55C667FF")) + #"#009E73"
+  scale_colour_manual(name = "Wetland Cover Types",  
+                      labels = c("Mangrove Dominated Wetlands", "Mangrove-Present Wetland", "Non-mangrove Dominated Wetlands"), #+ , discrete = T, option = "E") +
+                      values = c("#A69D75FF", "#848279FF", "#00204DFF")) + #"#009E73"
   scale_shape_manual(name = "Wetland Cover Types",
                      labels = c("Mangrove Dominated Wetlands", "Mangrove-Present Wetland", "Non-mangrove Dominated Wetlands"), # "Mix",
                      values = c(15, 16, 17)) +
@@ -434,12 +442,75 @@ ggplot() +
 ########################################################################################################################################################################################################
 
 #-Wetland, -WW, +Ag  
-mod22 <- lmer(data = seg.df, SR ~ pct.wetland + (1|rteno), REML = F)
+mod22 <- lm(data = rt.df, SR50 ~ Latitude + I(Latitude^2))
 summary(mod22)
-Anova(mod22)
+
+#Plot for mod22
+set.seed(100)
+prd1 <- data.frame(Latitude = seq(from  = range(rt.df$Latitude)[1], to = range(rt.df$Latitude)[2], length.out = 100))
+err1 <- predict(mod22, newdata = prd1, se.fit = T)
+
+prd1$lci <- err1$fit - 1.96 * err1$se.fit
+prd1$fit <- err1$fit
+prd1$uci <- err1$fit + 1.96 * err1$se.fit
+
+
+#model for latitude and wetland bird richness
+mod23 <- lm(data = rt.df, SR.wet ~ Latitude + I(Latitude^2))
+summary(mod23)
+
+set.seed(100)
+prd2 <- data.frame(Latitude = seq(from  = range(rt.df$Latitude)[1], to = range(rt.df$Latitude)[2], length.out = 100))
+err2 <- predict(mod23, newdata = prd2, se.fit = T)
+
+prd2$lci <- err2$fit - 1.96 * err2$se.fit
+prd2$fit <- err2$fit
+prd2$uci <- err2$fit + 1.96 * err2$se.fit
+
+#Plots for latitude vs SR
+lat.plot <- ggplot(prd1, aes(x = Latitude, y = fit)) +
+  theme_bw() +
+  geom_line() +
+  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#A09877FF", fill = "#A09877FF") +
+  geom_point(data = rt.df, aes(x = Latitude, y = SR50)) +
+  xlab(NULL) + #expression(paste("Latitude ( ", degree, " )"
+  ylab('Bird Species Richness') +
+  theme(axis.title.y = element_text(size = 12), axis.text = element_text(size = 12)) +
+  scale_x_continuous(breaks = seq(24, 32, 1))
+# labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
+#                    "Intercept =",signif(mod21$coef[[1]],5 ),
+#                    " Slope =",signif(mod21$coef[[3]], 5),
+#                    " P =",signif(summary(mod21)$coef[3,4], 5))) +
+
+lat.plot
+
+
+lat.plot1 <- ggplot(prd2, aes(x = Latitude, y = fit)) +
+  theme_bw() +
+  geom_line() +
+  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#00204DFF", fill = "#00204DFF") +
+  geom_point(data = rt.df, aes(x = Latitude, y = SR.wet)) +
+  xlab(expression(paste("Latitude ( ", degree, " )"))) +
+  ylab('Wetland Bird Species Richness') +
+  theme(axis.title.x = element_text(size = 12), axis.title.y = element_text(size = 12), axis.text = element_text(size = 12)) +
+  scale_x_continuous(breaks = seq(24, 32, 1))
+# labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
+#                    "Intercept =",signif(mod21$coef[[1]],5 ),
+#                    " Slope =",signif(mod21$coef[[3]], 5),
+#                    " P =",signif(summary(mod21)$coef[3,4], 5))) +
+
+lat.plot1
+
+lat.plot.f <- plot_grid(lat.plot, lat.plot1, labels = c('A', 'B'), align = "v", label_x = 0.08, label_y = 0.98, nrow = 2, label_size = 16)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/SR_Lat.tiff"), plot = lat.plot.f,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
 
 #-WW, +EW, -WWNM, +Ag
-mod23 <- lm(data = rt.df, SR.wet ~ pct.wwnm)
+mod23 <- lm(data = rt.df, SR.wet ~ pct.man)
 summary(mod23)
 Anova(mod23)
 tab_model(mod23)
@@ -526,35 +597,99 @@ dim(states)
 head(states)
 gom <- subset(states, region %in% c("texas", "florida", "alabama", "arkansas", "mississippi", "louisiana", "georgia", "south carolina"))
 
+#Beta Turn
+map_gom_turn <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
+  geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = beta50.turn), size = 3)
+
+map_gom_turn <- map_gom_turn + scale_color_viridis(name = expression(paste(beta, "-diversity"[italic("Turn")])), option = "plasma") + xlab("Longitude") + ylab("Latitude") + theme(legend.position = c(0.12, .77), legend.title = element_text(size = 14), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"))  
+
+# ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_Beta_Turn.tiff"), plot = map_gom_turn,
+#        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+# 
+# dev.off()
+
+#Beta Nest
+map_gom_nest <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
+  geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = beta50.nest), size = 3)
+
+map_gom_nest <- map_gom_nest + scale_color_viridis(option = 'magma', name = expression(paste(beta, "-diversity"[italic("Nest")])))+ xlab("Longitude") + ylab("Latitude") + theme(legend.position = c(0.12, .77), legend.title = element_text(size = 14), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"))  
+
+# ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_Beta_Nest.tiff"), plot = map_gom_nest,
+#        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+# 
+# dev.off()
+
+#Map of Alpha Div
+map_gom_alpha <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
+  geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = SR50), size = 3)
+
+map_gom_alpha <- map_gom_alpha + scale_color_viridis(name = expression(paste(alpha, "-diversity")))+ xlab("Longitude") + ylab("Latitude") + theme(legend.position = c(0.12, .77), legend.title = element_text(size = 14), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"))  
+
+# ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_SR.tiff"), plot = map_gom_alpha,
+#        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+# 
+# dev.off()
+
+###########################################################
+########################Most important maps################
+###########################################################
+
+#Beta Jaccard
 map_gom_jac <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) + #coord_map(projection = "albers", lat0 = 26, lat1 = 30)+
   geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = beta50.jac), size = 3)
 
-map_gom_jac <- map_gom_jac + scale_color_viridis(name = expression(paste(beta, "-diversity"[italic("Jaccard")]))) + xlab("Longitude") + ylab("Latitude") + theme(legend.position = c(0.12, .77), legend.title = element_text(size = 14), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"))  
+map_gom_jac <- map_gom_jac + scale_color_viridis(name = expression(paste(beta, "-diversity"[italic("Jac")])), option = "E") + xlab("Longitude") + ylab("Latitude") + 
+  theme(legend.position = "right", legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"),
+        plot.margin = unit(c(0, 0, 0, 0), "cm"), axis.title = element_text(size = 12), axis.text = element_text(size = 12)) + theme_bw()  
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_Beta_Jac.tiff"), plot = map_gom_jac,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 dev.off()
 
-map_gom_turn <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
-  geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = beta50.turn), size = 3)
+#Beta Wetland 
+map_gom_wet <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
+  geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = beta.wet.jac), size = 3)
 
-map_gom_turn <- map_gom_turn + scale_color_viridis(option = 'magma', name = expression(paste(beta, "-diversity"[italic("Turnover")]))) + xlab("Longitude") + ylab("Latitude") + theme(legend.position = c(0.12, .77), legend.title = element_text(size = 14), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"))  
+map_gom_wet <- map_gom_nest + scale_color_viridis(option = 'magma', name = expression(paste("Wetland Bird ", beta[italic("Jac")])))+ xlab("Longitude") + ylab("Latitude") + 
+  theme(legend.position = "right", legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"),
+        plot.margin = unit(c(0, 0, 0, 0), "cm"), axis.title = element_text(size = 12), axis.text = element_text(size = 12)) + theme_bw()  
 
-ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_Beta_Turn.tiff"), plot = map_gom_turn,
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_Beta_Wet.tiff"), plot = map_gom_wet,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 dev.off()
 
-map_gom_nest <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
-  geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = beta50.nest), size = 3)
+#Map of change in Alpha 
+map_change_alpha <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
+  geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = alpha.pchange), size = 3)
 
-map_gom_nest <- map_gom_nest + scale_color_viridis(option = 'plasma', name = expression(paste(beta, "-diversity"[italic("Nestedness")])))+ xlab("Longitude") + ylab("Latitude") + theme(legend.position = c(0.12, .77), legend.title = element_text(size = 14), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"))  
+map_change_alpha <- map_change_alpha + scale_color_viridis(name = expression(paste(alpha, "-diversity ", "(% ", Delta, ")")), option = "E")+ xlab("Longitude") + ylab("Latitude") + 
+  theme(legend.position = "right", legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"),
+        plot.margin = unit(c(0, 0, 0, 0), "cm"), axis.title = element_text(size = 12), axis.text = element_text(size = 12)) + theme_bw()  
 
-ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_Beta_Nest.tiff"), plot = map_gom_nest,
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_SR_change.tiff"), plot = map_change_alpha,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 dev.off()
+
+#Map in change in alpha Wet
+map_change_alpha_wet <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
+  geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = alphawet.pchange), size = 3)
+
+map_change_alpha_wet <- map_change_alpha_wet + scale_color_viridis(name = expression(paste("Wetland Bird ", alpha, " (% ", Delta, ")")), option = "magma")+ xlab("Longitude") + ylab("Latitude") + 
+  theme(legend.position = "right", legend.title = element_text(size = 12), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"),
+        plot.margin = unit(c(0, 0, 0, 0), "cm"), axis.title = element_text(size = 12), axis.text = element_text(size = 12)) + theme_bw()
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_SRwet_change.tiff"), plot = map_change_alpha_wet,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+
+master_map <- plot_grid(map_gom_jac, map_gom_wet, map_change_alpha, map_change_alpha_wet, labels = c("A", "B", "C", "D"), align = "hv", label_x = 0.055, label_y = 0.90, axis = "rlbt")
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/MasterMap.tiff"), plot = master_map,
+       device = "tiff", width = 15, height = 10, units = "in", dpi = 600)
+
 
 # map_gom_cmrl <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
 #   geom_point(data = seg.df, aes(x = Longitude, y = Latitude, color = change.cmrl.km), size = 3)
@@ -565,7 +700,7 @@ dev.off()
 #Plotting Time series of Beta-diversity Seg Level Jaccard
 gghist_beta <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$beta50jac.slope)) + 
   #geom_histogram(col = "black", fill = "black", bins = 10, binwidth = NULL) + 
-  geom_density(alpha = 0.4, fill = "#450A69FF") + #042333b2(Magma) #450A69FF(Viridis) #F98C0AFF (plasma)
+  geom_density(alpha = 0.4, fill = "#444F6BFF") + #042333b2(Magma) #450A69FF(Viridis) #F98C0AFF (plasma)
   labs(title = "") +
   labs(x = expression(paste("Slopes of ", beta[italic("Jac")])), y = "# of Sites") +
   theme_cowplot(font_size = 15, line_size = 1.2) + 
@@ -574,17 +709,29 @@ gghist_beta <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$beta50jac.slope)
 #site_data_merge$Year <- site_data_merge$count_yr + 1900
 
 plot_beta <- (ggplot(bbs_total_seg, aes(x = Year, y = beta50.jac, group = BCR, 
-                                    colour = factor(BCR, 
-                                                    labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
+                                    colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                                    "Southeastern Coastal Plain", 
+                                                                    "Peninsular Florida", 
+                                                                    "Gulf Coastal Prairie")), 
+                                    fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                                  "Southeastern Coastal Plain", 
+                                                                  "Peninsular Florida", 
+                                                                  "Gulf Coastal Prairie")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
                 geom_smooth(method = loess, se = T, aes(x = Year, y = beta50.jac, group = BCR, 
-                                                        colour = factor(BCR,
-                                                                        labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
+                                                        colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                                                        "Southeastern Coastal Plain", 
+                                                                                        "Peninsular Florida", 
+                                                                                        "Gulf Coastal Prairie")),
+                                                        fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                                                      "Southeastern Coastal Plain", 
+                                                                                      "Peninsular Florida", 
+                                                                                      "Gulf Coastal Prairie")))) +
                 #scale_color_brewer(palette = )
                 xlab("Year") +
                 ylab(expression(paste(beta[italic("Jac")]))) +
-                labs(colour = "Bird Conservation Region") +
+                labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
                 #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
                 #scale_x_continuous(limits = c(1980,2017), expand = c(0, 0), 
                 #breaks = c(2006:2016), labels = c("2006", "", "2008", "", "2010", "","2012", "", "2014", "", "2016" )) + 
@@ -603,12 +750,12 @@ plot_beta <- (ggplot(bbs_total_seg, aes(x = Year, y = beta50.jac, group = BCR,
                       plot.margin = unit(c(1,1,2,2), "lines"),
                       text = element_text(size=15))) 
 
-plot_beta <- plot_beta + scale_color_viridis(discrete = T)
+plot_beta <- plot_beta + scale_color_viridis(discrete = T, option = "E") + scale_fill_viridis(discrete = T, option = "E")
 
 betaseg_jac <- ggdraw() + 
   draw_plot(plot_beta + theme(legend.justification = "top"), 
             x = 0, y = 0, width = .9, height = 1) +
-  draw_plot(gghist_beta, x = 0.65, y = 0.03, width = .3, height = .70, scale = 1) 
+  draw_plot(gghist_beta, x = 0.65, y = 0.05, width = .3, height = .70, scale = 1) 
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/BetaSegJac.tiff"), plot = betaseg_jac,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
@@ -627,17 +774,29 @@ gghist_beta <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$betawetjac.slope
 #site_data_merge$Year <- site_data_merge$count_yr + 1900
 
 plot_beta <- (ggplot(bbs_total_seg, aes(x = Year, y = beta.wet.jac, group = BCR, 
-                                        colour = factor(BCR, 
-                                                        labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
+                                        colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                                        "Southeastern Coastal Plain", 
+                                                                        "Peninsular Florida", 
+                                                                        "Gulf Coastal Prairie")),
+                                        fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                                      "Southeastern Coastal Plain", 
+                                                                      "Peninsular Florida", 
+                                                                      "Gulf Coastal Prairie")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
                 geom_smooth(method = loess, se = T, aes(x = Year, y = beta.wet.jac, group = BCR, 
-                                                        colour = factor(BCR,
-                                                                        labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
+                                                        colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                                                        "Southeastern Coastal Plain", 
+                                                                                        "Peninsular Florida", 
+                                                                                        "Gulf Coastal Prairie")),
+                                                        fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                                                      "Southeastern Coastal Plain", 
+                                                                                      "Peninsular Florida", 
+                                                                                      "Gulf Coastal Prairie")))) +
                 #scale_color_brewer(palette = )
                 xlab("Year") +
                 ylab(expression(paste("Wetland Bird ", beta[italic("Jac")]))) +
-                labs(colour = "Bird Conservation Region") +
+                labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
                 #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
                 #scale_x_continuous(limits = c(1980,2017), expand = c(0, 0), 
                 #breaks = c(2006:2016), labels = c("2006", "", "2008", "", "2010", "","2012", "", "2014", "", "2016" )) + 
@@ -656,17 +815,18 @@ plot_beta <- (ggplot(bbs_total_seg, aes(x = Year, y = beta.wet.jac, group = BCR,
                       plot.margin = unit(c(1,1,2,2), "lines"),
                       text = element_text(size=15))) 
 
-plot_beta <- plot_beta + scale_color_viridis(option = "magma", discrete = T)
+plot_beta <- plot_beta + scale_color_viridis(option = "magma", discrete = T) + scale_fill_viridis(option = "magma", discrete = T)
 
 betasegwet_jac <- ggdraw() + 
   draw_plot(plot_beta + theme(legend.justification = "top"), 
             x = 0, y = 0, width = .9, height = 1) +
-  draw_plot(gghist_beta, x = 0.65, y = 0.03, width = .3, height = .70, scale = 1) 
+  draw_plot(gghist_beta, x = 0.65, y = 0.05, width = .3, height = .70, scale = 1) 
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/BetaSegWetJac.tiff"), plot = betasegwet_jac,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 dev.off()
+
 #Beta Rt Jac
 #Plotting Time series of Beta-diversity Rt & Seg Level
 gghist_beta <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$beta50jac.slope)) + 
@@ -776,17 +936,18 @@ gghist <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$slope50)) +
   coord_flip()
 
 
-plot_alpha <- (ggplot(bbs_total_seg, aes(x = Year, y = Site_div.x, group = BCR_name, 
-                                     colour = factor(BCR_name))) + 
+plot_alpha <- (ggplot(bbs_total_seg, aes(x = Year, y = SR50, group = BCR_name, 
+                                     colour = factor(BCR_name), fill = factor(BCR_name))) + 
                  #labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                  #geom_point(size = 3) +
                  #geom_line()+
-                 geom_smooth(method = loess, se = T, aes(x = Year, y = Site_div.x, group = BCR_name)) + 
+                 geom_smooth(method = loess, se = T, aes(x = Year, y = SR50, group = BCR_name, 
+                                                         colour = factor(BCR_name), fill = factor(BCR_name))) + 
                  #colour = factor(BCR, 
                  #                 labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
                  xlab("Year") +
                  ylab(expression(paste(alpha, "-diversity"))) +
-                 labs(colour = "Bird Conservation Region") +
+                 labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
                  #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
                  #scale_x_continuous(limits = c(1980,2017), expand = c(0, 0), 
                  #breaks = c(2006:2016), labels = c("2006", "", "2008", "", "2010", "","2012", "", "2014", "", "2016" )) + 
@@ -804,14 +965,73 @@ plot_alpha <- (ggplot(bbs_total_seg, aes(x = Year, y = Site_div.x, group = BCR_n
                        panel.background = element_blank(),
                        plot.margin = unit(c(1,1,2,2), "lines"),
                        text = element_text(size=14))) +
-  scale_color_viridis(discrete = T)
+  scale_color_viridis(discrete = T) + scale_fill_viridis(discrete = T)
 
 
 #plot_alpha
-ggdraw() + 
+plot_alpha <- ggdraw() + 
   draw_plot(plot_alpha + theme(legend.justification = "top"), 
             x = 0, y = 0, width = .9, height = 1) +
-  draw_plot(gghist, x = 0.75, y = .025, width = .2, height = .75, scale = 1) 
+  draw_plot(gghist, x = 0.65, y = .030, width = .3, height = .75, scale = 1) 
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/AlphaBCR.tiff"), plot = plot_alpha,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+
+#Alpha Change
+gghist <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$slope.wet)) + 
+  #geom_histogram(col = "black", fill = "black", bins = 30, binwidth = 0.25) +
+  geom_density(alpha = 0.4, fill = "#9512A1FF") +
+  labs(title = "") +
+  labs(x = expression(paste("Slopes of ", alpha)), y = "# of Sites") +
+  theme_cowplot(font_size = 14, line_size = 1.2) +
+  coord_flip()
+
+
+plot_alpha <- (ggplot(bbs_total_seg, aes(x = Year, y = SR.wet, group = BCR_name, 
+                                         colour = factor(BCR_name), fill = factor(BCR_name))) + 
+                 #labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
+                 #geom_point(size = 3) +
+                 #geom_line()+
+                 geom_smooth(method = loess, se = T, aes(x = Year, y = SR.wet, group = BCR_name, 
+                                                         colour = factor(BCR_name), fill = factor(BCR_name))) + 
+                 #colour = factor(BCR, 
+                 #                 labels = c("Mississippi Alluvial Valley", "Southeastern Coastal Plain", "Peninsular Florida", "Gulf Coastal Prairie")))) +
+                 xlab("Year") +
+                 ylab(expression(paste("Wetland Bird ", alpha, "-diversity"))) +
+                 labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
+                 #scale_colour_manual(name = "States", values = colour, labels = c("Alabama", "Florida", "Louisiana", "Mississippi", "Texas")) +
+                 #scale_x_continuous(limits = c(1980,2017), expand = c(0, 0), 
+                 #breaks = c(2006:2016), labels = c("2006", "", "2008", "", "2010", "","2012", "", "2014", "", "2016" )) + 
+                 #scale_y_continuous(limits = c(0,1), expand = c(0, 0), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1)) +
+                 theme_bw() +
+                 theme(axis.line = element_line(colour = "black", size =1.2),
+                       axis.text.x = element_text(size = 14),
+                       axis.text.y = element_text(size = 14),
+                       axis.title.x = element_text(vjust = -1, size = 14),
+                       axis.title.y = element_text(vjust = 1.5, size = 14),
+                       axis.ticks = element_line(size = 1.2),
+                       panel.grid.major = element_blank(),
+                       panel.grid.minor = element_blank(),
+                       panel.border = element_blank(),
+                       panel.background = element_blank(),
+                       plot.margin = unit(c(1,1,2,2), "lines"),
+                       text = element_text(size=14))) +
+  scale_color_viridis(discrete = T, option = "plasma") + scale_fill_viridis(discrete = T, option = "plasma")
+
+
+#plot_alpha
+plot_alpha <- ggdraw() + 
+  draw_plot(plot_alpha + theme(legend.justification = "top"), 
+            x = 0, y = 0, width = .9, height = 1) +
+  draw_plot(gghist, x = 0.65, y = .030, width = .3, height = .75, scale = 1) 
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/AlphaBCRwet.tiff"), plot = plot_alpha,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
 
 #Alpha Change Wet
 
@@ -824,14 +1044,14 @@ plot_alpha_cor
 
 #Beta Plot Facet Time series
 
-plot_beta_cor <- ggplot(data = bbs_total_seg, aes(x = Duration, y = beta50.jac, group = rteno.x)) + 
-  geom_jitter(data = bbs_total_seg, aes(x = Duration, y = beta50.jac), color = "lightgray") + 
+plot_beta_cor <- ggplot(data = bbs_total_seg, aes(x = Year, y = beta50.jac, group = rteno.x)) + 
+  geom_jitter(data = bbs_total_seg, aes(x = Year, y = beta50.jac), color = "lightgray") + 
   geom_smooth(method = lm, se = T, aes(colour = factor(BCR_name), fill = factor(BCR_name))) + 
   #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta.mcmc), method = loess) + 
   #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta50.jac), method = loess) 
   scale_color_viridis(discrete = T, option = "E") +
   scale_fill_viridis(discrete = T, option = "E") +
-  xlab("Duration (Years)") + 
+  xlab("Year") + 
   ylab(expression(paste("Detection-corrected ", beta[italic("Jac")]))) + 
   labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
   theme_bw() + 
@@ -848,16 +1068,42 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotBeta.tiff"), pl
 
 dev.off()
 
+#Beta Plot Facet Time series Wetland Birds
+
+plot_beta_cor_wet <- ggplot(data = bbs_total_seg, aes(x = Year, y = beta.wet.jac, group = rteno.x)) + 
+  geom_jitter(data = bbs_total_seg, aes(x = Year, y = beta.wet.jac), color = "lightgray") + 
+  geom_smooth(method = lm, se = T, aes(colour = factor(BCR_name), fill = factor(BCR_name))) + 
+  #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta.mcmc), method = loess) + 
+  #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta50.jac), method = loess) 
+  scale_color_viridis(discrete = T, option = "magma") +
+  scale_fill_viridis(discrete = T, option = "magma") +
+  xlab("Year") + 
+  ylab(expression(paste("Wetland Bird Detection-corrected ", beta[italic("Jac")]))) + 
+  labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
+  theme_bw() + 
+  theme(strip.text = element_text(size = 12, face = "bold"),
+        strip.background = element_blank(),
+        legend.text = element_text(size = 12), legend.title = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12), axis.title.y = element_text(size = 12),
+        axis.text = element_text(size = 12)) 
+
+plot_beta_fac_wet <- plot_beta_cor_wet + facet_wrap(~ BCR_name, ncol = 2)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotBetaWet.tiff"), plot = plot_beta_fac_wet,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
 #Alpha Plot Facet Time series
 
-plot_alpha_cor <- ggplot(data = bbs_total_seg, aes(x = Duration, y = SR50, group = rteno.x)) + 
-  geom_jitter(data = bbs_total_seg, aes(x = Duration, y = SR50), color = "lightgray") + 
+plot_alpha_cor <- ggplot(data = bbs_total_seg, aes(x = Year, y = SR50, group = rteno.x)) + 
+  geom_jitter(data = bbs_total_seg, aes(x = Year, y = SR50), color = "lightgray") + 
   geom_smooth(method = lm, se = T, aes(colour = factor(BCR_name), fill = factor(BCR_name))) + 
   #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta.mcmc), method = loess) + 
   #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta50.jac), method = loess) 
   scale_color_viridis(discrete = T) +
   scale_fill_viridis(discrete = T) +
-  xlab("Duration (Years)") + 
+  xlab("Year") + 
   ylab(expression(paste("Detection-corrected ", alpha, "-diversity"))) + 
   labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
   theme_bw() + 
@@ -874,3 +1120,27 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotAlpha.tiff"), p
 
 dev.off()
 
+#Alpha plot wetland birds
+plot_alpha_cor_wet <- ggplot(data = bbs_total_seg, aes(x = Year, y = SR.wet, group = rteno.x)) + 
+  geom_jitter(data = bbs_total_seg, aes(x = Year, y = SR.wet), color = "lightgray") + 
+  geom_smooth(method = lm, se = T, aes(colour = factor(BCR_name), fill = factor(BCR_name))) + 
+  #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta.mcmc), method = loess) + 
+  #geom_smooth(data = bbs_total_seg, aes(x = Year, y = beta50.jac), method = loess) 
+  scale_color_viridis(discrete = T, option = "plasma") +
+  scale_fill_viridis(discrete = T, option = "plasma") +
+  xlab("Year") + 
+  ylab(expression(paste("Wetland Bird Detection-corrected ", alpha, "-diversity"))) + 
+  labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
+  theme_bw() + 
+  theme(strip.text = element_text(size = 12, face = "bold"),
+        strip.background = element_blank(),
+        legend.text = element_text(size = 12), legend.title = element_text(size = 12, face = "bold"),
+        axis.title.x = element_text(size = 12), axis.title.y = element_text(size = 12),
+        axis.text = element_text(size = 12)) 
+
+plot_alpha_fac_wet <- plot_alpha_cor_wet + facet_wrap(~ BCR_name, ncol = 2)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotAlphaWet.tiff"), plot = plot_alpha_fac_wet,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
