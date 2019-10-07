@@ -10,7 +10,7 @@
 
 library("pacman")
 
-pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis", "ggmap", "maps", "ggfortify", "cowplot")
+pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis", "ggmap", "maps", "ggfortify", "cowplot", "extrafont")
 
 #################################################################################
 
@@ -19,7 +19,8 @@ pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis
 q_colors <- 20
 v_colors <- viridis(q_colors, option = "plasma")
 show_col(v_colors)
-
+loadfonts(device = "win")
+windowsFonts()
 
 
 #Load in data sets for analysis 
@@ -213,7 +214,7 @@ data.scores$site <- paste0(data.scores$rteno, "_", data.scores$seg)
 
 
 mds_plot <- ggplot(data = data.scores) + 
-  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group1), level = 0.50) +
+  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group1), level = 0.5, size = 1) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = group1, shape = group1), size=2) +
   scale_colour_manual(name = "Wetland Cover Types",  
                       labels = c("Emergent Wetland Dominated", "Mixed Wetland", "Woody Wetland Dominated"),
@@ -223,17 +224,17 @@ mds_plot <- ggplot(data = data.scores) +
                      values = c(15, 16, 17)) +
   theme_bw() + 
   theme(axis.line = element_line(colour = "black", size =1.2),
-        axis.text.x = element_text(size = 14),
-        axis.text.y = element_text(size = 14),
-        axis.title.x = element_text(vjust = -1, size = 14),
-        axis.title.y = element_text(vjust = 1.5, size = 14),
+        axis.text.x = element_text(size = 12, family = "serif"),
+        axis.text.y = element_text(size = 12, family = "serif"),
+        axis.title.x = element_text(vjust = -1, size = 12, family = "serif"),
+        axis.title.y = element_text(vjust = 1.5, size = 12, family = "serif"),
         axis.ticks = element_line(size = 1.2),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank(),
         plot.margin = unit(c(1,1,2,2), "lines"),
-        text = element_text(size=14))
+        text = element_text(size=12, family = "serif"))
 mds_plot #+ labs(color = "Wetland Cover Types", shape = "Wetland Cover Type") + scale_shape_manual(values = c(0, 16, 3))
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot1.tiff"), plot = mds_plot,
@@ -242,27 +243,30 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot1.tiff"), plot = 
 dev.off()
 
 mds_plot2 <- ggplot(data = data.scores) + 
-  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group2), level = 0.50) +
-  geom_point(aes(x = NMDS1, y = NMDS2, colour = group2, shape = group2), size=2) +
+  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group2), level = 0.5, size = 1) +
+  geom_point(aes(x = NMDS1, y = NMDS2, colour = group2, shape = group2), size=3) +
   scale_colour_manual(name = "Wetland Cover Types",  
-                      labels = c("Mangrove Dominated Wetlands", "Mangrove-Present Wetland", "Non-mangrove Dominated Wetlands"), #+ , discrete = T, option = "E") +
+                      labels = c("Mangrove Dominated Wetland", "Mangrove-Present Wetland", "Non-mangrove Dominated Wetland"), #+ , discrete = T, option = "E") +
                       values = c("#A69D75FF", "#848279FF", "#00204DFF")) + #"#009E73"
   scale_shape_manual(name = "Wetland Cover Types",
-                     labels = c("Mangrove Dominated Wetlands", "Mangrove-Present Wetland", "Non-mangrove Dominated Wetlands"), # "Mix",
+                     labels = c("Mangrove Dominated Wetland", "Mangrove-Present Wetland", "Non-mangrove Dominated Wetland"), # "Mix",
                      values = c(15, 16, 17)) +
   theme_bw() + 
   theme(axis.line = element_line(colour = "black", size =1.2),
-        axis.text.x = element_text(size = 14),
-        axis.text.y = element_text(size = 14),
-        axis.title.x = element_text(vjust = -1, size = 14),
-        axis.title.y = element_text(vjust = 1.5, size = 14),
+        axis.text.x = element_text(size = 12, family = "serif"),
+        axis.text.y = element_text(size = 12, family = "serif"),
+        axis.title.x = element_text(vjust = -1, size = 12, family = "serif"),
+        axis.title.y = element_text(vjust = 1.5, size = 12, family = "serif"),
         axis.ticks = element_line(size = 1.2),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank(),
         plot.margin = unit(c(1,1,2,2), "lines"),
-        text = element_text(size=14))
+        text = element_text(size=12),
+        legend.title = element_text(size = 12, family = "serif"),
+        legend.text = element_text(size = 12, family = "serif"),
+        legend.key.size = unit(0.5, "cm"))
 
 mds_plot2
 
@@ -278,6 +282,12 @@ adon.results2 <- adonis(occ_mds_cast ~ data.scores$group2, method = "jaccard", p
 print(adon.results)
 print(adon.results2)
 
+mds_plot_m <- plot_grid(mds_plot2, mds_plot, nrow = 2, align = "hv", labels = c("A","B"))
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot_combine.tiff"), plot = mds_plot_m,
+       device = "tiff", width = 8, height = 8, units = "in", dpi = 600)
+
+dev.off()
 
 
 
@@ -475,7 +485,7 @@ lat.plot <- ggplot(prd1, aes(x = Latitude, y = fit)) +
   geom_point(data = rt.df, aes(x = Latitude, y = SR50)) +
   xlab(NULL) + #expression(paste("Latitude ( ", degree, " )"
   ylab('Bird Species Richness') +
-  theme(axis.title.y = element_text(size = 12), axis.text = element_text(size = 12)) +
+  theme(axis.title.y = element_text(size = 12, family = "serif"), axis.text = element_text(size = 12, family = "serif")) +
   scale_x_continuous(breaks = seq(24, 32, 1))
 # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
 #                    "Intercept =",signif(mod21$coef[[1]],5 ),
@@ -492,7 +502,7 @@ lat.plot1 <- ggplot(prd2, aes(x = Latitude, y = fit)) +
   geom_point(data = rt.df, aes(x = Latitude, y = SR.wet)) +
   xlab(expression(paste("Latitude ( ", degree, " )"))) +
   ylab('Wetland Bird Species Richness') +
-  theme(axis.title.x = element_text(size = 12), axis.title.y = element_text(size = 12), axis.text = element_text(size = 12)) +
+  theme(axis.title.x = element_text(size = 12, family = "serif"), axis.title.y = element_text(size = 12, family = "serif"), axis.text = element_text(size = 12, family = "serif")) +
   scale_x_continuous(breaks = seq(24, 32, 1))
 # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
 #                    "Intercept =",signif(mod21$coef[[1]],5 ),
@@ -601,7 +611,8 @@ gom <- subset(states, region %in% c("texas", "florida", "alabama", "arkansas", "
 map_gom_turn <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
   geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = beta50.turn), size = 3)
 
-map_gom_turn <- map_gom_turn + scale_color_viridis(name = expression(paste(beta, "-diversity"[italic("Turn")])), option = "plasma") + xlab("Longitude") + ylab("Latitude") + theme(legend.position = c(0.12, .77), legend.title = element_text(size = 14), legend.text = element_text(size = 12), legend.background = element_rect(fill = "transparent"))  
+map_gom_turn <- map_gom_turn + scale_color_viridis(name = expression(paste(beta, "-diversity"[italic("Turn")])), option = "plasma") + xlab("Longitude") + ylab("Latitude") + 
+  theme(legend.position = c(0.12, .77), legend.title = element_text(size = 12, family = "serif"), legend.text = element_text(size = 12, family = "serif"), legend.background = element_rect(fill = "transparent"))  
 
 # ggsave(here::here("Figures/Figures_Diversity_Manuscript/Map_Beta_Turn.tiff"), plot = map_gom_turn,
 #        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
@@ -690,6 +701,27 @@ master_map <- plot_grid(map_gom_jac, map_gom_wet, map_change_alpha, map_change_a
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/MasterMap.tiff"), plot = master_map,
        device = "tiff", width = 15, height = 10, units = "in", dpi = 600)
 
+
+
+#Map of Sites 
+map <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
+  geom_point(data = seg.df, aes(x = Longitude, y = Latitude, colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                                                           "Southeastern Coastal Plain", 
+                                                                                           "Peninsular Florida",
+                                                                                           "Gulf Coast Prairie"))), size = 3) +
+  scale_color_viridis(option = "E", discrete = T) + theme_bw() + xlab("Longitude") + ylab("Latitude") + labs(color = "Bird Conservation Region") + theme(legend.title = element_text(size = 11, face = "bold"),
+                                                                                                                                                         legend.text = element_text(size = 11),
+                                                                                                                                                         axis.title = element_text(size = 14),
+                                                                                                                                                         axis.text = element_text(size = 14),
+                                                                                                                                                         legend.background = element_rect("transparent"),
+                                                                                                                                                         legend.key = element_rect("transparent"),
+                                                                                                                                                         legend.position = c(0, 1),
+                                                                                                                                                         legend.justification = c(0,1),
+                                                                                                                                                         legend.key.size = unit(0.25, "cm")
+                                                                                                                                                         )
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/BasicMap.tiff"), plot = map,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 # map_gom_cmrl <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
 #   geom_point(data = seg.df, aes(x = Longitude, y = Latitude, color = change.cmrl.km), size = 3)
