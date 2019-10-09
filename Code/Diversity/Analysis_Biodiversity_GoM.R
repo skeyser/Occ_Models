@@ -62,6 +62,8 @@ rtxy <- rtxy[!duplicated(rtxy),]
 #Merge XY with rt.df
 rt.df <- merge(rt.df, rtxy, by.x = "Site", by.y = "Site.x")
 
+#Climate Data only
+climate <- read.csv(here::here("Data_BBS/Generated DFs/climate_data.csv"),stringsAsFactors = F)
 ###################################################################################
 
 #MDS and PERMANOVA Analysis 
@@ -214,7 +216,7 @@ data.scores$site <- paste0(data.scores$rteno, "_", data.scores$seg)
 
 
 mds_plot <- ggplot(data = data.scores) + 
-  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group1), level = 0.5, size = 1) +
+  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group1), level = 0.5, size = 1.2) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = group1, shape = group1), size=3) +
   scale_colour_manual(name = "Wetland Cover Types",  
                       labels = c("Emergent Wetland Dominated", "Mixed Wetland", "Woody Wetland Dominated"),
@@ -229,6 +231,9 @@ mds_plot <- ggplot(data = data.scores) +
         axis.title.x = element_text(vjust = -1, size = 12, family = "serif"),
         axis.title.y = element_text(vjust = 1.5, size = 12, family = "serif"),
         axis.ticks = element_line(size = 1.2),
+        legend.text = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif"),
+        legend.key.size = unit(0.5, "cm"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
@@ -243,7 +248,7 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot1.tiff"), plot = 
 dev.off()
 
 mds_plot2 <- ggplot(data = data.scores) + 
-  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group2), level = 0.5, size = 1) +
+  stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group2), level = 0.5, size = 1.2) +
   geom_point(aes(x = NMDS1, y = NMDS2, colour = group2, shape = group2), size=3) +
   scale_colour_manual(name = "Wetland Cover Types",  
                       labels = c("Mangrove Dominated Wetland", "Mangrove-Present Wetland", "Non-mangrove Dominated Wetland"), #+ , discrete = T, option = "E") +
@@ -263,7 +268,7 @@ mds_plot2 <- ggplot(data = data.scores) +
         panel.border = element_blank(),
         panel.background = element_blank(),
         plot.margin = unit(c(1,1,2,2), "lines"),
-        text = element_text(size=12),
+        text = element_text(size=12, family = "serif"),
         legend.title = element_text(size = 12, family = "serif"),
         legend.text = element_text(size = 12, family = "serif"),
         legend.key.size = unit(0.5, "cm"))
@@ -1189,3 +1194,121 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotAlphaWet.tiff")
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 dev.off()
+
+
+#Plotting Climate Data for Entire Time Series 
+bcr <- seg.df[, c("Site", "BCR")]
+climate <- merge(climate, bcr, by = "Site")
+
+climate1 <- climate[, c("Year", "tmin.c", "tmax.c", "tmean.c", "tmax.bird.c", "tmean.bird.c", "tmin.bird.c")]
+climate1 <- reshape2::melt(climate1, id = c("Year"))
+climate1 <- climate1 %>% group_by(Year, variable) %>% summarize(mean = mean(value))
+
+climate1$variable_f <- factor(climate1$variable, levels = c("tmax.c", "tmax.bird.c", "tmean.c", "tmean.bird.c", "tmin.c", "tmin.bird.c"))
+
+levels(climate1$variable_f) <- c(tmax.c = expression("T"["max"]), 
+                                 tmax.bird.c = expression("Breeding Season T"["max"]), 
+                                 tmean.c = expression("T"["mean"]), 
+                                 tmean.bird.c = expression("Breeding Season T"["mean"]), 
+                                 tmin.c = expression("T"["min"]),
+                                 tmin.bird.c = expression("Breeding Season T"["min"]))
+
+
+climate.plot.annual <- ggplot() +
+  geom_point(data = climate1, aes(x = Year, y = mean, group = variable)) +
+  #geom_line(data = climate1, aes(x = Year, y = tmax.c), color = "Red") +
+  #geom_line(data = climate1, aes(x = Year, y = tmean.c), color = "Black") +
+  geom_smooth(data = climate1, method = lm, aes(x = Year, y = mean, group = variable_f, colour = factor(variable_f), fill = factor(variable_f))) +
+  theme_bw() +
+  xlab(NULL) +
+  ylab(expression(paste("Temperature ", "(", degree, "C)"))) +
+  xlim(1975, 2018) +
+  theme(strip.text = element_text(size = 12, face = "bold", family = "serif"),
+        strip.background = element_blank(),
+        axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        legend.position = "none",
+        plot.margin = margin(0,0.5,0,0, "cm")) +
+  scale_color_manual(values = c("#444F6BFF", "#444F6BFF", "#838079FF", "#838079FF", "#C7B76BFF", "#C7B76BFF")) +
+  scale_fill_manual(values = c("#444F6BFF", "#444F6BFF", "#838079FF", "#838079FF", "#C7B76BFF", "#C7B76BFF")) +
+  facet_wrap(~variable_f, nrow = 3, scales = "free", labeller = label_parsed)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotClimate.tiff"), plot = climate.plot.annual,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+
+#Precip Data
+climate2 <- climate[, c("Year", "precip_Wet.c", "precip_Dry.c")]
+climate2 <- reshape2::melt(climate2, id = c("Year"))
+climate2 <- climate2 %>% group_by(Year, variable) %>% summarize(mean = mean(value))
+
+climate2$variable_f <- factor(climate2$variable, levels = c("precip_Wet.c", "precip_Dry.c"))
+
+levels(climate2$variable_f) <- c(#pmean.c = expression("Precip"["mean"]), 
+                                 precip_Wet.c = expression("Wet Season Precip"["mean"]), 
+                                 precip_Dry.c = expression("Dry Season Precip"["mean"]))
+
+
+precip.plot.annual <- ggplot() +
+  geom_point(data = climate2, aes(x = Year, y = mean, group = variable_f)) +
+  #geom_line(data = climate1, aes(x = Year, y = tmax.c), color = "Red") +
+  #geom_line(data = climate1, aes(x = Year, y = tmean.c), color = "Black") +
+  geom_smooth(data = climate2, method = lm, aes(x = Year, y = mean, group = variable_f, colour = factor(variable_f), fill = factor(variable_f))) +
+  theme_bw() +
+  xlab("Year") +
+  ylab("Precipitation (cm)") +
+  xlim(1975, 2018) +
+  theme(strip.text = element_text(size = 12, face = "bold", family = "serif"),
+        strip.background = element_blank(),
+        axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        legend.position = "none",
+        plot.margin = margin(0,0.5,0,0, "cm")) +
+  scale_color_manual(values = c("#00204DFF", "#FFEA46FF", "#C7B76BFF")) +
+  scale_fill_manual(values = c("#00204DFF", "#FFEA46FF", "#C7B76BFF")) +
+  facet_wrap(~variable_f, nrow = 1, scales = "free", labeller = label_parsed)
+
+big.clim <- plot_grid(climate.plot.annual, precip.plot.annual, nrow = 2, rel_heights = c(2.5, 1), align = "v")
+ 
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotBigClimate.tiff"), plot = big.clim,
+       device = "tiff", width = 8, height = 8, units = "in", dpi = 600)
+
+dev.off()
+
+#LULC Data 
+lulc.df <- seg.df[, c("Site", "diff.from.first.man", "diff.from.first.for", "diff.from.first.ww", "diff.from.first.ew", "diff.from.first.ur", "diff.from.first.wat", "diff.from.first.bare", "diff.from.first.ag", "diff.from.first.wet")]
+lulc.df <- reshape2::melt(lulc.df, id = "Site")
+
+lulc.df$variable_f <- factor(lulc.df$variable, levels = c("diff.from.first.man", "diff.from.first.ww", "diff.from.first.ew", "diff.from.first.wet", "diff.from.first.ur", "diff.from.first.ag", "diff.from.first.for", "diff.from.first.wat", "diff.from.first.bare"))
+
+levels(lulc.df$variable_f) <- c(diff.from.first.man = expression(paste(Delta, "% Cover Mangrove")),
+                                diff.from.first.ww = expression(paste(Delta, "% Cover Woody Wetland")),
+                                diff.from.first.ew = expression(paste(Delta, "% Cover Emergent Wetland")),
+                                diff.from.first.wet = expression(paste(Delta, "% Cover Total Wetland")),
+                                diff.from.first.ur = expression(paste(Delta, "% Cover Urban")),
+                                diff.from.first.ag = expression(paste(Delta, "% Cover Agriculture")),
+                                diff.from.first.for = expression(paste(Delta, "% Cover Forest")),
+                                diff.from.first.wat = expression(paste(Delta, "% Cover Water")),
+                                diff.from.first.bare = expression(paste(Delta, "% Cover Bare")))
+  
+
+
+lulc.plot <- ggplot(data = lulc.df, aes(x = value, fill = variable)) +
+  geom_histogram(bins = 50) + facet_wrap(~variable_f, labeller =label_parsed) + scale_fill_viridis(discrete = T, option = "E") +
+  xlab("Difference in Percent Cover") +
+  ylab("Frequency") +
+  theme_bw() +
+  theme(legend.position = "none",
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"))
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/lulchist.tiff"), plot = lulc.plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
