@@ -501,6 +501,7 @@ lat.plot <- ggplot(prd1, aes(x = Latitude, y = fit)) +
   xlab(NULL) + #expression(paste("Latitude ( ", degree, " )"
   ylab('Bird Species Richness') +
   theme(axis.title.y = element_text(size = 12, family = "serif"), axis.text = element_text(size = 12, family = "serif")) +
+        #panel.background = element_blank(), panel.grid = element_blank()) +
   scale_x_continuous(breaks = seq(24, 32, 1))
 # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
 #                    "Intercept =",signif(mod21$coef[[1]],5 ),
@@ -542,8 +543,45 @@ tab_model(mod23)
 
 ########################################################################################################################################################################################################
 #CMRL - Beta div plots
-mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl)
+mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.km + I(change.cmrl.km^2))
 summary(mod17)
+
+set.seed(100)
+prd2 <- data.frame(change.cmrl.km = seq(from  = range(rt.df$change.cmrl.km)[1], to = range(rt.df$change.cmrl.km)[2], length.out = 100))
+err2 <- predict(mod17, newdata = prd2, se.fit = T)
+
+prd2$lci <- err2$fit - 1.96 * err2$se.fit
+prd2$fit <- err2$fit
+prd2$uci <- err2$fit + 1.96 * err2$se.fit
+
+cmrl.plot1 <- ggplot(prd2, aes(x = change.cmrl.km, y = fit)) +
+  theme_bw() +
+  geom_line() +
+  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#00204DFF", fill = "#00204DFF") +
+  geom_point(data = rt.df, aes(x = change.cmrl.km, y = beta50.jac)) +
+  xlab("Change in CMRL (km)") +
+  ylab(expression(beta["Jac"])) +
+  # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
+  #                    "Intercept =",signif(mod21$coef[[1]],5 ),
+  #                    " Slope =",signif(mod21$coef[[3]], 5),
+  #                    " P =",signif(summary(mod21)$coef[3,4], 5))) +
+  #scale_x_continuous(breaks = seq(-400, 300, 100)) +
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"))
+
+cmrl.plot1
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_Beta.tiff"), plot = cmrl.plot1,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+
+mod18 <- lmer(data = seg.df, beta50.jac ~ change.cmrl + (1|rteno))
+summary(mod18)
+car::Anova(mod18)
+
+plot(seg.df$change.cmrl, seg.df$beta50.jac)
 
 mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl)
 summary(mod18)
@@ -576,7 +614,7 @@ prd$uci <- err$fit + 1.96 * err$se.fit
 cmrl.plot <- ggplot(prd, aes(x = mean.anom.sp, y = fit)) +
   theme_bw() +
   geom_line() +
-  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#444F6BFF", fill = "#444F6BFF") +
+  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#A09877FF", fill = "#A09877FF") +
   geom_point(data = rt.df, aes(x = mean.anom.sp, y = change.cmrl.km)) +
   xlab(expression(paste("Change in Mean Spring Temp ( ", degree ~ C, " )"))) +
   ylab('Change in CMRL (km)') +
@@ -591,6 +629,13 @@ cmrl.plot <- ggplot(prd, aes(x = mean.anom.sp, y = fit)) +
 cmrl.plot
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_SpMeanTemp.tiff"), plot = cmrl.plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+cmrl.plots <- plot_grid(cmrl.plot1, cmrl.plot, align = "v", nrow = 1)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot.tiff"), plot = cmrl.plots,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 dev.off()
