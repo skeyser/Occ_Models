@@ -1390,6 +1390,8 @@ seg.climate <- seg.climate[, c("Site", "Rteno", "Year", "tmean.c", "tmax.c", "tm
                                "tmean_Winter.c", "tmin_Winter.c", "tmax_Winter.c", "precip_Winter.c", "precip_Dry.c", "precip_Wet.c",
                                "tmax_Wet.c", "tmin_Wet.c", "tmax_Dry.c", "tmin_Dry.c", "tmean_Dry.c", "tmean_Wet.c")]
 
+#write.csv(seg.climate, here::here("Data_BBS/Generated DFs/climate_data.csv"))
+
 #Pull the min betas
 #min.betas <- separate(min.betas, col = "rt_yr", into = c("rteno", "yr"), sep = "_")
 #min.betas$min.yr.bin <- min.betas$yr
