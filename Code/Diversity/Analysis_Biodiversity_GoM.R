@@ -546,6 +546,13 @@ tab_model(mod23)
 mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.km + I(change.cmrl.km^2))
 summary(mod17)
 
+mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl.km + I(change.cmrl.km^2))
+summary(mod17)
+
+mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl.km + I(change.cmrl.km^2))
+summary(mod17)
+
+#Beta Jac CMRL
 set.seed(100)
 prd2 <- data.frame(change.cmrl.km = seq(from  = range(rt.df$change.cmrl.km)[1], to = range(rt.df$change.cmrl.km)[2], length.out = 100))
 err2 <- predict(mod17, newdata = prd2, se.fit = T)
@@ -575,6 +582,61 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_Beta.tiff"), plot =
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 dev.off()
+
+#Beta Turn CMRL
+set.seed(100)
+prd3 <- data.frame(change.cmrl.km = seq(from  = range(rt.df$change.cmrl.km)[1], to = range(rt.df$change.cmrl.km)[2], length.out = 100))
+err3 <- predict(mod18, newdata = prd3, se.fit = T)
+
+prd3$lci <- err3$fit - 1.96 * err3$se.fit
+prd3$fit <- err3$fit
+prd3$uci <- err3$fit + 1.96 * err3$se.fit
+
+cmrl.plot2 <- ggplot(prd3, aes(x = change.cmrl.km, y = fit)) +
+  theme_bw() +
+  geom_line() +
+  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#777776FF", fill = "#777776FF") +
+  geom_point(data = rt.df, aes(x = change.cmrl.km, y = beta50.turn)) +
+  xlab("Change in CMRL (km)") +
+  ylab(expression(beta["Turn"])) +
+  # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
+  #                    "Intercept =",signif(mod21$coef[[1]],5 ),
+  #                    " Slope =",signif(mod21$coef[[3]], 5),
+  #                    " P =",signif(summary(mod21)$coef[3,4], 5))) +
+  #scale_x_continuous(breaks = seq(-400, 300, 100)) +
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"))
+
+cmrl.plot2
+
+#Beta Nest CMRL
+set.seed(100)
+prd4 <- data.frame(change.cmrl.km = seq(from  = range(rt.df$change.cmrl.km)[1], to = range(rt.df$change.cmrl.km)[2], length.out = 100))
+err4 <- predict(mod19, newdata = prd4, se.fit = T)
+
+prd4$lci <- err4$fit - 1.96 * err4$se.fit
+prd4$fit <- err4$fit
+prd4$uci <- err4$fit + 1.96 * err4$se.fit
+
+cmrl.plot3 <- ggplot(prd4, aes(x = change.cmrl.km, y = fit)) +
+  theme_bw() +
+  geom_line() +
+  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#FFEA46FF", fill = "#FFEA46FF") +
+  geom_point(data = rt.df, aes(x = change.cmrl.km, y = beta50.nest)) +
+  xlab("Change in CMRL (km)") +
+  ylab(expression(beta["Nest"])) +
+  # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
+  #                    "Intercept =",signif(mod21$coef[[1]],5 ),
+  #                    " Slope =",signif(mod21$coef[[3]], 5),
+  #                    " P =",signif(summary(mod21)$coef[3,4], 5))) +
+  #scale_x_continuous(breaks = seq(-400, 300, 100)) +
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"))
+
+cmrl.plot3
+
+
+
 
 
 mod18 <- lmer(data = seg.df, beta50.jac ~ change.cmrl + (1|rteno))
@@ -633,9 +695,10 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_SpMeanTemp.tiff"), 
 
 dev.off()
 
-cmrl.plots <- plot_grid(cmrl.plot1, cmrl.plot, align = "v", nrow = 1)
+cmrl.plots <- plot_grid(cmrl.plot, cmrl.plot1, cmrl.plot2, cmrl.plot3, align = "hv", nrow = 2,
+                        labels = c("A", "B", "C", "D"), label_size = 12, label_fontfamily = "serif")
 
-ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot.tiff"), plot = cmrl.plots,
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_tot.tiff"), plot = cmrl.plots,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 dev.off()
