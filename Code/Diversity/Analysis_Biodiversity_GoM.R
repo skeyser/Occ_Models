@@ -27,10 +27,12 @@ windowsFonts()
 
 #Segments level df .4km buffer
 #Need to change DF to include ratio mangrove:ww and diff.from.first.wwnm
-seg.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Seg_Last.csv"), stringsAsFactors = F)
+#seg.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Seg_Last.csv"), stringsAsFactors = F)
+seg.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Seg_Last_New.csv"), stringsAsFactors = F)
 
 #Route level df 0.4km buffer
-rt.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last.csv"), stringsAsFactors = F)
+#rt.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last.csv"), stringsAsFactors = F)
+rt.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last_New.csv"), stringsAsFactors = F)
 
 #Occupancy Data for MDS plot & PERMANOVA 
 occ <- read.csv(here::here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
@@ -344,20 +346,20 @@ ggplot(data = div.df, aes(y = Site, x = bwet.ratiolog, color = BCR)) + geom_poin
 #Jaccard Index Wetland and Entire Community
 colnames(seg.df)[colnames(seg.df) == "rteno"] <- "Route"
 
-mod1 <- lmer(data = seg.df, beta50.jac ~ p.anom + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + diff.from.first.for + Duration + SR50 + (1|Route), REML = F)
+mod1 <- lmer(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR50 + (1|rteno), REML = F)
 summary(mod1) 
 car::Anova(mod1)
-tab_model(mod1, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Annual Precipitation (cm)", "Change in Mean Annual Temperature (C)",
+tab_model(mod1, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                               "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
-                                                              "Change in Urban Cover (%)", "Change in Forest Cover (%)", "Species Richness", "Duration of Survey (Years)"),
+                                                              "Change in Anthropogenic Cover (%)", "Change in Upland Cover (%)", "Species Richness", "Duration of Survey (Years)"),
           dv.labels = "Beta Diversity")
 
-mod2 <- lmer(data = seg.df, beta.wet.jac ~ p.anom + mean.anom.bird + diff.from.first.man  + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + Duration + SR.wet + (1|Route), REML = F)
+mod2 <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man  + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet + (1|rteno), REML = F)
 summary(mod2)
 car::Anova(mod2)
-tab_model(mod1, mod2, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Wet Season Precipitation (cm)", "Change in Dry Season Precipitation (cm)", "Change in Mean Annual Temperature (C)",
+tab_model(mod1, mod2, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Wet Season Precipitation (cm)", "Change in Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                               "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
-                                                                              "Change in Urban Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
+                                                                              "Change in Anthropogenic Cover (%)", "Change in Upland Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
                           dv.labels = c("Total Bird Community Beta Diversity", "Wetland Bird Community Beta Diversity"), linebreak = T
           )
 
@@ -384,12 +386,12 @@ tab_model(mod1, mod2, show.ci = 0.95, title = NULL, pred.labels = c("Intercept",
 # tab_model(mod6)
 
 #Change SR 
-mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + Duration + SR50 + (1|Route), REML = F)
+mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.human + diff.from.first.nat + Duration + SR50 + (1|rteno), REML = F)
 summary(mod7)
 car::Anova(mod7)
 tab_model(mod7)
 
-mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + Duration + SR.wet + (1|Route), REML = F)
+mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.human + diff.from.first.nat + Duration + SR.wet + (1|rteno), REML = F)
 summary(mod8)
 car::Anova(mod8)
 tab_model(mod8)
@@ -410,10 +412,10 @@ tab
 #Multiple Regression Models @ Route level
 
 #Jaccard Index Models
-mod9 <- lm(data = rt.df, beta50.jac ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur  + Duration + SR50)
+mod9 <- lm(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat  + Duration + SR50)
 summary(mod9)
 
-mod10 <- lm(data = rt.df, beta.wet.jac ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + Duration + SR.wet)
+mod10 <- lm(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet)
 summary(mod10)
 
 #Turnover Index Models
@@ -431,10 +433,10 @@ summary(mod10)
 # summary(mod14)
 # 
 #Change SR
-mod15 <- lm(data = rt.df, alpha50.pchange ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + Duration + SR50)
+mod15 <- lm(data = rt.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR50)
 summary(mod15)
 
-mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + Duration + SR.wet)
+mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet)
 summary(mod16)
 
 tab2 <- tab_model(mod9, mod15, mod10, mod16, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Annual Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
@@ -448,20 +450,73 @@ tab2 <- tab_model(mod9, mod15, mod10, mod16, show.ci = 0.95, title = NULL, pred.
 tab2
 
 ########################################################################################################################################################################################################
-bbs_clim_rt1 <- bbs_total %>% group_by(rteno.x) %>% arrange(Year) %>% filter(Year <= 1999) %>% 
-  select(c("rteno.x", "Year", "Latitude", "SR50", "SR.wet")) %>% summarize_if(is.numeric, mean) %>% ungroup() 
-bbs_clim_rt2 <- bbs_total %>% group_by(rteno.x) %>% arrange(Year) %>% filter(Year >= 2000) %>% 
-  select(c("rteno.x", "Year", "Latitude", "SR50", "SR.wet")) %>% summarize_if(is.numeric, mean) %>% ungroup() 
+bbs_clim_rt1 <- bbs_total_seg %>% group_by(rteno.x) %>% arrange(Year) %>% filter(Year <= 1999) %>% 
+  select(c("rteno.x", "Year", "Latitude", "SR50", "SR.wet")) %>% mutate(Year = as.character(Year)) %>% summarize_if(is.numeric, mean) %>% ungroup() 
+bbs_clim_rt2 <- bbs_total_seg %>% group_by(rteno.x) %>% arrange(Year) %>% filter(Year >= 2000) %>% 
+  select(c("rteno.x", "Year", "Latitude", "SR50", "SR.wet")) %>% mutate(Year = as.character(Year)) %>% summarize_if(is.numeric, mean) %>% ungroup() 
 
-bbs_clim_rt2 <- bbs_clim_rt2[bbs_clim_rt2$rteno.x %in% bbs_clim_rt1$rteno.x, ]
-bbs_clim_rt1 <- bbs_clim_rt1[bbs_clim_rt1$rteno.x %in% bbs_clim_rt2$rteno.x, ]
+#bbs_clim_rt2 <- bbs_clim_rt2[bbs_clim_rt2$rteno.x %in% bbs_clim_rt1$rteno.x, ]
+#bbs_clim_rt1 <- bbs_clim_rt1[bbs_clim_rt1$rteno.x %in% bbs_clim_rt2$rteno.x, ]
+
+bbs_clim_rt1$indicator <- "1980 - 1999"
+bbs_clim_rt2$indicator <- "2000 - 2017"
+
+bbs_clim_f <- rbind(bbs_clim_rt1, bbs_clim_rt2)
+
+bbs_clim_f <- reshape2::melt(data = bbs_clim_f, id = c("indicator", "Latitude"), measure.vars = c("SR50", "SR.wet"))
+
+bbs_clim_f$variable_f <- factor(bbs_clim_f$variable, levels = c("SR50", "SR.wet"))
+levels(bbs_clim_f$variable_f) <- c(SR50 = expression(paste(alpha, "-diversity")),
+                                   SR.wet = expression(paste(alpha, "-diversity"["Wetland Birds"])))
 
 
-ggplot() + 
-  geom_smooth(data = bbs_clim_rt1, aes(x = Latitude, y = SR50), color = "red") +
-  geom_smooth(data = bbs_clim_rt2, aes(x = Latitude, y = SR50), color = "black") +
+sr.peak <- ggplot() + 
+  geom_smooth(data = bbs_clim_f, aes(x = Latitude, y = value, group = indicator, colour = factor(indicator), fill = factor(indicator))) +
+  #geom_smooth(data = bbs_clim_f, aes(x = Latitude, y = SR.wet, colour = factor(indicator), fill = factor(indicator))) +
+  #geom_smooth(data = bbs_clim_rt2, aes(x = Latitude, y = SR50), color = "black") +
+  theme_bw() +
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank(),
+        plot.background = element_blank(),
+        panel.background = element_blank(),
+        panel.grid = element_blank()) +
+  #scale_color_manual(values = c("#00204DFF", "#B9AC70FF")) +
+  #scale_fill_manual(values = c("#00204DFF", "#B9AC70FF")) +
+  scale_color_viridis(discrete = T, option = "E") + 
+  scale_fill_viridis(discrete = T, option = "E") +
+  labs(colour = "Time Series", fill = "Time Series") +
   xlab("Latitude") +
-  ylab("Detection-corrected Species Richness")
+  ylab("Detection-corrected Species Richness") +
+  facet_wrap(~variable_f, labeller = label_parsed)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/StartEnd_SR_SRwet.tiff"), plot = sr.peak,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+#Alpha and Beta Change Raw vs Occ
+div.cora <- bbs_total_seg[, c("Site_div.x", "SR50", "Year", "site", "rteno.x")]
+div.cora <- reshape2::melt(data = div.cora, id = c("Year", "site", "rteno.x"), measure.vars = c("Site_div.x", "SR50"))
+
+div.corb <- bbs_total_seg[, c("beta.jac", "beta.mcmc", "beta50.jac", "Year", "site", "rteno.x")]
+div.corb <- reshape2::melt(data = div.corb, id = c("Year", "site", "rteno.x"), measure.vars = c("beta.jac", "beta50.jac", "beta.mcmc"))
+
+
+alpha <- ggplot() + 
+  geom_smooth(data = div.cora, aes(x = Year, y = value, colour = factor(variable), fill = factor(variable))) +
+  theme_bw() +
+  facet_wrap(~variable, scales = "free")
+  
+beta.div <- ggplot() + 
+  geom_smooth(data = div.corb, aes(x = Year, y = value, colour = factor(variable), fill = factor(variable))) +
+  theme_bw() +
+  facet_wrap(~variable, scales = "free")
+
   
 
 ########################################################################################################################################################################################################
