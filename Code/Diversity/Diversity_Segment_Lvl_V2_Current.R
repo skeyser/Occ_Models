@@ -1701,9 +1701,10 @@ bbs_full <- merge(bbs_lulc, bbs_clim, by = "unique_id")
 #DF for MDS Plot with all sites LULC (ratio mangrove)
 lulc.df <- bbs_lulc %>% group_by(rteno.x) %>%
   mutate(total_cover_nb = Urban + Ag + Grassland + Forest + Woody_Wetlands + Emergent_Wetlands + Bare + Water,
+         pct.nat = (Grassland + Forest) / total_cover_nb, pct.human = (Urban + Ag) / total_cover_nb,
          pct.wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb, pct.ag = Ag / total_cover_nb,
          pct.grass = Grassland / total_cover_nb, pct.ww = Woody_Wetlands / total_cover_nb, pct.ew = Emergent_Wetlands / total_cover_nb, 
-         pct.ur = Urban / total_cover_nb,pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb, 
+         pct.ur = Urban / total_cover_nb, pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb, 
          pct.man = (mangrove / total_cover_nb),WW_NoMan = Woody_Wetlands - mangrove, pct.wwnm = WW_NoMan / total_cover_nb, ratio.ww = (Woody_Wetlands / Emergent_Wetlands),
          ratio.ew = (Emergent_Wetlands / Woody_Wetlands), ratio.man = (mangrove / Emergent_Wetlands), ratio.mnww = (mangrove / WW_NoMan))
 
@@ -1712,7 +1713,7 @@ lulc.df <- lulc.df %>% separate(unique_id, into = c("rt", "segment", "Yr_bin"), 
 lulc.df <- lulc.df %>% rename(Site = rteno.x, rtname = site) %>% dplyr::select(c("unique_id", "Yr_bin", "Site", "rtname", "Segment", "Background", "Urban", 
                                                                                  "Ag", "mangrove", "Grassland", "Forest", "Woody_Wetlands","Emergent_Wetlands", 
                                                                                  "WW_NoMan", "Bare", "Water", "total_cover", "tot_wetland", "total_cover_nb", "pct.wetland",
-                                                                                 "pct.ag", "pct.ww", "pct.man", "pct.wwnm", "pct.grass", "pct.for","pct.ur", "pct.wat", "pct.bare",
+                                                                                 "pct.ag", "pct.ww", "pct.man", "pct.wwnm", "pct.grass", "pct.nat", "pct.human", "pct.for","pct.ur", "pct.wat", "pct.bare",
                                                                                  "ratio.ww", "ratio.ew", "ratio.man", "ratio.mnww")) 
 
 
@@ -1722,6 +1723,7 @@ lulc.df <- lulc.df %>% rename(Site = rteno.x, rtname = site) %>% dplyr::select(c
 bbs_full <- bbs_full %>% group_by(Site.x) %>%
   mutate(total_cover_nb = Urban + Ag + Grassland + Forest + Woody_Wetlands + Emergent_Wetlands + Bare + Water,
          pct.wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb, pct.ag = Ag / total_cover_nb,
+         pct.nat = (Grassland + Forest) / total_cover_nb, pct.human = (Urban + Ag) / total_cover_nb,
          pct.ww = Woody_Wetlands / total_cover_nb, pct.ew = Emergent_Wetlands / total_cover_nb, pct.ur = Urban / total_cover_nb,
          pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb, pct.man = (mangrove / total_cover_nb),
          WW_NoMan = Woody_Wetlands - mangrove, pct.wwnm = WW_NoMan / total_cover_nb, pct.grass = Grassland / total_cover_nb) %>%
@@ -1734,6 +1736,8 @@ bbs_full <- bbs_full %>% group_by(Site.x) %>%
   mutate(diff.ratio.wet = (ratio.ww - first(ratio.ww))) %>%
   mutate(diff.from.first.man = (pct.man - first(pct.man))) %>%
   mutate(diff.from.first.wwnm = (pct.wwnm - first(pct.wwnm))) %>%
+  mutate(diff.from.first.nat = (pct.nat - first(pct.nat))) %>%
+  mutate(diff.from.first.human = (pct.human - first(pct.human))) %>%
   mutate(diff.from.first.ur = (pct.ur - first(pct.ur))) %>%
   mutate(diff.from.first.ag = (pct.ag - first(pct.ag))) %>%
   mutate(diff.from.first.wet = (pct.wetland - first(pct.wetland))) %>%
@@ -1771,7 +1775,7 @@ bbs_last <- bbs_last %>% rename(SR = Site_div.x, min.yr = min.yr.x, max.yr = max
                             "mean.anom.f", "max.anom.f", "min.anom.f", "p.anom.f", "mean.anom.w", "max.anom.w", "min.anom.w", "p.anom.w", "mean.anom.dry", 
                             "max.anom.dry", "min.anom.dry", "p.anom.dry", "mean.anom.wet", "max.anom.wet", "min.anom.wet", "p.anom.wet", "pct.wetland", "pct.ag",
                             "pct.ww", "pct.man", "pct.wwnm", "pct.ew", "pct.grass", "pct.ur", "pct.for", "pct.wat", "pct.bare", "ratio.ww", "ratio.man", "ratio.ew", "ratio.manww",
-                            "diff.from.first.ww", "diff.from.first.man", "diff.from.first.ew", "diff.from.first.ag", "diff.from.first.for", "diff.from.first.ur",
+                            "diff.from.first.ww", "diff.from.first.man", "diff.from.first.ew", "diff.from.first.nat", "diff.from.first.human", "diff.from.first.ag", "diff.from.first.for", "diff.from.first.ur",
                             "diff.from.first.wwnm", "diff.from.first.bare", "diff.from.first.wet", "diff.from.first.grass", "diff.from.first.bare", "diff.from.first.wat"))
 
 #Pulls out just the last
@@ -1830,7 +1834,7 @@ cmrl.last <- cmrl.occ %>% rename(CMRL = Latitude, Site = site) %>% arrange(Yr_bi
 #Put the cmrl with the last mod DF
 bbs_last <- merge(bbs_last, cmrl.last, by = "Site")
 
-#write.csv(bbs_last, here::here("Data_BBS/Generated DFs/DF4Analysis_Seg_Last_Complete.csv"))
+#write.csv(bbs_last, here::here("Data_BBS/Generated DFs/DF4Analysis_Seg_Last_New.csv"))
 
 #bbs_last <- bbs_last %>% mutate(scale.cmrl = scale(change.cmrl.km))
 
