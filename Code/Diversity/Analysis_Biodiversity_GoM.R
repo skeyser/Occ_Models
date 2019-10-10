@@ -501,24 +501,74 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/StartEnd_SR_SRwet.tiff")
 dev.off()
 
 #Alpha and Beta Change Raw vs Occ
-div.cora <- bbs_total_seg[, c("Site_div.x", "SR50", "Year", "site", "rteno.x")]
-div.cora <- reshape2::melt(data = div.cora, id = c("Year", "site", "rteno.x"), measure.vars = c("Site_div.x", "SR50"))
+div.cora <- bbs_total_seg[, c("Site_div.x", "SR_MCMC", "SR50", "Year", "site", "rteno.x")]
+div.cora <- reshape2::melt(data = div.cora, id = c("Year", "site", "rteno.x"), measure.vars = c("Site_div.x", "SR_MCMC", "SR50"))
 
 div.corb <- bbs_total_seg[, c("beta.jac", "beta.mcmc", "beta50.jac", "Year", "site", "rteno.x")]
 div.corb <- reshape2::melt(data = div.corb, id = c("Year", "site", "rteno.x"), measure.vars = c("beta.jac", "beta50.jac", "beta.mcmc"))
 
 
 alpha <- ggplot() + 
-  geom_smooth(data = div.cora, aes(x = Year, y = value, colour = factor(variable), fill = factor(variable))) +
+  geom_smooth(data = div.cora, method = "loess", aes(x = Year, y = value, colour = factor(variable,
+                                                                                          labels = c("Naive SR",
+                                                                                                     "SR MCMC",
+                                                                                                     "SR 50%")), 
+                                                     fill = factor(variable, labels = c("Naive SR",
+                                                                                        "SR MCMC",
+                                                                                        "SR 50%")))) + #group = interaction(rteno.x, variable)
   theme_bw() +
-  facet_wrap(~variable, scales = "free")
-  
-beta.div <- ggplot() + 
-  geom_smooth(data = div.corb, aes(x = Year, y = value, colour = factor(variable), fill = factor(variable))) +
-  theme_bw() +
-  facet_wrap(~variable, scales = "free")
+  theme(axis.text = element_text(size = 12, family = "serif"),
+        axis.title = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        legend.text = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif")) +
+  xlab("Year") +
+  ylab("Species Richness") +
+  labs(colour = c("Species Estimation Method"), fill = c("Species Estimation Method")) +
+  scale_color_viridis(discrete = T, option = "D") +
+  scale_fill_viridis(discrete = T, option = "D") +
+  facet_wrap(~variable, nrow = 1, labeller = )
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/Occ_Plot_SR.tiff"), plot = alpha,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
 
   
+beta.occ.plot <- ggplot() + 
+  geom_smooth(data = div.corb, method = "loess", aes(x = Year, y = value, colour = factor(variable,
+                                                                                          labels = c("Naive Beta",
+                                                                                                     "Beta 50%",
+                                                                                                     "Beta MCMC")), 
+                                                     fill = factor(variable, labels = c("Naive Beta",
+                                                                                        "Beta 50%",
+                                                                                        "Beta MCMC")))) + #group = interaction(rteno.x, variable)
+  theme_bw() +
+  theme(axis.text = element_text(size = 12, family = "serif"),
+        axis.title = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_blank(),
+        legend.text = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif")) +
+  xlab("Year") +
+  ylab("Beta") +
+  labs(colour = c("Species Estimation Method"), fill = c("Species Estimation Method")) +
+  scale_color_viridis(discrete = T, option = "E") +
+  scale_fill_viridis(discrete = T, option = "E") +
+  facet_wrap(~variable, nrow = 1, labeller = )
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/Occ_Plot_Beta.tiff"), plot = beta.occ.plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+big.plot <- plot_grid(alpha, beta.occ.plot, nrow = 2, align = "v")
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/Occ_Plot_Total.tiff"), plot = big.plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
 
 ########################################################################################################################################################################################################
 
@@ -886,11 +936,18 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/MasterMap.tiff"), plot =
 
 
 #Map of Sites 
+seg.df$BCR_name <- NA
+seg.df$BCR_name[seg.df$BCR == 26] <- "Mississippi Alluvial Valley"
+seg.df$BCR_name[seg.df$BCR == 37] <- "Gulf Coast Prairie"
+seg.df$BCR_name[seg.df$BCR == 27] <- "Southeastern Coastal Plain"
+seg.df$BCR_name[seg.df$BCR == 31] <- "Peninsular Florida"
+
+
 map <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
-  geom_point(data = seg.df, aes(x = Longitude, y = Latitude, colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
-                                                                                           "Southeastern Coastal Plain", 
-                                                                                           "Peninsular Florida",
-                                                                                           "Gulf Coast Prairie"))), size = 3) +
+  geom_point(data = seg.df, aes(x = Longitude, y = Latitude, colour = factor(BCR_name))) +#, labels = c("Gulf Coast Prairie",
+                                                                                           #"Mississippi Alluvial Valley", 
+                                                                                           #"Peninsular Florida",
+                                                                                           #"Southeastern Coastal Plain"))), size = 3) +
   scale_color_viridis(option = "E", discrete = T) + theme_bw() + xlab("Longitude") + ylab("Latitude") + labs(color = "Bird Conservation Region") + theme(legend.title = element_text(size = 11, face = "bold", family = "serif"),
                                                                                                                                                          legend.text = element_text(size = 11, family = "serif"),
                                                                                                                                                          axis.title = element_text(size = 14, family = "serif"),
@@ -922,26 +979,30 @@ gghist_beta <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$beta50jac.slope)
 
 #site_data_merge$Year <- site_data_merge$count_yr + 1900
 
-plot_beta <- (ggplot(bbs_total_seg, aes(x = Year, y = beta50.jac, group = BCR, 
-                                    colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
-                                                                    "Southeastern Coastal Plain", 
-                                                                    "Peninsular Florida", 
-                                                                    "Gulf Coastal Prairie")), 
-                                    fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
-                                                                  "Southeastern Coastal Plain", 
-                                                                  "Peninsular Florida", 
-                                                                  "Gulf Coastal Prairie")))) +
+plot_beta <- (ggplot(bbs_total_seg, aes(x = Year, y = beta50.jac, group = BCR,
+                                        colour = factor(BCR_name),
+                                        fill = factor(BCR_name))) +
+                                    # colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                    #                                 "Southeastern Coastal Plain", 
+                                    #                                 "Peninsular Florida", 
+                                    #                                 "Gulf Coastal Prairie")), 
+                                    # fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                    #                               "Southeastern Coastal Plain", 
+                                    #                               "Peninsular Florida", 
+                                    #                               "Gulf Coastal Prairie")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
-                geom_smooth(method = loess, se = T, aes(x = Year, y = beta50.jac, group = BCR, 
-                                                        colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
-                                                                                        "Southeastern Coastal Plain", 
-                                                                                        "Peninsular Florida", 
-                                                                                        "Gulf Coastal Prairie")),
-                                                        fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
-                                                                                      "Southeastern Coastal Plain", 
-                                                                                      "Peninsular Florida", 
-                                                                                      "Gulf Coastal Prairie")))) +
+                geom_smooth(method = loess, se = T, aes(x = Year, y = beta50.jac, group = BCR,
+                                                        colour = factor(BCR_name),
+                                                        fill = factor(BCR_name))) +
+                                                        # colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                        #                                 "Southeastern Coastal Plain", 
+                                                        #                                 "Peninsular Florida", 
+                                                        #                                 "Gulf Coastal Prairie")),
+                                                        # fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                        #                               "Southeastern Coastal Plain", 
+                                                        #                               "Peninsular Florida", 
+                                                        #                               "Gulf Coastal Prairie")))) +
                 #scale_color_brewer(palette = )
                 xlab("Year") +
                 ylab(expression(paste(beta[italic("Jac")]))) +
@@ -987,26 +1048,30 @@ gghist_beta <- ggplot(data = bbs_slopes_seg, aes(bbs_slopes_seg$betawetjac.slope
 
 #site_data_merge$Year <- site_data_merge$count_yr + 1900
 
-plot_beta_wet <- (ggplot(bbs_total_seg, aes(x = Year, y = beta.wet.jac, group = BCR, 
-                                        colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
-                                                                        "Southeastern Coastal Plain", 
-                                                                        "Peninsular Florida", 
-                                                                        "Gulf Coastal Prairie")),
-                                        fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
-                                                                      "Southeastern Coastal Plain", 
-                                                                      "Peninsular Florida", 
-                                                                      "Gulf Coastal Prairie")))) +
+plot_beta_wet <- (ggplot(bbs_total_seg, aes(x = Year, y = beta.wet.jac, group = BCR,
+                                            colour = factor(BCR_name),
+                                            fill = factor(BCR_name))) +
+                                        # colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                        #                                 "Southeastern Coastal Plain", 
+                                        #                                 "Peninsular Florida", 
+                                        #                                 "Gulf Coastal Prairie")),
+                                        # fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                        #                               "Southeastern Coastal Plain", 
+                                        #                               "Peninsular Florida", 
+                                        #                               "Gulf Coastal Prairie")))) +
                 #geom_point(size = 3) +
                 #geom_line()+
                 geom_smooth(method = loess, se = T, aes(x = Year, y = beta.wet.jac, group = BCR, 
-                                                        colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
-                                                                                        "Southeastern Coastal Plain", 
-                                                                                        "Peninsular Florida", 
-                                                                                        "Gulf Coastal Prairie")),
-                                                        fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
-                                                                                      "Southeastern Coastal Plain", 
-                                                                                      "Peninsular Florida", 
-                                                                                      "Gulf Coastal Prairie")))) +
+                                                        colour = factor(BCR_name),
+                                                        fill = factor(BCR_name))) +
+                                                        # colour = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                        #                                 "Southeastern Coastal Plain", 
+                                                        #                                 "Peninsular Florida", 
+                                                        #                                 "Gulf Coastal Prairie")),
+                                                        # fill = factor(BCR, labels = c("Mississippi Alluvial Valley", 
+                                                        #                               "Southeastern Coastal Plain", 
+                                                        #                               "Peninsular Florida", 
+                                                        #                               "Gulf Coastal Prairie")))) +
                 #scale_color_brewer(palette = )
                 xlab("Year") +
                 ylab(expression(paste("Wetland Bird ", beta[italic("Jac")]))) +
