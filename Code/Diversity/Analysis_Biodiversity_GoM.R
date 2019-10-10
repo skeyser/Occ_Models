@@ -621,7 +621,7 @@ prd4$uci <- err4$fit + 1.96 * err4$se.fit
 cmrl.plot3 <- ggplot(prd4, aes(x = change.cmrl.km, y = fit)) +
   theme_bw() +
   geom_line() +
-  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#FFEA46FF", fill = "#FFEA46FF") +
+  geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#D7C463FF", fill = "#D7C463FF") +
   geom_point(data = rt.df, aes(x = change.cmrl.km, y = beta50.nest)) +
   xlab("Change in CMRL (km)") +
   ylab(expression(beta["Nest"])) +
