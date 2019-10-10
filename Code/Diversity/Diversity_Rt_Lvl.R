@@ -1679,6 +1679,7 @@ bbs_full <- bbs_full %>% group_by(rteno) %>%
          WW_NoMan = Woody_Wetlands - mangrove,
          pct.wetland = (Woody_Wetlands + Emergent_Wetlands) / total_cover_nb, pct.ag = Ag / total_cover_nb, pct.grass = Grassland / total_cover_nb,
          pct.ww = Woody_Wetlands / total_cover_nb, pct.wwnm = WW_NoMan / total_cover_nb, pct.ew = Emergent_Wetlands / total_cover_nb, pct.ur = Urban / total_cover_nb,
+         pct.human = (Ag + Urban) / total_cover_nb, pct.nat = (Grassland + Forest) / total_cover_nb,
          pct.for = Forest / total_cover_nb, pct.wat = Water / total_cover_nb, pct.bare = Bare / total_cover_nb, pct.man = (mangrove / total_cover_nb)) %>%
   mutate(diff.from.first.ww = (pct.ww - first(pct.ww))) %>%
   mutate(ratio.ww = (Woody_Wetlands / Emergent_Wetlands)) %>% 
@@ -1687,6 +1688,8 @@ bbs_full <- bbs_full %>% group_by(rteno) %>%
   mutate(diff.from.first.ew = (pct.ew - first(pct.ew))) %>%
   mutate(ratio.ew = (Emergent_Wetlands / Woody_Wetlands)) %>%
   mutate(diff.ratio.wet = (ratio.ww - first(ratio.ww))) %>%
+  mutate(diff.from.first.human = (pct.human - first(pct.human))) %>%
+  mutate(diff.from.first.nat = (pct.nat - first(pct.nat))) %>%
   mutate(diff.from.first.man = (pct.man - first(pct.man))) %>%
   mutate(diff.from.first.wwnm = (pct.wwnm - first(pct.wwnm))) %>%
   mutate(diff.from.first.grass = (pct.grass - first(pct.grass))) %>%
@@ -1899,11 +1902,11 @@ bbs_last <- bbs_last %>% rename(SR = Site_div, min.yr = min.yr.x, max.yr = max.y
                   "p.anom.bird", "mean.anom.sp", "max.anom.sp", "min.anom.sp", "p.anom.sp", "mean.anom.s", "max.anom.s", "min.anom.s", "p.anom.s",
                   "mean.anom.f", "max.anom.f", "min.anom.f", "p.anom.f", "mean.anom.w", "max.anom.w", "min.anom.w", "p.anom.w", "mean.anom.dry", 
                   "max.anom.dry", "min.anom.dry", "p.anom.dry", "mean.anom.wet", "max.anom.wet", "min.anom.wet", "p.anom.wet", "pct.wetland", "pct.ag",
-                  "pct.ww", "pct.man", "pct.wwnm", "pct.ew", "pct.grass", "pct.ur", "pct.for", "pct.wat", "pct.bare", "ratio.ww", "ratio.man", "ratio.ew", "ratio.manww",
+                  "pct.ww", "pct.man", "pct.wwnm", "pct.ew", "pct.nat", "pct.human", "pct.grass", "pct.ur", "pct.for", "pct.wat", "pct.bare", "ratio.ww", "ratio.man", "ratio.ew", "ratio.manww",
                   "diff.from.first.ww", "diff.from.first.man", "diff.from.first.ew", "diff.from.first.ag", "diff.from.first.for", "diff.from.first.ur",
-                  "diff.from.first.wwnm", "diff.from.first.bare", "diff.from.first.wet", "diff.from.first.grass", "diff.from.first.bare", "diff.from.first.wat",
+                  "diff.from.first.wwnm", "diff.from.first.bare", "diff.from.first.wet", "diff.from.first.human", "diff.from.first.nat", "diff.from.first.grass", "diff.from.first.bare", "diff.from.first.wat",
                   "change.cmrl", "change.cmrl.km", "CMRL"))
 
-#write.csv(bbs_last, here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last.csv"))
+#write.csv(bbs_last, here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last_New.csv"))
 
 
