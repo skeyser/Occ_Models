@@ -346,7 +346,7 @@ ggplot(data = div.df, aes(y = Site, x = bwet.ratiolog, color = BCR)) + geom_poin
 #Jaccard Index Wetland and Entire Community
 colnames(seg.df)[colnames(seg.df) == "rteno"] <- "Route"
 
-mod1 <- lmer(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR50 + (1|rteno), REML = F)
+mod1 <- lmer(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR50 + (1|Route), REML = F)
 summary(mod1) 
 car::Anova(mod1)
 tab_model(mod1, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
@@ -354,7 +354,7 @@ tab_model(mod1, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Chan
                                                               "Change in Anthropogenic Cover (%)", "Change in Upland Cover (%)", "Species Richness", "Duration of Survey (Years)"),
           dv.labels = "Beta Diversity")
 
-mod2 <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man  + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet + (1|rteno), REML = F)
+mod2 <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man  + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet + (1|Route), REML = F)
 summary(mod2)
 car::Anova(mod2)
 tab_model(mod1, mod2, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Wet Season Precipitation (cm)", "Change in Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
@@ -386,19 +386,20 @@ tab_model(mod1, mod2, show.ci = 0.95, title = NULL, pred.labels = c("Intercept",
 # tab_model(mod6)
 
 #Change SR 
-mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.human + diff.from.first.nat + Duration + SR50 + (1|rteno), REML = F)
+mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR50 + (1|Route), REML = F)
 summary(mod7)
 car::Anova(mod7)
 tab_model(mod7)
 
-mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.human + diff.from.first.nat + Duration + SR.wet + (1|rteno), REML = F)
+mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet + (1|Route), REML = F)
 summary(mod8)
 car::Anova(mod8)
 tab_model(mod8)
 
-tab <- tab_model(mod1, mod7, mod2, mod8, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Annual Precipitation (cm)", "Change in Mean Annual Temperature (C)",
+tab <- tab_model(mod1, mod7, mod2, mod8, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", 
+                                                                                       "Change in Mean Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                     "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
-                                                                    "Change in Urban Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
+                                                                    "Change in Anthropogenic Cover (%)", "Change in Upland Cover(%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
           dv.labels = c("Total Bird Community Beta Diversity", "Relative Change Alpha Diversity", "Wetland Bird Community Beta Diversity", "Relative Change Wetland Bird Alpha Diversity"), linebreak = F,
           CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
                      css.modelcolumn3 = 'background-color: #f0f0f0;',
@@ -439,9 +440,9 @@ summary(mod15)
 mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet)
 summary(mod16)
 
-tab2 <- tab_model(mod9, mod15, mod10, mod16, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Annual Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
+tab2 <- tab_model(mod9, mod15, mod10, mod16, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Preciptation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                                        "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
-                                                                                       "Change in Urban Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
+                                                                                       "Change in Anthropogenic Cover (%)", "Change in Upland Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
                  dv.labels = c("Total Bird Community Beta Diversity", "Relative Change Alpha Diversity", "Wetland Bird Community Beta Diversity", "Relative Change Wetland Bird Alpha Diversity"), linebreak = F,
                  CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
                             css.modelcolumn3 = 'background-color: #f0f0f0;',
@@ -1442,25 +1443,29 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/FacetPlotBigClimate.tiff
 dev.off()
 
 #LULC Data 
-lulc.df <- seg.df[, c("Site", "diff.from.first.man", "diff.from.first.for", "diff.from.first.ww", "diff.from.first.ew", "diff.from.first.ur", "diff.from.first.wat", "diff.from.first.bare", "diff.from.first.ag", "diff.from.first.wet")]
+lulc.df <- seg.df[, c("Site", "diff.from.first.man", "diff.from.first.for", "diff.from.first.ww", "diff.from.first.ew", "diff.from.first.ur", "diff.from.first.wat", "diff.from.first.bare", "diff.from.first.ag", "diff.from.first.wet", "diff.from.first.grass", "diff.from.first.human", "diff.from.first.nat")]
 lulc.df <- reshape2::melt(lulc.df, id = "Site")
 
-lulc.df$variable_f <- factor(lulc.df$variable, levels = c("diff.from.first.man", "diff.from.first.ww", "diff.from.first.ew", "diff.from.first.wet", "diff.from.first.ur", "diff.from.first.ag", "diff.from.first.for", "diff.from.first.wat", "diff.from.first.bare"))
+lulc.df$variable_f <- factor(lulc.df$variable, levels = c("diff.from.first.man", "diff.from.first.ww", "diff.from.first.ew", "diff.from.first.wet", "diff.from.first.ur", "diff.from.first.ag", "diff.from.first.grass", "diff.from.first.for", "diff.from.first.wat", "diff.from.first.bare", "diff.from.first.human", "diff.from.first.nat"))
 
 levels(lulc.df$variable_f) <- c(diff.from.first.man = expression(paste(Delta, "% Cover Mangrove")),
-                                diff.from.first.ww = expression(paste(Delta, "% Cover Woody Wetland")),
+                                diff.from.first.wwnm = expression(paste(Delta, "% Cover Woody Wetland")),
                                 diff.from.first.ew = expression(paste(Delta, "% Cover Emergent Wetland")),
                                 diff.from.first.wet = expression(paste(Delta, "% Cover Total Wetland")),
                                 diff.from.first.ur = expression(paste(Delta, "% Cover Urban")),
                                 diff.from.first.ag = expression(paste(Delta, "% Cover Agriculture")),
+                                diff.from.first.grass = expression(paste(Delta, "% Cover Grassland")),
                                 diff.from.first.for = expression(paste(Delta, "% Cover Forest")),
                                 diff.from.first.wat = expression(paste(Delta, "% Cover Water")),
-                                diff.from.first.bare = expression(paste(Delta, "% Cover Bare")))
+                                diff.from.first.bare = expression(paste(Delta, "% Cover Bare")),
+                                diff.from.first.human = expression(paste(Delta, "% Cover Anthropogenic")),
+                                diff.from.first.nat = expression(paste(Delta, "% Cover Upland")))
+                                
   
 
 
 lulc.plot <- ggplot(data = lulc.df, aes(x = value, fill = variable)) +
-  geom_histogram(bins = 50) + facet_wrap(~variable_f, labeller =label_parsed) + scale_fill_viridis(discrete = T, option = "E") +
+  geom_histogram(bins = 50) + facet_wrap(~variable_f, labeller =label_parsed, nrow = 4) + scale_fill_viridis(discrete = T, option = "E") +
   xlab("Difference in Percent Cover") +
   ylab("Frequency") +
   theme_bw() +
