@@ -299,21 +299,32 @@ dev.off()
 
 
 #Nestedness Vs Turnover GoM
-div.df <- rt.df %>% dplyr::select(c("Site", "beta50.jac", "beta50.turn", "beta50.nest", "beta.wet.jac", "beta.wet.turn", "beta.wet.nest", "BCR")) %>%
-          mutate(beta50.ratio = (beta50.turn / beta50.nest), betawet.ratio = (beta.wet.turn / beta.wet.nest), Site = as.character(Site), BCR = as.character(BCR),
-                 b50.ratiolog = log(beta50.ratio), bwet.ratiolog = log(betawet.ratio)) %>% arrange(BCR)
+div.df <- seg.df %>% dplyr::select(c("Site", "beta50.jac", "beta50.turn", "beta50.nest", "beta.wet.jac", "beta.wet.turn", "beta.wet.nest", "BCR")) %>%
+          mutate(beta50.nest = (beta50.nest / beta50.jac), beta50.turn = (beta50.turn / beta50.jac), betawet.nest = (beta.wet.nest / beta.wet.jac),
+                 beta.wet.turn = (beta.wet.turn / beta.wet.jac), Site = as.character(Site), BCR = as.character(BCR)) 
 
-div.sum <- div.df %>% group_by(BCR) %>% summarise(turnover = mean(beta50.turn), turnover.sd = sd(beta50.turn), nest = mean(beta50.nest), nest.sd = mean(beta50.nest))
+#div.sum <- div.df %>% group_by(BCR) %>% summarise(turnover = mean(beta50.turn), turnover.sd = sd(beta50.turn), nest = mean(beta50.nest), nest.sd = mean(beta50.nest))
 
-div.melt <- reshape2::melt(div.df, "Site", c("beta50.turn", "beta50.nest"))
-colnames(div.melt) <- c("Site", "Component", "Beta")
+div.melt <- reshape2::melt(div.df, id = c("Site", "BCR"), measure.vars = c("beta50.turn", "beta50.nest"))
+colnames(div.melt) <- c("Site", "BCR", "Component", "Proportion")
 
-div.melt <- div.melt[order(div.melt$Site, div.melt$Component), ]
+div.melt <- div.melt %>% group_by(Site) %>% arrange(Component)
 
-ggplot(data = div.melt, aes(x = Site, y = Beta, fill = Component, group = Site)) + geom_bar(stat = "identity") + 
-  scale_fill_manual(values = c("black", "lightgray"),
-                    name = expression("Compenent of"~beta*"-Diversity"),
-                    labels = c(expression(paste(beta*["Turn"])), expression(paste(beta*["Nest"])))) + 
+div.melt$BCR_name <- NA
+div.melt$BCR_name[div.melt$BCR == 26] <- "Mississippi Alluvial Valley"
+div.melt$BCR_name[div.melt$BCR == 27] <- "Southeastern Coastal Plain"
+div.melt$BCR_name[div.melt$BCR == 31] <- "Peninsular Florida"
+div.melt$BCR_name[div.melt$BCR == 37] <- "Gulf Coast Prairie"
+  
+comp.plot <- ggplot(data = div.melt, aes(x = Site, y = Proportion, fill = Component, group = Site)) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = c("#00204DFF", "#777776FF"),
+                    labels = c(expression(paste(" ", beta["Turn"])),
+                               expression(beta["Nest"]))) +
+  labs(colour = "Component") +
+  ylab(expression("Proportion of Total"~~beta)) +
+                    #name = expression("Compenent of"~beta*"-Diversity"),
+                    #labels = c(expression(paste(beta*["Turn"])), expression(paste(beta*["Nest"])))) + 
   #scale_fill_viridis(discrete = T, option = "cividis") + 
   # theme(axis.text.x = element_text(angle = 90), 
   #       panel.background = element_rect(fill = "white", color = "black", linetype = "solid"),
@@ -323,21 +334,35 @@ ggplot(data = div.melt, aes(x = Site, y = Beta, fill = Component, group = Site))
   #       panel.grid.minor = element_line(size = 0.25, linetype = "solid")) +
   theme_bw() +
   theme(axis.line = element_line(colour = "black", size =1.2),
-        axis.text.x = element_text(size = 14),
-        axis.text.y = element_text(size = 14),
-        axis.title.x = element_text(vjust = -1, size = 14),
-        axis.title.y = element_text(vjust = 1.5, size = 14),
-        axis.ticks = element_line(size = 1.2),
+        axis.text.x = element_blank(),
+        #axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 12, family = "serif"),
+        axis.title.x = element_text(vjust = -1, size = 12, family = "serif"),
+        axis.title.y = element_text(vjust = 1.5, size = 12, family = "serif"),
+        axis.ticks = element_line(size = 0.5),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank(),
         plot.margin = unit(c(1,1,2,2), "lines"),
-        text = element_text(size=14))
-  
+        text = element_text(size=14),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif"),
+        legend.text = element_text(size = 12, family = "serif"),
+        legend.spacing = unit(0.1, "cm")) +
+  scale_y_continuous(expand = c(0,0)) +
+  #geom_text(aes(x = 1, y = 1.1, label = "Stretch it"), vjust = -1) +
+  facet_wrap(~BCR_name, scales = "free")
 
-ggplot(data = div.melt, aes(y = Site, x = Beta, color = Index)) + geom_point() + scale_color_viridis("Index", discrete = T) 
-ggplot(data = div.df, aes(y = Site, x = bwet.ratiolog, color = BCR)) + geom_point() + scale_color_viridis("BCR", discrete = T) + geom_vline(xintercept = 0)
+comp.plot    
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/ComponentsBetaplot.tiff"), plot = comp.plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+
+
+#ggplot(data = div.melt, aes(y = Site, x = Beta, color = Index)) + geom_point() + scale_color_viridis("Index", discrete = T) 
+#ggplot(data = div.df, aes(y = Site, x = bwet.ratiolog, color = BCR)) + geom_point() + scale_color_viridis("BCR", discrete = T) + geom_vline(xintercept = 0)
 
 
 
