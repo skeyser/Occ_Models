@@ -674,14 +674,22 @@ tab_model(mod23)
 
 ########################################################################################################################################################################################################
 #CMRL - Beta div plots
-mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.km + I(change.cmrl.km^2))
-summary(mod17)
+rt.df$change.cmrl.s <- scale(rt.df$change.cmrl, center = T, scale = T)
+rt.df$change.cmrl.km.s <- scale(rt.df$change.cmrl.km, center = T, scale = T)
 
-mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl.km + I(change.cmrl.km^2))
+mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.s + I(change.cmrl.s^2))
 summary(mod17)
+tab_model(mod17)
+#mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.s + I(change.cmrl.s^2))
+#summary(mod17)
 
-mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl.km + I(change.cmrl.km^2))
-summary(mod17)
+mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl.s + I(change.cmrl.s^2))
+summary(mod18)
+tab_model(mod18)
+
+mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl.s + I(change.cmrl.s^2))
+summary(mod19)
+tab_model(mod19)
 
 #Beta Jac CMRL
 set.seed(100)
