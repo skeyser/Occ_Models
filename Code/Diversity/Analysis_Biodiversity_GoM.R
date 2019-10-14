@@ -10,7 +10,7 @@
 
 library("pacman")
 
-pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis", "ggmap", "maps", "ggfortify", "cowplot", "extrafont", "scales", "betareg")
+pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis", "ggmap", "maps", "ggfortify", "cowplot", "extrafont", "scales", "betareg", "glmmTMB")
 
 #################################################################################
 
@@ -409,6 +409,62 @@ avPlots(mod1)
 # car::Anova(mod1)
 
 
+#Beta Regression Fun
+mod1 <- glmmTMB(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.human + SR50 + (1|Route), family = list(family = "beta", link = "logit"))
+summary(mod1)
+
+mod1.u1 <- update(mod1, dispformula = ~diff.from.first.man)
+
+mod1.u2 <- update(mod1, dispformula = ~p.anom.wet)
+
+mod1.u3 <- update(mod1, dispformula = ~SR50)
+
+mod1.u4 <- update(mod1, dispformula = ~p.anom.dry)
+
+mod1.u5 <- update(mod1, dispformula = ~mean.anom.bird)
+
+mod1.u6 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet)
+
+mod1.u7 <- update(mod1, dispformula = ~diff.from.first.man + SR50)
+
+mod1.u8 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.dry)
+
+mod1.u9 <- update(mod1, dispformula = ~diff.from.first.man + mean.anom.bird)
+
+mod1.u10 <- update(mod1, dispformula = ~p.anom.wet + SR50)
+
+mod1.u11 <- update(mod1, dispformula = ~p.anom.wet + p.anom.dry)
+
+mod1.u12 <- update(mod1, dispformula = ~p.anom.wet + mean.anom.bird)
+
+mod1.u13 <- update(mod1, dispformula = ~SR50 + p.anom.dry)
+
+mod1.u14 <- update(mod1, dispformula = ~SR50 + mean.anom.bird)
+
+mod1.u15 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet + SR50 + p.anom.dry + mean.anom.bird)
+
+mod1.u16 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet + mean.anom.bird)
+
+mod1.u17 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.dry + mean.anom.bird)
+
+mod1.u18 <- update(mod1, dispformula = ~diff.from.first.man + SR50 + mean.anom.bird)
+
+mod1.u19 <- update(mod1, dispformula = ~p.anom.wet + SR50 + mean.anom.bird)
+
+mod1.u20 <- update(mod1, dispformula = ~p.anom.dry + SR50 + mean.anom.bird)
+
+mod1.u21 <- update(mod1, dispformula = ~p.anom.wet + p.anom.dry + mean.anom.bird)
+
+mod1.u <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet + SR50 + p.anom.dry + mean.anom.bird + diff.from.first.human)
+summary(mod1.u7)
+
+bbmle::AICtab(mod1.u, mod1.u7)
+bbmle::AICtab(mod1, mod1.u, mod1.u1, mod1.u2, mod1.u3, mod1.u4, mod1.u5, mod1.u6, mod1.u7, mod1.u8, mod1.u9, mod1.u10,
+              mod1.u11, mod1.u12, mod1.u13, mod1.u14, mod1.u15, mod1.u16, mod1.u17, mod1.u18, mod1.u19, mod1.u20, mod1.u21)
+
+
+
+###########
 tab_model(mod1, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                               "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
                                                               "Change in Anthropogenic Cover (%)", "Species Richness", "Duration of Survey (Years)"),
