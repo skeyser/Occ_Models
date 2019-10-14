@@ -371,20 +371,23 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/ComponentsBetaplot.tiff"
 #Jaccard Index Wetland and Entire Community
 colnames(seg.df)[colnames(seg.df) == "rteno"] <- "Route"
 
-mod1 <- lmer(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR50 + (1|Route), REML = F)
+mod1 <- lmer(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
 summary(mod1) 
 car::Anova(mod1)
+
 tab_model(mod1, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                               "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
                                                               "Change in Anthropogenic Cover (%)", "Change in Upland Cover (%)", "Species Richness", "Duration of Survey (Years)"),
           dv.labels = "Beta Diversity")
 
-mod2 <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man  + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet + (1|Route), REML = F)
+mod2 <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man  + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet + (1|Route), REML = F)
 summary(mod2)
 car::Anova(mod2)
+
+
 tab_model(mod1, mod2, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Wet Season Precipitation (cm)", "Change in Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                               "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
-                                                                              "Change in Anthropogenic Cover (%)", "Change in Upland Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
+                                                                              "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
                           dv.labels = c("Total Bird Community Beta Diversity", "Wetland Bird Community Beta Diversity"), linebreak = T
           )
 
@@ -411,12 +414,12 @@ tab_model(mod1, mod2, show.ci = 0.95, title = NULL, pred.labels = c("Intercept",
 # tab_model(mod6)
 
 #Change SR 
-mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR50 + (1|Route), REML = F)
+mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
 summary(mod7)
 car::Anova(mod7)
 tab_model(mod7)
 
-mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet + (1|Route), REML = F)
+mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet + (1|Route), REML = F)
 summary(mod8)
 car::Anova(mod8)
 tab_model(mod8)
@@ -436,18 +439,37 @@ tab
 ########################################################################################################################################################################################################
 
 #Multiple Regression Models @ Route level
+rt.df$p.anom.s <- scale(rt.df$p.anom) 
+rt.df$p.anom.wet.s <- scale(rt.df$p.anom.wet)
+rt.df$p.anom.dry.s <- scale(rt.df$p.anom.dry)
+rt.df$p.anom.f.s <- scale(rt.df$p.anom.f)
+rt.df$p.anom.s.s <- scale(rt.df$p.anom.s)
+rt.df$p.anom.sp.s <- scale(rt.df$p.anom.sp)
+rt.df$p.anom.w.s <- scale(rt.df$p.anom.w)
+rt.df$mean.anom.bird.s <- scale(rt.df$mean.anom.bird)
+rt.df$diff.from.first.man.s <- scale(rt.df$diff.from.first.man)
+rt.df$diff.from.first.ew.s <- scale(rt.df$diff.from.first.ew)
+rt.df$diff.from.first.human.s <- scale(rt.df$diff.from.first.human)
+rt.df$diff.from.first.wwnm.s <- scale(rt.df$diff.from.first.wwnm)
+rt.df$diff.from.first.ww.s <- scale(rt.df$diff.from.first.ww)
+rt.df$diff.from.first.nat.s <- scale(rt.df$diff.from.first.nat)
+rt.df$Duration.s <- scale(rt.df$Duration)
+rt.df$SR50.s <- scale(rt.df$SR50)
+rt.df$SR.wet.s <- scale(rt.df$SR.wet)
 
 #Jaccard Index Models
-mod9 <- lm(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat  + Duration + SR50)
+mod9 <- lm(data = rt.df, beta50.jac ~ p.anom.f.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR50.s)
 summary(mod9)
+car::avPlots(mod9)
+car::vif(mod9)
 
-mod10 <- lm(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet)
+mod10 <- lm(data = rt.df, beta.wet.jac ~ p.anom.f.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR.wet)
 summary(mod10)
 
 #Turnover Index Models
 # mod11 <- lm(data = rt.df, beta50.turn ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR50 + Duration)
 # summary(mod11)
-# 
+
 # mod12 <- lm(data = rt.df, beta.wet.turn ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR.wet + Duration)
 # summary(mod12)
 
@@ -459,11 +481,13 @@ summary(mod10)
 # summary(mod14)
 # 
 #Change SR
-mod15 <- lm(data = rt.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR50)
+mod15 <- lm(data = rt.df, alpha50.pchange ~ p.anom.f.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s)
 summary(mod15)
+car::avPlots(mod15)
 
-mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + diff.from.first.nat + Duration + SR.wet)
+mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom.f.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s)
 summary(mod16)
+car::avPlots(mod16)
 
 tab2 <- tab_model(mod9, mod15, mod10, mod16, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Preciptation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                                        "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
