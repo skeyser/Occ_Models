@@ -10,7 +10,7 @@
 
 library("pacman")
 
-pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis", "ggmap", "maps", "ggfortify", "cowplot", "extrafont", "scales")
+pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis", "ggmap", "maps", "ggfortify", "cowplot", "extrafont", "scales", "betareg")
 
 #################################################################################
 
@@ -375,7 +375,7 @@ log.beta <- function(x){
   log(x / (1 - x))
 }
 beta.res <- function(x){
-  (exp(x) / (1 + exp(x) * 1 + 0))
+  (exp(x) / (1 + exp(x)))
 }
 
 seg.df$p.anom.s <- scale(seg.df$p.anom) 
@@ -397,6 +397,7 @@ seg.df$Duration.s <- scale(seg.df$Duration)
 seg.df$SR50.s <- scale(seg.df$SR50)
 seg.df$SR.wet.s <- scale(seg.df$SR.wet)
 seg.df$beta50.jac.log <- log.beta(seg.df$beta50.jac)
+seg.df$beta.wet.jac.log <- log.beta(seg.df$beta.wet.jac)
 
 
 mod1 <- lmer(data = seg.df, beta50.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
@@ -497,8 +498,13 @@ rt.df$SR.wet.s <- scale(rt.df$SR.wet)
 rt.df$beta50.jac.log <- log(rt.df$beta50.jac)
 
 #Jaccard Index Models
-mod9 <- lm(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
+mod9 <- lm(data = rt.df, beta50.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
+mod9b <- betareg::betareg(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
+
 summary(mod9)
+summary(mod9b)
+tab_model(mod9)
+tab_model(mod9b)
 car::avPlots(mod9)
 car::vif(mod9)
 
