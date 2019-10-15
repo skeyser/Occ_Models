@@ -16,7 +16,7 @@ pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis
 
 #################################################################################
 #Checking Color Palettes for manual color changes 
-q_colors <- 20
+q_colors <- 30
 v_colors <- viridis(q_colors, option = "E")
 show_col(v_colors)
 loadfonts(device = "win")
@@ -306,15 +306,27 @@ div.df <- seg.df %>% dplyr::select(c("Site", "beta50.jac", "beta50.turn", "beta5
 #div.sum <- div.df %>% group_by(BCR) %>% summarise(turnover = mean(beta50.turn), turnover.sd = sd(beta50.turn), nest = mean(beta50.nest), nest.sd = mean(beta50.nest))
 
 div.melt <- reshape2::melt(div.df, id = c("Site", "BCR"), measure.vars = c("beta50.turn", "beta50.nest"))
+div.melt.w <- reshape2::melt(div.df, id = c("Site", "BCR"), measure.vars = c("beta.wet.turn", "betawet.nest"))
+
 colnames(div.melt) <- c("Site", "BCR", "Component", "Proportion")
+colnames(div.melt.w) <- c("Site", "BCR", "Component", "Proportion")
 
 div.melt <- div.melt %>% group_by(Site) %>% arrange(Component)
+div.melt.w <- div.melt.w %>% group_by(Site) %>% arrange(Component)
+
 
 div.melt$BCR_name <- NA
 div.melt$BCR_name[div.melt$BCR == 26] <- "Mississippi Alluvial Valley"
 div.melt$BCR_name[div.melt$BCR == 27] <- "Southeastern Coastal Plain"
 div.melt$BCR_name[div.melt$BCR == 31] <- "Peninsular Florida"
 div.melt$BCR_name[div.melt$BCR == 37] <- "Gulf Coast Prairie"
+
+div.melt.w$BCR_name <- NA
+div.melt.w$BCR_name[div.melt.w$BCR == 26] <- "Mississippi Alluvial Valley"
+div.melt.w$BCR_name[div.melt.w$BCR == 27] <- "Southeastern Coastal Plain"
+div.melt.w$BCR_name[div.melt.w$BCR == 31] <- "Peninsular Florida"
+div.melt.w$BCR_name[div.melt.w$BCR == 37] <- "Gulf Coast Prairie"
+
   
 comp.plot <- ggplot(data = div.melt, aes(x = Site, y = Proportion, fill = Component, group = Site)) + 
   geom_bar(stat = "identity") + 
@@ -359,6 +371,48 @@ comp.plot
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/ComponentsBetaplot.tiff"), plot = comp.plot,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
+comp.plot.w <- ggplot(data = div.melt.w, aes(x = Site, y = Proportion, fill = Component, group = Site)) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = c("#2F1163FF", "#E44F64FF"),
+                    labels = c(expression(paste(" ", beta["Turn"])),
+                               expression(beta["Nest"]))) +
+  labs(colour = "Component") +
+  ylab(expression("Proportion of Total"~~beta*" Wetland-Associated Birds")) +
+  #name = expression("Compenent of"~beta*"-Diversity"),
+  #labels = c(expression(paste(beta*["Turn"])), expression(paste(beta*["Nest"])))) + 
+  #scale_fill_viridis(discrete = T, option = "cividis") + 
+  # theme(axis.text.x = element_text(angle = 90), 
+  #       panel.background = element_rect(fill = "white", color = "black", linetype = "solid"),
+  #       plot.background = element_rect(fill = "white", color = "black"),
+  #       legend.title = element_text(size = 12),
+  #       panel.grid.major = element_line(size = 0.5, linetype = "solid",),
+  #       panel.grid.minor = element_line(size = 0.25, linetype = "solid")) +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black", size =1.2),
+        axis.text.x = element_blank(),
+        #axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 12, family = "serif"),
+        axis.title.x = element_text(vjust = -1, size = 12, family = "serif"),
+        axis.title.y = element_text(vjust = 1.5, size = 12, family = "serif"),
+        axis.ticks = element_line(size = 0.5),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        plot.margin = unit(c(1,1,2,2), "lines"),
+        text = element_text(size=14),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif"),
+        legend.text = element_text(size = 12, family = "serif"),
+        legend.spacing = unit(0.1, "cm")) +
+  scale_y_continuous(expand = c(0,0)) +
+  #geom_text(aes(x = 1, y = 1.1, label = "Stretch it"), vjust = -1) +
+  facet_wrap(~BCR_name, scales = "free")
+
+comp.plot.w    
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/ComponentsBetaplotWet.tiff"), plot = comp.plot.w,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 
 #ggplot(data = div.melt, aes(y = Site, x = Beta, color = Index)) + geom_point() + scale_color_viridis("Index", discrete = T) 
@@ -410,7 +464,7 @@ avPlots(mod1)
 
 
 #Beta Regression Fun
-mod1 <- glmmTMB(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.human + SR50 + (1|Route), family = list(family = "beta", link = "logit"))
+mod1 <- glmmTMB(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.human + SR50 + (1|Route), family = list(family = "beta", link = "logit"))
 summary(mod1)
 
 mod1.u1 <- update(mod1, dispformula = ~diff.from.first.man)
@@ -457,7 +511,8 @@ mod1.u21 <- update(mod1, dispformula = ~p.anom.wet + p.anom.dry + mean.anom.bird
 
 mod1.u <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet + SR50 + p.anom.dry + mean.anom.bird + diff.from.first.human)
 summary(mod1.u7)
-
+plot(allEffects(mod1.u7))
+confint(mod1.u7)
 bbmle::AICtab(mod1.u, mod1.u7)
 bbmle::AICtab(mod1, mod1.u, mod1.u1, mod1.u2, mod1.u3, mod1.u4, mod1.u5, mod1.u6, mod1.u7, mod1.u8, mod1.u9, mod1.u10,
               mod1.u11, mod1.u12, mod1.u13, mod1.u14, mod1.u15, mod1.u16, mod1.u17, mod1.u18, mod1.u19, mod1.u20, mod1.u21)
@@ -551,7 +606,8 @@ rt.df$diff.from.first.nat.s <- scale(rt.df$diff.from.first.nat)
 rt.df$Duration.s <- scale(rt.df$Duration)
 rt.df$SR50.s <- scale(rt.df$SR50)
 rt.df$SR.wet.s <- scale(rt.df$SR.wet)
-rt.df$beta50.jac.log <- log(rt.df$beta50.jac)
+rt.df$beta50.jac.log <- log.beta(rt.df$beta50.jac)
+rt.df$beta.wet.jac.log <- log.beta(rt.df$beta.wet.jac)
 
 #Jaccard Index Models
 mod9 <- lm(data = rt.df, beta50.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
@@ -564,7 +620,7 @@ tab_model(mod9b)
 car::avPlots(mod9)
 car::vif(mod9)
 
-mod10 <- lm(data = rt.df, beta.wet.jac ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR.wet)
+mod10 <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR.wet)
 summary(mod10)
 
 #Turnover Index Models
@@ -606,8 +662,8 @@ bbs_clim_rt1 <- bbs_total_seg %>% group_by(rteno.x) %>% arrange(Year) %>% filter
 bbs_clim_rt2 <- bbs_total_seg %>% group_by(rteno.x) %>% arrange(Year) %>% filter(Year >= 2000) %>% 
   select(c("rteno.x", "Year", "Latitude", "SR50", "SR.wet")) %>% mutate(Year = as.character(Year)) %>% summarize_if(is.numeric, mean) %>% ungroup() 
 
-#bbs_clim_rt2 <- bbs_clim_rt2[bbs_clim_rt2$rteno.x %in% bbs_clim_rt1$rteno.x, ]
-#bbs_clim_rt1 <- bbs_clim_rt1[bbs_clim_rt1$rteno.x %in% bbs_clim_rt2$rteno.x, ]
+bbs_clim_rt2 <- bbs_clim_rt2[bbs_clim_rt2$rteno.x %in% bbs_clim_rt1$rteno.x, ]
+bbs_clim_rt1 <- bbs_clim_rt1[bbs_clim_rt1$rteno.x %in% bbs_clim_rt2$rteno.x, ]
 
 bbs_clim_rt1$indicator <- "1980 - 1999"
 bbs_clim_rt2$indicator <- "2000 - 2017"
@@ -722,8 +778,9 @@ dev.off()
 
 ########################################################################################################################################################################################################
 
-#-Wetland, -WW, +Ag  
-mod22 <- lm(data = rt.df, SR50 ~ Latitude + I(Latitude^2))
+#-Wetland, -WW, +Ag 
+rt.df$Latitude.s <- scale(rt.df$Latitude, center = T, scale = T)
+mod22 <- lm(data = rt.df, SR50 ~ Latitude.s + I(Latitude.s^2))
 summary(mod22)
 
 #Plot for mod22
@@ -737,7 +794,7 @@ prd1$uci <- err1$fit + 1.96 * err1$se.fit
 
 
 #model for latitude and wetland bird richness
-mod23 <- lm(data = rt.df, SR.wet ~ Latitude + I(Latitude^2))
+mod23 <- lm(data = rt.df, SR.wet ~ Latitude.s + I(Latitude.s^2))
 summary(mod23)
 
 set.seed(100)
@@ -808,7 +865,7 @@ tab_model(mod17)
 #mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.s + I(change.cmrl.s^2))
 #summary(mod17)
 
-mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl.s + I(change.cmrl.s^2))
+mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl.s + I(change.cmrl.s))
 summary(mod18)
 tab_model(mod18)
 
@@ -926,7 +983,9 @@ tab_model(mod20)
 # rt.df$mean.anom.sp.c <- scale(rt.df$mean.anom.sp)
 # rt.df$p.anom.sp.c <- scale(rt.df$p.anom.sp)
 # rt.df$diff.from.first.man.c <- scale(rt.df$diff.from.first.man)
-mod21 <- lm(data = rt.df, change.cmrl.km ~ mean.anom.sp + I(mean.anom.sp^2))
+rt.df$mean.anom.sp.s <- scale(rt.df$mean.anom.sp, center = T, scale = T)
+rt.df$p.anom.s <- scale(rt.df$p.anom, center = T, scale = T)
+mod21 <- lm(data = rt.df, change.cmrl.km ~ mean.anom.sp.s + I(mean.anom.sp.s^2))
 summary(mod21)
 
 set.seed(100)
