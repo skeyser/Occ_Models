@@ -428,6 +428,7 @@ colnames(seg.df)[colnames(seg.df) == "rteno"] <- "Route"
 log.beta <- function(x){
   log(x / (1 - x))
 }
+
 beta.res <- function(x){
   (exp(x) / (1 + exp(x)))
 }
@@ -464,7 +465,8 @@ avPlots(mod1)
 
 
 #Beta Regression Fun
-mod1 <- glmmTMB(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.human + SR50 + (1|Route), family = list(family = "beta", link = "logit"))
+mod1 <- glmmTMB(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.human + SR50 + (1|Route), family = list(family = "beta", link = "logit"))
+mod1 <- update(mod1, family = beta_family())
 summary(mod1)
 
 mod1.u1 <- update(mod1, dispformula = ~diff.from.first.man)
@@ -479,7 +481,7 @@ mod1.u5 <- update(mod1, dispformula = ~mean.anom.bird)
 
 mod1.u6 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet)
 
-mod1.u7 <- update(mod1, dispformula = ~diff.from.first.man + SR50)
+mod1.u7 <- update(mod1, dispformula = ~diff.from.first.man + SR50 + diff.from.first.ew + diff.from.first.ww)
 
 mod1.u8 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.dry)
 
