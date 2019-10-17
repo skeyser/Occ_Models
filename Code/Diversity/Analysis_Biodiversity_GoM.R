@@ -556,7 +556,7 @@ tab_model(mod1, mod2, show.ci = 0.95, title = NULL, pred.labels = c("Intercept",
 # Anova(mod4)
 # tab_model(mod4)
 # 
-# #Nestedness Compoentn Wetland and Entire Community
+# #Nestedness Component Wetland and Entire Community
 # mod5 <- lmer(data = seg.df, beta50.nest ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR50 + Duration + (1|rteno), REML = F)
 # summary(mod5)
 # Anova(mod5)
