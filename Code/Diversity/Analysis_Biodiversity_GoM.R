@@ -10,7 +10,9 @@
 
 library("pacman")
 
-pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis", "ggmap", "maps", "ggfortify", "cowplot", "extrafont", "scales", "betareg", "glmmTMB")
+pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis", 
+               "ggmap", "maps", "ggfortify", "cowplot", "extrafont", "scales", "betareg", 
+               "glmmTMB", "bbmle", "car")
 
 #################################################################################
 
@@ -455,7 +457,7 @@ seg.df$beta50.jac.log <- log.beta(seg.df$beta50.jac)
 seg.df$beta.wet.jac.log <- log.beta(seg.df$beta.wet.jac)
 
 
-mod1 <- lmer(data = seg.df, beta50.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
+mod1.l <- lmer(data = seg.df, beta50.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
 summary(mod1) 
 car::Anova(mod1)
 avPlots(mod1)
@@ -465,9 +467,9 @@ avPlots(mod1)
 
 
 #Beta Regression Fun
-mod1 <- glmmTMB(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.human + SR50 + (1|Route), family = list(family = "beta", link = "logit"))
-mod1 <- update(mod1, family = beta_family())
-summary(mod1)
+mod1 <- glmmTMB(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.human + SR50 + Duration + (1|Route), family = list(family = "beta", link = "logit"))
+mod1.u <- update(mod1, family = beta_family())
+summary(mod1.u)
 
 mod1.u1 <- update(mod1, dispformula = ~diff.from.first.man)
 
@@ -481,7 +483,7 @@ mod1.u5 <- update(mod1, dispformula = ~mean.anom.bird)
 
 mod1.u6 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet)
 
-mod1.u7 <- update(mod1, dispformula = ~diff.from.first.man + SR50 + diff.from.first.ew + diff.from.first.ww)
+mod1.u7 <- update(mod1.u, dispformula = ~diff.from.first.man + SR50)
 
 mod1.u8 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.dry)
 
@@ -515,7 +517,7 @@ mod1.u <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet + SR50 + 
 summary(mod1.u7)
 plot(allEffects(mod1.u7))
 confint(mod1.u7)
-bbmle::AICtab(mod1.u, mod1.u7)
+bbmle::AICtab(mod1.l, mod1.u, mod1.u7)
 bbmle::AICtab(mod1, mod1.u, mod1.u1, mod1.u2, mod1.u3, mod1.u4, mod1.u5, mod1.u6, mod1.u7, mod1.u8, mod1.u9, mod1.u10,
               mod1.u11, mod1.u12, mod1.u13, mod1.u14, mod1.u15, mod1.u16, mod1.u17, mod1.u18, mod1.u19, mod1.u20, mod1.u21)
 
