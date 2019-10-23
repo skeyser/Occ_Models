@@ -461,78 +461,77 @@ seg.df$diff.from.first.man <- seg.df$diff.from.first.man * 100
 seg.df$diff.from.first.wwnm <- seg.df$diff.from.first.wwnm * 100
 
 
-mod1.l <- lmer(data = seg.df, beta50.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
-summary(mod1) 
-car::Anova(mod1)
-avPlots(mod1)
+# mod1.l <- lmer(data = seg.df, beta50.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
+# summary(mod1) 
+# car::Anova(mod1)
+# avPlots(mod1)
 # mod1 <- lmer(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
 # summary(mod1) 
 # car::Anova(mod1)
 
 
-#Beta Regression Fun
-mod1 <- glmmTMB(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.human + SR50 + Duration + (1|Route), family = list(family = "beta", link = "logit"))
-mod1.u <- update(mod1, family = beta_family())
-summary(mod1.u)
-mod1.u1 <- update(mod1.u, dispformula = ~diff.from.first.man + SR50)
+#Beta Regression
+mod.1 <- glmmTMB(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR50 + Duration + (1|Route), family = beta_family())
+mod.disp.full <- update(mod.1, dispformula =  ~p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR50 + Duration)
+disp.best <- update(mod.1, dispformula = ~diff.from.first.man + SR50)
+
+bbmle::AICtab(mod.1, mod.disp.full, disp.best)
+
+summary(mod.1)
+
+# coef_to_mean <- function(model) {
+#   vals <- fixef(model)$cond
+#   out <- c(vals[1], vals[2:length(vals)] + vals[1])
+#   return(out)
+# }
+
+
+mod1.u1 <- update(mod.1, dispformula = ~p.anom.wet)
 summary(mod1.u1)
+mod1.u3 <- update(mod.1, dispformula = ~p.anom.dry)
 
-coef_to_mean <- function(model) {
-  vals <- fixef(model)$cond
-  out <- c(vals[1], vals[2:length(vals)] + vals[1])
-  return(out)
-}
+mod1.u4 <- update(mod.1, dispformula = ~mean.anom.bird)
 
-coef_to_mean(mod1.u1)
+mod1.u5 <- update(mod.1, dispformula = ~diff.from.first.man)
 
-disp.mod <- dredge(mod1.u1 <- update(mod1.u, dispformula = ~p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.human + SR50 + Duration))
+mod1.u6 <- update(mod.1, dispformula = ~diff.from.first.ew)
 
-mod1.u2 <- update(mod1, dispformula = ~p.anom.wet)
+mod1.u7 <- update(mod1.u, dispformula = ~diff.from.first.wwnm)
 
-mod1.u3 <- update(mod1.u, dispformula = ~SR50)
+mod1.u8 <- update(mod.1, dispformula = ~diff.from.first.human)
 
-mod1.u4 <- update(mod1, dispformula = ~p.anom.dry)
+mod1.u9 <- update(mod.1, dispformula = ~SR50)
 
-mod1.u5 <- update(mod1, dispformula = ~mean.anom.bird)
+mod1.u10 <- update(mod.1, dispformula = ~Duration)
 
-mod1.u6 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet)
+mod1.u11 <- update(mod.1, dispformula = ~p.anom.wet + p.anom.dry)
 
-mod1.u7 <- update(mod1.u, dispformula = ~diff.from.first.man + SR50)
+mod1.u12 <- update(mod.1, dispformula = ~p.anom.wet + mean.anom.bird)
 
-mod1.u8 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.dry)
+mod1.u13 <- update(mod.1, dispformula = ~p.anom.wet + diff.from.first.man)
 
-mod1.u9 <- update(mod1, dispformula = ~diff.from.first.man + mean.anom.bird)
+mod1.u14 <- update(mod.1, dispformula = ~p.anom.wet + diff.from.first.ew)
 
-mod1.u10 <- update(mod1, dispformula = ~p.anom.wet + SR50)
+mod1.u15 <- update(mod.1, dispformula = ~p.anom.wet + diff.from.first.wwnm)
 
-mod1.u11 <- update(mod1, dispformula = ~p.anom.wet + p.anom.dry)
+mod1.u16 <- update(mod.1, dispformula = ~diff.from.first.man + p.anom.wet + mean.anom.bird)
 
-mod1.u12 <- update(mod1, dispformula = ~p.anom.wet + mean.anom.bird)
+mod1.u17 <- update(mod.1, dispformula = ~diff.from.first.man + p.anom.dry + mean.anom.bird)
 
-mod1.u13 <- update(mod1, dispformula = ~SR50 + p.anom.dry)
+mod1.u18 <- update(mod.1, dispformula = ~diff.from.first.man + SR50 + mean.anom.bird)
 
-mod1.u14 <- update(mod1, dispformula = ~SR50 + mean.anom.bird)
+mod1.u19 <- update(mod.1, dispformula = ~p.anom.wet + SR50 + mean.anom.bird)
 
-mod1.u15 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet + SR50 + p.anom.dry + mean.anom.bird)
+mod1.u20 <- update(mod.1, dispformula = ~p.anom.dry + SR50 + mean.anom.bird)
 
-mod1.u16 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet + mean.anom.bird)
+mod1.u21 <- update(mod.1, dispformula = ~p.anom.wet + p.anom.dry + mean.anom.bird)
 
-mod1.u17 <- update(mod1, dispformula = ~diff.from.first.man + p.anom.dry + mean.anom.bird)
-
-mod1.u18 <- update(mod1, dispformula = ~diff.from.first.man + SR50 + mean.anom.bird)
-
-mod1.u19 <- update(mod1, dispformula = ~p.anom.wet + SR50 + mean.anom.bird)
-
-mod1.u20 <- update(mod1, dispformula = ~p.anom.dry + SR50 + mean.anom.bird)
-
-mod1.u21 <- update(mod1, dispformula = ~p.anom.wet + p.anom.dry + mean.anom.bird)
-
-mod1.u <- update(mod1, dispformula = ~diff.from.first.man + p.anom.wet + SR50 + p.anom.dry + mean.anom.bird + diff.from.first.human)
-summary(mod1.u7)
+mod1.u <- update(mod.1, dispformula = ~diff.from.first.man + p.anom.wet + SR50 + p.anom.dry + mean.anom.bird + diff.from.first.human)
+summary(mod1.u)
 plot(effects::allEffects(mod1.u7))
 confint(mod1.u7)
 bbmle::AICtab(mod1.l, mod1.u, mod1.u7)
-bbmle::AICtab(mod1, mod1.u, mod1.u1, mod1.u2, mod1.u3, mod1.u4, mod1.u5, mod1.u6, mod1.u7, mod1.u8, mod1.u9, mod1.u10,
+bbmle::AICtab(mod.1, mod1.u, mod1.u1, mod1.u2, mod1.u3, mod1.u4, mod1.u5, mod1.u6, mod1.u7, mod1.u8, mod1.u9, mod1.u10,
               mod1.u11, mod1.u12, mod1.u13, mod1.u14, mod1.u15, mod1.u16, mod1.u17, mod1.u18, mod1.u19, mod1.u20, mod1.u21)
 
 
@@ -642,9 +641,14 @@ rt.df$diff.from.first.human <- rt.df$diff.from.first.human * 100
 #Jaccard Index Models
 mod9.lm <- lm(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.f + mean.anom.sp + mean.anom.s + mean.anom.w + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
 
-mod9.bglob <- betareg(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
+mod9.bglob <- glmmTMB(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50, family = beta_family())
+mod9.best <- update(mod9.bglob, dispformula = ~ diff.from.first.ew)
+
 mod9.best <- betareg(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.wwnm + Duration + SR50)
+
 summary(mod9.best)
+plot(effects::allEffects(mod9.bglob))
+
 mod9.be <- betareg(data = rt.df, beta50.jac ~ 1)
 mod9.be1 <- betareg(data = rt.df, beta50.jac ~ p.anom.wet)
 mod9.be2 <- betareg(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry)
@@ -676,8 +680,9 @@ car::avPlots(mod9)
 car::vif(mod9)
 
 mod10 <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.wwnm + diff.from.first.ew + diff.from.first.human + Duration + SR.wet)
-summary(mod10)
-plot(effects::allEffects(mod10))
+mod10.b <- glmmTMB(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.wwnm + diff.from.first.ew + diff.from.first.human + Duration + SR.wet + (1|BCR), family = beta_family())
+summary(mod10.b)
+plot(effects::allEffects(mod10.b))
 #Turnover Index Models
 # mod11 <- lm(data = rt.df, beta50.turn ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR50 + Duration)
 # summary(mod11)
@@ -693,11 +698,11 @@ plot(effects::allEffects(mod10))
 # summary(mod14)
 # 
 #Change SR
-mod15 <- lm(data = rt.df, alpha50.change ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration)
+mod15 <- lm(data = rt.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
 summary(mod15)
 car::avPlots(mod15)
 
-mod16 <- lm(data = rt.df, alphawet.change ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration)
+mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet)
 summary(mod16)
 car::avPlots(mod16)
 
