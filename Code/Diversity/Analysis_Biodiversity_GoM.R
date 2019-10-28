@@ -477,7 +477,20 @@ disp.best <- update(mod.1, dispformula = ~diff.from.first.man + SR50)
 
 bbmle::AICtab(mod.1, mod.disp.full, disp.best)
 
-summary(mod.1)
+summary(disp.best)
+sjstats::r2(disp.best)
+
+#Wetland Beta Reg
+mod.w <- glmmTMB(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR.wet + Duration + (1|Route), family = beta_family())
+mod.disp.fullw <- update(mod.w, dispformula =  ~p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR.wet + Duration)
+disp.bestw <- update(mod.w, dispformula = ~diff.from.first.man + SR50)
+disp.mod <- update(mod.w, dispformula = ~diff.from.first.man + diff.from.first.human + diff.from.first.ew + SR.wet + Duration)
+summary(disp.mod)
+bbmle::AICtab(mod.w, mod.disp.fullw, disp.bestw, disp.mod)
+
+summary(disp.mod)
+sjstats::r2(disp.mod)
+
 
 # coef_to_mean <- function(model) {
 #   vals <- fixef(model)$cond
@@ -560,15 +573,18 @@ summary(mod.u2)
 car::Anova(mod2)
 
 
-tab_model(mod1, mod2, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Wet Season Precipitation (cm)", "Change in Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
-                                                                              "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
-                                                                              "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
-                          dv.labels = c("Total Bird Community Beta Diversity", "Wetland Bird Community Beta Diversity"), linebreak = T
-          )
+tab <- tab_model(disp.best, disp.mod, transform = NULL, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", 
+                                                                           "Change in Mean Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
+                                                                           "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
+                                                                           "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
+                 dv.labels = c("Total Bird Community Beta Diversity", "Wetland Bird Beta Diversity"), linebreak = F,
+                 CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
+                            css.modelcolumn3 = 'background-color: #f0f0f0;',
+                            css.lasttablerow = 'border-bottom: 4px solid black;'), use.viewer = T)
+#file = here::here("Figures/Figures_Diversity_Manuscript/TabMod.pdf"))
+tab
 
-#Turnover Component Wetland and Entire Community
-# mod3 <- lmer(data = seg.df, beta50.turn ~ p.anom.wet + mean.anom + diff.from.first.man + diff.from.first.ew + diff.from.first.ww + diff.from.first.ur + SR50 + Duration + (1|rteno), REML = F)
-# summary(mod3)
+#tabmod3)
 # Anova(mod3)
 # tab_model(mod3)
 # 
@@ -603,7 +619,7 @@ tab <- tab_model(mod7, mod8, show.ci = 0.95, title = NULL, pred.labels = c("Inte
                                                                                        "Change in Mean Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                     "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
                                                                     "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
-          dv.labels = c("Total Bird Community Beta Diversity", "Relative Change Alpha Diversity", "Wetland Bird Community Beta Diversity", "Relative Change Wetland Bird Alpha Diversity"), linebreak = F,
+          dv.labels = c("Relative Change Alpha Diversity", "Relative Change Wetland Bird Alpha Diversity"), linebreak = F,
           CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
                      css.modelcolumn3 = 'background-color: #f0f0f0;',
                      css.lasttablerow = 'border-bottom: 4px solid black;'), use.viewer = T)
@@ -641,12 +657,13 @@ rt.df$diff.from.first.human <- rt.df$diff.from.first.human * 100
 #Jaccard Index Models
 mod9.lm <- lm(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.f + mean.anom.sp + mean.anom.s + mean.anom.w + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
 
-mod9.bglob <- glmmTMB(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50, family = beta_family())
-mod9.best <- update(mod9.bglob, dispformula = ~ diff.from.first.ew)
+mod9.bglob <- betareg::betareg(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50, link.phi = "log")
+#mod9.bglobl <- betareg::betareg(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50, link.phi = "log")
+# mod9.full <- update(mod9.bglob, ~p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
+# mod9.best <- update(mod9.bglob, dispformula = ~ diff.from.first.ew)
+bbmle::AICctab(mod9.bglob, mod9.bglobl, mod9.lm)
 
-mod9.best <- betareg(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.wwnm + Duration + SR50)
-
-summary(mod9.best)
+summary(mod9.bglob)
 plot(effects::allEffects(mod9.bglob))
 
 mod9.be <- betareg(data = rt.df, beta50.jac ~ 1)
@@ -679,10 +696,24 @@ tab_model(mod9b)
 car::avPlots(mod9)
 car::vif(mod9)
 
-mod10 <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.wwnm + diff.from.first.ew + diff.from.first.human + Duration + SR.wet)
-mod10.b <- glmmTMB(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.wwnm + diff.from.first.ew + diff.from.first.human + Duration + SR.wet + (1|BCR), family = beta_family())
-summary(mod10.b)
-plot(effects::allEffects(mod10.b))
+mod10 <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet)
+mod10.l <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet, link.phi = "log")
+bbmle::AICtab(mod10, mod10.l)
+
+mod10.b <- glmmTMB(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet + (1|BCR), family = beta_family())
+summary(mod10.l)
+plot(effects::allEffects(mod10))
+
+tab.b <- tab_model(mod9.bglob, mod10.l, transform = NULL, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Preciptation (cm)", "Change in Mean Breeding Season Temperature (C)",
+                                                                              "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
+                                                                              "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Species Richness"),
+                  dv.labels = c("Beta Diversity", "Beta Wetland Bird"), linebreak = F,
+                  CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
+                             css.modelcolumn3 = 'background-color: #f0f0f0;',
+                             css.lasttablerow = 'border-bottom: 4px solid black;'), use.viewer = T)
+
+tab.b
+
 #Turnover Index Models
 # mod11 <- lm(data = rt.df, beta50.turn ~ p.anom + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.ur + SR50 + Duration)
 # summary(mod11)
@@ -706,10 +737,10 @@ mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom
 summary(mod16)
 car::avPlots(mod16)
 
-tab2 <- tab_model(mod9, mod15, mod10, mod16, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Preciptation (cm)", "Change in Mean Breeding Season Temperature (C)",
+tab2 <- tab_model(mod15, mod16, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Preciptation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                                        "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
                                                                                        "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
-                 dv.labels = c("Total Bird Community Beta Diversity", "Relative Change Alpha Diversity", "Wetland Bird Community Beta Diversity", "Relative Change Wetland Bird Alpha Diversity"), linebreak = F,
+                 dv.labels = c("Relative Change Alpha Diversity", "Relative Change Wetland Bird Alpha Diversity"), linebreak = F,
                  CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
                             css.modelcolumn3 = 'background-color: #f0f0f0;',
                             css.lasttablerow = 'border-bottom: 4px solid black;'), use.viewer = T)
