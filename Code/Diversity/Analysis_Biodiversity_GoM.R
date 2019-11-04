@@ -504,6 +504,8 @@ bbmle::AICtab(mod.w.lmer, mod.w, mod.disp.fullw, disp.bestw, disp.mod)
 summary(disp.mod)
 sjstats::r2(disp.mod)
 
+effects.plot <- plot(effects::effect(disp.best))
+
 
 ###########
 mod2 <- lmer(data = seg.df, beta.wet.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet + (1|Route), REML = F)
