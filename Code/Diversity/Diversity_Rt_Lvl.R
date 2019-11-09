@@ -1504,7 +1504,7 @@ first.yrs <- seg.climate %>% group_by(Site) %>% arrange(Year) %>%
          index.yr.max = max.yr - Year,
          Year = as.character(Year)) %>%
   filter(between(index.yr.min, 0, 4) | between(index.yr.max, 0, 4)) %>%
-  slice(1:5) %>% summarize_if(is.numeric, mean) %>% ungroup()
+  dplyr::slice(1:5) %>% summarize_if(is.numeric, mean) %>% ungroup()
 
 #Last 5 years of the survey averaged
 last.yrs <- seg.climate %>% group_by(Site) %>% arrange(Year) %>%
@@ -1513,7 +1513,7 @@ last.yrs <- seg.climate %>% group_by(Site) %>% arrange(Year) %>%
          index.yr.max = max.yr - Year,
          Year = as.character(Year)) %>%
   filter(between(index.yr.min, 0, 4) | between(index.yr.max, 0, 4)) %>%
-  slice(6:n()) %>% summarize_if(is.numeric, mean) %>% ungroup()
+  dplyr::slice(6:n()) %>% summarize_if(is.numeric, mean) %>% ungroup()
 
 #Attach a year
 first.yrs$Year <- first.yrs$min.yr
@@ -1797,7 +1797,7 @@ bbs_full <- bbs_full %>% group_by(rteno) %>% mutate(alpha.change = Site_div - fi
 
 #bbs_full <- bbs_full[complete.cases(bbs_full),]
 
-bbs_last <- bbs_full %>% group_by(rteno) %>% slice(n())
+bbs_last <- bbs_full %>% group_by(rteno) %>% dplyr::slice(n())
 bbs_last <- bbs_last[complete.cases(bbs_last),]
 
 mod <- lm(data = bbs_last, beta50.jac ~ SR50 + mean.anom.bird + p.anom + diff.from.first.man + diff.from.first.wwnm + diff.from.first.ur + Duration)
@@ -1827,7 +1827,7 @@ occ50 <- read.csv(file = here::here("Data_BBS/Generated DFs/occ50.csv"), strings
 occ50 <- occ50[, -1:-2]
 
 #Load in the CMRL Max Ranges
-spp.range <- read.csv(here::here("Data_BBS/Generated DFs/MaxRange.csv"), stringsAsFactors = T)
+spp.range <- read.csv(here::here("Data_BBS/Generated DFs/MaxRangeCorrect.csv"), stringsAsFactors = T)
 
 #Clean some names up for matching
 spp.range$sci_name <- as.character(spp.range$sci_name)
@@ -1870,7 +1870,7 @@ ggplot(data = cmrl.occ, aes(x = Year, y = Latitude, group = site)) +
   geom_smooth(data = cmrl.occ, aes(x = Year, y = Latitude, group = site), method = lm, se = F)
 
 #Pull out the last for each group
-cmrl.last <- cmrl.occ %>% arrange(Yr_bin) %>% slice(n()) 
+cmrl.last <- cmrl.occ %>% arrange(Yr_bin) %>% dplyr::slice(n()) 
 
 #Put the cmrl with the last mod DF
 cmrl.last$unique_id <- paste0(cmrl.last$rteno.x, "_", cmrl.last$Yr_bin)
@@ -1882,7 +1882,7 @@ bbs_last <- merge(bbs_last, cmrl.last, by = "unique_id")
 
 bbs_last <- bbs_last %>% mutate(scale.cmrl = scale(change.cmrl.km))
 
-cmrl.occ$unique_id <- paste0(cmrl.occ$site, "_", cmrl.occ$Yr_bin)
+cmrl.occ$unique_id <- paste0(cmrl.occ$rteno.x, "_", cmrl.occ$Yr_bin)
 bbs_full <- merge(bbs_full, cmrl.occ, by = "unique_id")
 
 #save.image(here::here("R Workspace/Diversity_Script_Full.RData"))
@@ -1907,6 +1907,7 @@ bbs_last <- bbs_last %>% rename(SR = Site_div, min.yr = min.yr.x, max.yr = max.y
                   "diff.from.first.wwnm", "diff.from.first.bare", "diff.from.first.wet", "diff.from.first.human", "diff.from.first.nat", "diff.from.first.grass", "diff.from.first.bare", "diff.from.first.wat",
                   "change.cmrl", "change.cmrl.km", "CMRL"))
 
-#write.csv(bbs_last, here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last_New.csv"))
+
+#write.csv(bbs_last, here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last_CMRL_cor.csv"))
 
 
