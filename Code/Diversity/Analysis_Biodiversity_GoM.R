@@ -12,7 +12,7 @@ library("pacman")
 
 pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis", 
                "ggmap", "maps", "ggfortify", "cowplot", "extrafont", "scales", "betareg", 
-               "glmmTMB", "bbmle", "car")
+               "glmmTMB", "bbmle", "car", "dotwhisker")
 
 #################################################################################
 
@@ -34,7 +34,7 @@ seg.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Seg_Last_New.c
 
 #Route level df 0.4km buffer
 #rt.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last.csv"), stringsAsFactors = F)
-rt.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last_New.csv"), stringsAsFactors = F)
+rt.df <- read.csv(here::here("Data_BBS/Generated DFs/DF4Analysis_Rt_Last_CMRL_cor.csv"), stringsAsFactors = F)
 
 #Occupancy Data for MDS plot & PERMANOVA 
 occ <- read.csv(here::here("Data_BBS/Generated DFs/occ50.csv"), stringsAsFactors = F)
@@ -420,6 +420,134 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/ComponentsBetaplotWet.ti
 #ggplot(data = div.melt, aes(y = Site, x = Beta, color = Index)) + geom_point() + scale_color_viridis("Index", discrete = T) 
 #ggplot(data = div.df, aes(y = Site, x = bwet.ratiolog, color = BCR)) + geom_point() + scale_color_viridis("BCR", discrete = T) + geom_vline(xintercept = 0)
 
+####RT Level Beta Components####
+
+#Nestedness Vs Turnover GoM
+div.df1 <- rt.df %>% dplyr::select(c("Site", "beta50.jac", "beta50.turn", "beta50.nest", "beta.wet.jac", "beta.wet.turn", "beta.wet.nest", "BCR")) %>%
+  mutate(beta50.nest = (beta50.nest / beta50.jac), beta50.turn = (beta50.turn / beta50.jac), betawet.nest = (beta.wet.nest / beta.wet.jac),
+         beta.wet.turn = (beta.wet.turn / beta.wet.jac), Site = as.character(Site), BCR = as.character(BCR)) 
+
+#div.sum <- div.df %>% group_by(BCR) %>% summarise(turnover = mean(beta50.turn), turnover.sd = sd(beta50.turn), nest = mean(beta50.nest), nest.sd = mean(beta50.nest))
+
+div.melt1 <- reshape2::melt(div.df1, id = c("Site", "BCR"), measure.vars = c("beta50.turn", "beta50.nest"))
+div.melt.w1 <- reshape2::melt(div.df1, id = c("Site", "BCR"), measure.vars = c("beta.wet.turn", "betawet.nest"))
+
+colnames(div.melt1) <- c("Site", "BCR", "Component", "Proportion")
+colnames(div.melt.w1) <- c("Site", "BCR", "Component", "Proportion")
+
+div.melt1 <- div.melt1 %>% group_by(Site) %>% arrange(Component)
+div.melt.w1 <- div.melt.w1 %>% group_by(Site) %>% arrange(Component)
+
+
+div.melt1$BCR_name <- NA
+div.melt1$BCR_name[div.melt1$BCR == 26] <- "Mississippi Alluvial Valley"
+div.melt1$BCR_name[div.melt1$BCR == 27] <- "Southeastern Coastal Plain"
+div.melt1$BCR_name[div.melt1$BCR == 31] <- "Peninsular Florida"
+div.melt1$BCR_name[div.melt1$BCR == 37] <- "Gulf Coast Prairie"
+
+div.melt.w1$BCR_name <- NA
+div.melt.w1$BCR_name[div.melt.w1$BCR == 26] <- "Mississippi Alluvial Valley"
+div.melt.w1$BCR_name[div.melt.w1$BCR == 27] <- "Southeastern Coastal Plain"
+div.melt.w1$BCR_name[div.melt.w1$BCR == 31] <- "Peninsular Florida"
+div.melt.w1$BCR_name[div.melt.w1$BCR == 37] <- "Gulf Coast Prairie"
+
+
+comp.plot1 <- ggplot(data = div.melt1, aes(x = Site, y = Proportion, fill = Component, group = Site)) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = c("#00204DFF", "#777776FF"),
+                    labels = c(expression(paste(" ", beta["Turn"])),
+                               expression(beta["Nest"]))) +
+  labs(colour = "Component") +
+  ylab(expression("Proportion of Total"~~beta)) +
+  #name = expression("Compenent of"~beta*"-Diversity"),
+  #labels = c(expression(paste(beta*["Turn"])), expression(paste(beta*["Nest"])))) + 
+  #scale_fill_viridis(discrete = T, option = "cividis") + 
+  # theme(axis.text.x = element_text(angle = 90), 
+  #       panel.background = element_rect(fill = "white", color = "black", linetype = "solid"),
+  #       plot.background = element_rect(fill = "white", color = "black"),
+  #       legend.title = element_text(size = 12),
+  #       panel.grid.major = element_line(size = 0.5, linetype = "solid",),
+  #       panel.grid.minor = element_line(size = 0.25, linetype = "solid")) +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black", size =1.2),
+        axis.text.x = element_blank(),
+        #axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 12, family = "serif"),
+        axis.title.x = element_text(vjust = -1, size = 12, family = "serif"),
+        axis.title.y = element_text(vjust = 1.5, size = 12, family = "serif"),
+        axis.ticks = element_line(size = 0.5),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        plot.margin = unit(c(1,1,2,2), "lines"),
+        text = element_text(size=14),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif"),
+        legend.text = element_text(size = 12, family = "serif"),
+        legend.spacing = unit(0.1, "cm")) +
+  scale_y_continuous(expand = c(0,0)) +
+  #geom_text(aes(x = 1, y = 1.1, label = "Stretch it"), vjust = -1) +
+  facet_wrap(~BCR_name, scales = "free")
+
+comp.plot1   
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/ComponentsBetaplotRT.tiff"), plot = comp.plot1,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+comp.plot.w1 <- ggplot(data = div.melt.w1, aes(x = Site, y = Proportion, fill = Component, group = Site)) + 
+  geom_bar(stat = "identity") + 
+  scale_fill_manual(values = c("#2F1163FF", "#E44F64FF"),
+                    labels = c(expression(paste(" ", beta["Turn"])),
+                               expression(beta["Nest"]))) +
+  labs(colour = "Component") +
+  ylab(expression("Proportion of Total"~~beta*" Wetland-Associated Birds")) +
+  #name = expression("Compenent of"~beta*"-Diversity"),
+  #labels = c(expression(paste(beta*["Turn"])), expression(paste(beta*["Nest"])))) + 
+  #scale_fill_viridis(discrete = T, option = "cividis") + 
+  # theme(axis.text.x = element_text(angle = 90), 
+  #       panel.background = element_rect(fill = "white", color = "black", linetype = "solid"),
+  #       plot.background = element_rect(fill = "white", color = "black"),
+  #       legend.title = element_text(size = 12),
+  #       panel.grid.major = element_line(size = 0.5, linetype = "solid",),
+  #       panel.grid.minor = element_line(size = 0.25, linetype = "solid")) +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black", size =1.2),
+        axis.text.x = element_blank(),
+        #axis.text.x = element_text(size = 14),
+        axis.text.y = element_text(size = 12, family = "serif"),
+        axis.title.x = element_text(vjust = -1, size = 12, family = "serif"),
+        axis.title.y = element_text(vjust = 1.5, size = 12, family = "serif"),
+        axis.ticks = element_line(size = 0.5),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        plot.margin = unit(c(1,1,2,2), "lines"),
+        text = element_text(size=14),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif"),
+        legend.text = element_text(size = 12, family = "serif"),
+        legend.spacing = unit(0.1, "cm")) +
+  scale_y_continuous(expand = c(0,0)) +
+  #geom_text(aes(x = 1, y = 1.1, label = "Stretch it"), vjust = -1) +
+  facet_wrap(~BCR_name, scales = "free")
+
+comp.plot.w1    
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/ComponentsBetaplotWetRT.tiff"), plot = comp.plot.w1,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+mean(div.df1$beta50.turn)
+mean(div.df1$beta50.nest)
+mean(div.df1$beta.wet.turn)
+mean(div.df1$betawet.nest)
+#ggplot(data = div.melt, aes(y = Site, x = Beta, color = Index)) + geom_point() + scale_color_viridis("Index", discrete = T) 
+#ggplot(data = div.df, aes(y = Site, x = bwet.ratiolog, color = BCR)) + geom_point() + scale_color_viridis("BCR", discrete = T) + geom_vline(xintercept = 0)
+
+
+##############################################################################################
+
 
 
 #Linear Mixed Effects Models @ segment level
@@ -481,6 +609,28 @@ bbmle::AICtab(mod1.lmer, mod.1, mod.disp.full, disp.best)
 summary(disp.best)
 sjstats::r2(disp.best)
 
+e.man <- as.data.frame(effects::predictorEffect("diff.from.first.man", disp.best))
+
+man.plot <- ggplot(data = e.man, aes(x = diff.from.first.man, fit)) +
+  geom_line(colour = "#3F4C6BFF", lwd = 1) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, " Mangrove Cover (%)"))) + 
+  ylab(expression(paste(beta, " Diversity")))
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/man_eff.tiff"), plot = man.plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+
 #Wetland Beta Reg
 #Full Model LMER
 mod.w.lmer <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR.wet + Duration + (1|Route), REML = F)
@@ -504,8 +654,33 @@ bbmle::AICtab(mod.w.lmer, mod.w, mod.disp.fullw, disp.bestw, disp.mod)
 summary(disp.mod)
 sjstats::r2(disp.mod)
 
-effects.plot <- plot(effects::effect(disp.best))
+e.man.w <- as.data.frame(effects::predictorEffect("diff.from.first.man", disp.mod))
 
+man.plot.w <- ggplot(data = e.man.w, aes(x = diff.from.first.man, fit)) +
+  geom_line(colour = "#BFB06EFF", lwd = 1) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, " Mangrove Cover (%)"))) + 
+  ylab(expression(paste("Wetland Bird  ", beta, " Diversity")))
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/man_eff_wet.tiff"), plot = man.plot.w,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+dev.off()
+
+man.eff.c <- cowplot::plot_grid(man.plot, man.plot.w, labels = c("A", "B"), 
+                                label_size = 14, label_fontfamily = "serif",
+                                label_x = 0.17, label_y = 0.99)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/man_eff_c.tiff"), plot = man.eff.c,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 ###########
 mod2 <- lmer(data = seg.df, beta.wet.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet + (1|Route), REML = F)
@@ -532,6 +707,27 @@ summary(mod7)
 car::Anova(mod7)
 tab_model(mod7)
 
+e.man2 <- as.data.frame(effects::predictorEffect("diff.from.first.man", mod7))
+plot(e.man2, rug = F, axes = list(y = list(lab = "Relative Change in Alpha Diversity"),
+                                  x = list(diff.from.first.man = list(lab = "Change in Mangrove Cover (%)")),
+                                  grid = T), main = "")
+
+#Trying to make a custon ggplot with effects results 
+man.plot1 <- ggplot(data = e.man2, aes(x = diff.from.first.man, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, " Mangrove Cover (%)"))) + 
+  ylab(expression(paste("Relative Change in   ", alpha, " Diversity")))
+  
+        
 #Change Wetland SR LMER
 mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet + (1|Route), REML = F)
 summary(mod8)
@@ -585,6 +781,22 @@ mod9.lm <- lm(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.f +
 #Rt DF Full Beta Reg Model
 #Dispersion Modeled as Log Relationship
 mod9 <- betareg::betareg(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50, link.phi = "log")
+
+
+dw.breg <- dwplot(mod9, vline = geom_vline(xintercept = 0, linetype = 2, colour = "grey50")) %>%
+  relabel_predictors(c(p.anom.wet = "Wet Season Precip (cm)", p.anom.dry = "Dry Season Precip (cm)", 
+                       mean.anom.bird = "Breeding Season Temp (C)", diff.from.first.man = "Mangrove Cover (%)", 
+                       diff.from.first.ew = "Emergent Wetland Cover (%)", diff.from.first.wwnm = "Woody Wetland Cover (%)",
+                       diff.from.first.human = "Human-impacted Cover (%)", Duration = "Duration of Survey (Yrs)",
+                       SR50 = "Species Richness")) +
+  xlab("Parameter Estimate") + theme_bw() +
+  theme(legend.position = "None",
+        axis.text = element_text(family = "serif", size = 12),
+        axis.title = element_text(family = "serif", size = 12))
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/dwplot_betareg.tiff"), plot = dw.breg,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
 
 #AIC Comparison of LM and Beta Reg
 bbmle::AICctab(mod9, mod9.lm)
@@ -853,7 +1065,7 @@ tab_model(mod23)
 rt.df$change.cmrl.s <- scale(rt.df$change.cmrl, center = T, scale = T)
 rt.df$change.cmrl.km.s <- scale(rt.df$change.cmrl.km, center = T, scale = T)
 
-mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.s + I(change.cmrl.s^2))
+mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.km)
 #mod17.b <- betareg(data = rt.df, beta50.jac ~ change.cmrl.km + I(change.cmrl.km^2))
 
 summary(mod17)
@@ -861,11 +1073,13 @@ tab_model(mod17)
 #mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.s + I(change.cmrl.s^2))
 #summary(mod17)
 
-mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl.s + I(change.cmrl.s^2))
+mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl.km)
 summary(mod18)
 tab_model(mod18)
 
-mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl.s + I(change.cmrl.s^2))
+#mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl.km.s + I(change.cmrl.km.s^2))
+mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl.km)
+
 summary(mod19)
 tab_model(mod19)
 
@@ -987,8 +1201,19 @@ tab_model(mod20)
 
 rt.df$mean.anom.sp.s <- scale(rt.df$mean.anom.sp, center = T, scale = T)
 rt.df$p.anom.s <- scale(rt.df$p.anom, center = T, scale = T)
-mod21 <- lm(data = rt.df, change.cmrl.km ~ mean.anom.sp.s + I(mean.anom.sp.s^2))
+
+#mod21 <- lm(data = rt.df, change.cmrl.km ~ mean.anom.sp.s)
+mod21 <- lm(data = rt.df, change.cmrl.km ~ mean.anom.sp)
 summary(mod21)
+
+########NLS########
+# o <- order(rt.df$mean.anom.sp)
+# df_o <- rt.df[o, ]
+# df_o <- df_o %>% mutate(cmrl.t = change.cmrl.km + 346.2087, log_cmrl = log(cmrl.t))
+# mod1 <- nls(change.cmrl.km ~ I(-mean.anom.sp^pow), data = rt.df, start = list(pow = 1))
+# plot(df_o$mean.anom.sp, df_o$change.cmrl.km, col = "red", pch = 20)
+# lines(fitted(fm) ~ mean.anom.sp, df_o)
+###################
 
 set.seed(100)
 prd <- data.frame(mean.anom.sp = seq(from  = range(rt.df$mean.anom.sp)[1], to = range(rt.df$mean.anom.sp)[2], length.out = 100))
@@ -1023,13 +1248,16 @@ dev.off()
 cmrl.plots <- plot_grid(cmrl.plot, cmrl.plot1, cmrl.plot2, cmrl.plot3, align = "hv", nrow = 2,
                         labels = c("A", "B", "C", "D"), label_size = 12, label_fontfamily = "serif")
 
-ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_tot.tiff"), plot = cmrl.plots,
+# ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_total.tiff"), plot = cmrl.plots,
+#        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_total_revised.tiff"), plot = cmrl.plots,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
 
 dev.off()
 
-tab.cmrl <- tab_model(mod17, mod18, mod19, mod21, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in CMRL", "Change in CMRL^2", "Change in Mean Spring Temp",
-                                                                                                "Change in Mean Spring Temp^2"),
+tab.cmrl <- tab_model(mod17, mod18, mod19, mod21, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in CMRL", "Change in CMRL^2", "Change in Mean Spring Temp"),
                       dv.labels = c("Total Bird Community Beta Diversity", "Tota Bird Community Turnover",
                                     "Total Bird Community Nestedness", "Change in CMRL"), linebreak = F,
                       CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
@@ -1771,3 +1999,41 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/lulchist.tiff"), plot = 
 
 dev.off()
 
+
+#No differences in segment vs route level changes in alpha
+#Seg vs Rt changes in pchange and abs change in alpha for total comm
+t.test(rt.df$alpha50.change, seg.df$alpha50.change)
+t.test(rt.df$alpha50.pchange, seg.df$alpha50.pchange)
+
+#Seg vs Rt changes in pchange and abs change in alpha for wetland comm
+t.test(rt.df$alphawet.change, seg.df$alphawet.change)
+t.test(rt.df$alphawet.pchange, seg.df$alphawet.pchange)
+
+#Seg vs Rt slopes in alpha for both comm
+t.test(bbs_slopes_rt$slope50, bbs_slopes_seg$slope50)
+t.test(bbs_slopes_rt$slope.wet, bbs_slopes_seg$slope.wet)
+
+#Rt Level t-tests for summary stat results 
+#Comparing Absolute, Relative Change, and Slope to zero for Total
+t.test(rt.df$alpha50.change, mu = 0)
+t.test(rt.df$alpha50.pchange, mu = 0)
+t.test(bbs_slopes_rt$slope50, mu = 0)
+
+#Comparing Absolute, Relative Change, and Slope to zero for Wetland
+t.test(rt.df$alphawet.change, mu = 0)
+t.test(rt.df$alphawet.pchange, mu = 0)
+t.test(bbs_slopes_rt$slope.wet, mu = 0)
+
+#Comparing Absolute Change in Alpha Total vs. Wet
+t.test(rt.df$alpha50.change, rt.df$alphawet.change)
+
+#Comparing Relative Change in Alpha Total vs. Wet
+t.test(rt.df$alpha50.pchange, rt.df$alphawet.pchange)
+
+#Comparing Slopes of Alpha Change
+t.test(bbs_slopes_rt$slope50, bbs_slopes_rt$slope.wet)
+
+#Beta Diversity Rt Level t-tests
+t.test(rt.df$beta50.jac, rt.df$beta.wet.jac)
+
+#
