@@ -236,7 +236,7 @@ mds_plot <- ggplot(data = data.scores) +
         axis.title.y = element_text(vjust = 1.5, size = 12, family = "serif"),
         axis.ticks = element_line(size = 1.2),
         legend.text = element_text(size = 12, family = "serif"),
-        legend.title = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif", face = "bold"),
         legend.key.size = unit(0.5, "cm"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -273,7 +273,7 @@ mds_plot2 <- ggplot(data = data.scores) +
         panel.background = element_blank(),
         plot.margin = unit(c(1,1,2,2), "lines"),
         text = element_text(size=12, family = "serif"),
-        legend.title = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif", face = "bold"),
         legend.text = element_text(size = 12, family = "serif"),
         legend.key.size = unit(0.5, "cm"))
 
@@ -291,7 +291,7 @@ adon.results2 <- adonis(occ_mds_cast ~ data.scores$group2, method = "jaccard", p
 print(adon.results)
 print(adon.results2)
 
-mds_plot_m <- plot_grid(mds_plot2, mds_plot, nrow = 2, align = "hv", labels = c("A","B"), label_fontfamily = "serif")
+mds_plot_m <- plot_grid(mds_plot2, mds_plot, nrow = 2, align = "hv", labels = c("A","B"), label_fontfamily = "serif", label_fontface = "plain")
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot_combine.tiff"), plot = mds_plot_m,
        device = "tiff", width = 8, height = 8, units = "in", dpi = 600)
@@ -336,7 +336,7 @@ comp.plot <- ggplot(data = div.melt, aes(x = Site, y = Proportion, fill = Compon
                     labels = c(expression(paste(" ", beta["Turn"])),
                                expression(beta["Nest"]))) +
   labs(colour = "Component") +
-  ylab(expression("Proportion of Total"~~beta)) +
+  ylab(expression(paste("Total Bird Proportion of", " ", beta["Jac"]))) +
                     #name = expression("Compenent of"~beta*"-Diversity"),
                     #labels = c(expression(paste(beta*["Turn"])), expression(paste(beta*["Nest"])))) + 
   #scale_fill_viridis(discrete = T, option = "cividis") + 
@@ -362,7 +362,7 @@ comp.plot <- ggplot(data = div.melt, aes(x = Site, y = Proportion, fill = Compon
         text = element_text(size=14),
         strip.background = element_blank(),
         strip.text = element_text(size = 12, family = "serif"),
-        legend.title = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif", face = "bold"),
         legend.text = element_text(size = 12, family = "serif"),
         legend.spacing = unit(0.1, "cm")) +
   scale_y_continuous(expand = c(0,0)) +
@@ -379,7 +379,7 @@ comp.plot.w <- ggplot(data = div.melt.w, aes(x = Site, y = Proportion, fill = Co
                     labels = c(expression(paste(" ", beta["Turn"])),
                                expression(beta["Nest"]))) +
   labs(colour = "Component") +
-  ylab(expression("Proportion of Total"~~beta*" Wetland-Associated Birds")) +
+  ylab(expression(paste("Wetland Bird Proportion of", " ", beta["Jac"]))) +
   #name = expression("Compenent of"~beta*"-Diversity"),
   #labels = c(expression(paste(beta*["Turn"])), expression(paste(beta*["Nest"])))) + 
   #scale_fill_viridis(discrete = T, option = "cividis") + 
@@ -405,7 +405,7 @@ comp.plot.w <- ggplot(data = div.melt.w, aes(x = Site, y = Proportion, fill = Co
         text = element_text(size=14),
         strip.background = element_blank(),
         strip.text = element_text(size = 12, family = "serif"),
-        legend.title = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif", face = "bold"),
         legend.text = element_text(size = 12, family = "serif"),
         legend.spacing = unit(0.1, "cm")) +
   scale_y_continuous(expand = c(0,0)) +
@@ -458,7 +458,7 @@ comp.plot1 <- ggplot(data = div.melt1, aes(x = Site, y = Proportion, fill = Comp
                     labels = c(expression(paste(" ", beta["Turn"])),
                                expression(beta["Nest"]))) +
   labs(colour = "Component") +
-  ylab(expression("Proportion of Total"~~beta)) +
+  ylab(expression(paste("Total Bird Proportion of", " ", beta["Jac"]))) +
   #name = expression("Compenent of"~beta*"-Diversity"),
   #labels = c(expression(paste(beta*["Turn"])), expression(paste(beta*["Nest"])))) + 
   #scale_fill_viridis(discrete = T, option = "cividis") + 
@@ -484,7 +484,7 @@ comp.plot1 <- ggplot(data = div.melt1, aes(x = Site, y = Proportion, fill = Comp
         text = element_text(size=14),
         strip.background = element_blank(),
         strip.text = element_text(size = 12, family = "serif"),
-        legend.title = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif", face = "bold"),
         legend.text = element_text(size = 12, family = "serif"),
         legend.spacing = unit(0.1, "cm")) +
   scale_y_continuous(expand = c(0,0)) +
@@ -501,7 +501,7 @@ comp.plot.w1 <- ggplot(data = div.melt.w1, aes(x = Site, y = Proportion, fill = 
                     labels = c(expression(paste(" ", beta["Turn"])),
                                expression(beta["Nest"]))) +
   labs(colour = "Component") +
-  ylab(expression("Proportion of Total"~~beta*" Wetland-Associated Birds")) +
+  ylab(expression(paste("Wetland Bird Proportion of", " ", beta["Jac"]))) +
   #name = expression("Compenent of"~beta*"-Diversity"),
   #labels = c(expression(paste(beta*["Turn"])), expression(paste(beta*["Nest"])))) + 
   #scale_fill_viridis(discrete = T, option = "cividis") + 
@@ -527,7 +527,7 @@ comp.plot.w1 <- ggplot(data = div.melt.w1, aes(x = Site, y = Proportion, fill = 
         text = element_text(size=14),
         strip.background = element_blank(),
         strip.text = element_text(size = 12, family = "serif"),
-        legend.title = element_text(size = 12, family = "serif"),
+        legend.title = element_text(size = 12, family = "serif", face = "bold"),
         legend.text = element_text(size = 12, family = "serif"),
         legend.spacing = unit(0.1, "cm")) +
   scale_y_continuous(expand = c(0,0)) +
@@ -879,8 +879,8 @@ bbs_clim_f <- rbind(bbs_clim_rt1, bbs_clim_rt2)
 bbs_clim_f <- reshape2::melt(data = bbs_clim_f, id = c("indicator", "Latitude"), measure.vars = c("SR50", "SR.wet"))
 
 bbs_clim_f$variable_f <- factor(bbs_clim_f$variable, levels = c("SR50", "SR.wet"))
-levels(bbs_clim_f$variable_f) <- c(SR50 = expression(paste(alpha, "-diversity")),
-                                   SR.wet = expression(paste(alpha, "-diversity"["Wetland Birds"])))
+levels(bbs_clim_f$variable_f) <- c(SR50 = expression(paste(alpha, "-diversity"["Total"])),
+                                   SR.wet = expression(paste(alpha, "-diversity"["Wetland"])))
 
 
 sr.peak <- ggplot() + 
@@ -904,7 +904,7 @@ sr.peak <- ggplot() +
   scale_fill_viridis(discrete = T, option = "E") +
   labs(colour = "Time Series", fill = "Time Series") +
   xlab("Latitude") +
-  ylab("Detection-corrected Species Richness") +
+  ylab(expression(paste(alpha, "-diversity"))) +
   facet_wrap(~variable_f, labeller = label_parsed)
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/StartEnd_SR_SRwet.tiff"), plot = sr.peak,
@@ -917,17 +917,17 @@ div.cora <- bbs_total_seg[, c("Site_div.x", "SR_MCMC", "SR50", "Year", "site", "
 div.cora <- reshape2::melt(data = div.cora, id = c("Year", "site", "rteno.x"), measure.vars = c("Site_div.x", "SR_MCMC", "SR50"))
 
 div.corb <- bbs_total_seg[, c("beta.jac", "beta.mcmc", "beta50.jac", "Year", "site", "rteno.x")]
-div.corb <- reshape2::melt(data = div.corb, id = c("Year", "site", "rteno.x"), measure.vars = c("beta.jac", "beta50.jac", "beta.mcmc"))
+div.corb <- reshape2::melt(data = div.corb, id = c("Year", "site", "rteno.x"), measure.vars = c("beta.jac", "beta.mcmc", "beta50.jac"))
 
 
 alpha <- ggplot() + 
   geom_smooth(data = div.cora, method = "loess", aes(x = Year, y = value, colour = factor(variable,
-                                                                                          labels = c("Naive SR",
-                                                                                                     "SR MCMC",
-                                                                                                     "SR 50%")), 
-                                                     fill = factor(variable, labels = c("Naive SR",
-                                                                                        "SR MCMC",
-                                                                                        "SR 50%")))) + #group = interaction(rteno.x, variable)
+                                                                                          labels = c("Naive",
+                                                                                                     "MCMC",
+                                                                                                     "50%")), 
+                                                     fill = factor(variable, labels = c("Naive",
+                                                                                        "MCMC",
+                                                                                        "50%")))) + #group = interaction(rteno.x, variable)
   theme_bw() +
   theme(axis.text = element_text(size = 12, family = "serif"),
         axis.title = element_text(size = 12, family = "serif"),
@@ -936,7 +936,7 @@ alpha <- ggplot() +
         legend.text = element_text(size = 12, family = "serif"),
         legend.title = element_text(size = 12, family = "serif")) +
   xlab("Year") +
-  ylab("Species Richness") +
+  ylab(expression(paste(alpha, "-diversity"))) +
   labs(colour = c("Species Estimation Method"), fill = c("Species Estimation Method")) +
   scale_color_viridis(discrete = T, option = "D") +
   scale_fill_viridis(discrete = T, option = "D") +
@@ -950,12 +950,12 @@ dev.off()
   
 beta.occ.plot <- ggplot() + 
   geom_smooth(data = div.corb, method = "loess", aes(x = Year, y = value, colour = factor(variable,
-                                                                                          labels = c("Naive Beta",
-                                                                                                     "Beta 50%",
-                                                                                                     "Beta MCMC")), 
-                                                     fill = factor(variable, labels = c("Naive Beta",
-                                                                                        "Beta 50%",
-                                                                                        "Beta MCMC")))) + #group = interaction(rteno.x, variable)
+                                                                                          labels = c("Naive",
+                                                                                                     "MCMC",
+                                                                                                     "50%")), 
+                                                     fill = factor(variable, labels = c("Naive",
+                                                                                        "MCMC",
+                                                                                        "50%")))) + #group = interaction(rteno.x, variable)
   theme_bw() +
   theme(axis.text = element_text(size = 12, family = "serif"),
         axis.title = element_text(size = 12, family = "serif"),
@@ -964,7 +964,7 @@ beta.occ.plot <- ggplot() +
         legend.text = element_text(size = 12, family = "serif"),
         legend.title = element_text(size = 12, family = "serif")) +
   xlab("Year") +
-  ylab("Beta") +
+  ylab(expression(beta["Jac"])) +
   labs(colour = c("Species Estimation Method"), fill = c("Species Estimation Method")) +
   scale_color_viridis(discrete = T, option = "E") +
   scale_fill_viridis(discrete = T, option = "E") +
@@ -986,7 +986,7 @@ dev.off()
 
 #-Wetland, -WW, +Ag 
 rt.df$Latitude.s <- scale(rt.df$Latitude, center = T, scale = T)
-mod22 <- lm(data = rt.df, SR50 ~ Latitude.s + I(Latitude.s^2))
+mod22 <- lm(data = rt.df, SR50 ~ Latitude + I(Latitude^2))
 summary(mod22)
 
 #Plot for mod22
@@ -1000,7 +1000,7 @@ prd1$uci <- err1$fit + 1.96 * err1$se.fit
 
 
 #model for latitude and wetland bird richness
-mod23 <- lm(data = rt.df, SR.wet ~ Latitude.s + I(Latitude.s^2))
+mod23 <- lm(data = rt.df, SR.wet ~ Latitude + I(Latitude^2))
 summary(mod23)
 
 set.seed(100)
@@ -1018,7 +1018,7 @@ lat.plot <- ggplot(prd1, aes(x = Latitude, y = fit)) +
   geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#A09877FF", fill = "#A09877FF") +
   geom_point(data = rt.df, aes(x = Latitude, y = SR50)) +
   xlab(NULL) + #expression(paste("Latitude ( ", degree, " )"
-  ylab('Bird Species Richness') +
+  ylab(expression(paste("Total Bird  ", alpha, "-diversity"))) +
   theme(axis.title.y = element_text(size = 12, family = "serif"), axis.text = element_text(size = 12, family = "serif")) +
         #panel.background = element_blank(), panel.grid = element_blank()) +
   scale_x_continuous(breaks = seq(24, 32, 1))
@@ -1036,7 +1036,7 @@ lat.plot1 <- ggplot(prd2, aes(x = Latitude, y = fit)) +
   geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#00204DFF", fill = "#00204DFF") +
   geom_point(data = rt.df, aes(x = Latitude, y = SR.wet)) +
   xlab(expression(paste("Latitude ( ", degree, " )"))) +
-  ylab('Wetland Bird Species Richness') +
+  ylab(expression(paste("Wetland Bird  ", alpha, "-diversity"))) +
   theme(axis.title.x = element_text(size = 12, family = "serif"), axis.title.y = element_text(size = 12, family = "serif"), axis.text = element_text(size = 12, family = "serif")) +
   scale_x_continuous(breaks = seq(24, 32, 1))
 # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
@@ -1046,7 +1046,7 @@ lat.plot1 <- ggplot(prd2, aes(x = Latitude, y = fit)) +
 
 lat.plot1
 
-lat.plot.f <- plot_grid(lat.plot, lat.plot1, labels = c('A', 'B'), align = "v", label_x = 0.08, label_y = 0.98, nrow = 2, label_size = 14, label_fontfamily = "serif")
+lat.plot.f <- plot_grid(lat.plot, lat.plot1, labels = c('A', 'B'), align = "v", label_x = 0.08, label_y = 0.98, nrow = 2, label_size = 12, label_fontfamily = "serif", label_fontface = "plain")
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/SR_Lat.tiff"), plot = lat.plot.f,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
@@ -1065,7 +1065,7 @@ tab_model(mod23)
 rt.df$change.cmrl.s <- scale(rt.df$change.cmrl, center = T, scale = T)
 rt.df$change.cmrl.km.s <- scale(rt.df$change.cmrl.km, center = T, scale = T)
 
-mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.km)
+mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl)
 #mod17.b <- betareg(data = rt.df, beta50.jac ~ change.cmrl.km + I(change.cmrl.km^2))
 
 summary(mod17)
@@ -1073,31 +1073,32 @@ tab_model(mod17)
 #mod17 <- lm(data = rt.df, beta50.jac ~ change.cmrl.s + I(change.cmrl.s^2))
 #summary(mod17)
 
-mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl.km)
+mod18 <- lm(data = rt.df, beta50.turn ~ change.cmrl)
 summary(mod18)
 tab_model(mod18)
 
 #mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl.km.s + I(change.cmrl.km.s^2))
-mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl.km)
+mod19 <- lm(data = rt.df, beta50.nest ~ change.cmrl)
 
 summary(mod19)
 tab_model(mod19)
 
 #Beta Jac CMRL
 set.seed(100)
-prd2 <- data.frame(change.cmrl.km = seq(from  = range(rt.df$change.cmrl.km)[1], to = range(rt.df$change.cmrl.km)[2], length.out = 100))
+prd2 <- data.frame(change.cmrl = seq(from  = range(rt.df$change.cmrl)[1], to = range(rt.df$change.cmrl)[2], length.out = 100))
 err2 <- predict(mod17, newdata = prd2, type = "response", se.fit = T)
 
 prd2$lci <- err2$fit - 1.96 * err2$se.fit
 prd2$fit <- err2$fit
 prd2$uci <- err2$fit + 1.96 * err2$se.fit
 
-cmrl.plot1 <- ggplot(prd2, aes(x = change.cmrl.km, y = fit)) +
+cmrl.plot1 <- ggplot(prd2, aes(x = change.cmrl, y = fit)) +
   theme_bw() +
   geom_line() +
   geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#00204DFF", fill = "#00204DFF") +
-  geom_point(data = rt.df, aes(x = change.cmrl.km, y = beta50.jac)) +
-  xlab("Change in CMRL (km)") +
+  geom_point(data = rt.df, aes(x = change.cmrl, y = beta50.jac)) +
+  xlab(expression(paste(Delta, ' CMRL', " (", degree, ")"))) +
+  #xlab("Change in CMRL (km)") +
   ylab(expression(beta["Jac"])) +
   # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
   #                    "Intercept =",signif(mod21$coef[[1]],5 ),
@@ -1116,19 +1117,20 @@ dev.off()
 
 #Beta Turn CMRL
 set.seed(100)
-prd3 <- data.frame(change.cmrl.km = seq(from  = range(rt.df$change.cmrl.km)[1], to = range(rt.df$change.cmrl.km)[2], length.out = 100))
+prd3 <- data.frame(change.cmrl = seq(from  = range(rt.df$change.cmrl)[1], to = range(rt.df$change.cmrl)[2], length.out = 100))
 err3 <- predict(mod18, newdata = prd3, se.fit = T)
 
 prd3$lci <- err3$fit - 1.96 * err3$se.fit
 prd3$fit <- err3$fit
 prd3$uci <- err3$fit + 1.96 * err3$se.fit
 
-cmrl.plot2 <- ggplot(prd3, aes(x = change.cmrl.km, y = fit)) +
+cmrl.plot2 <- ggplot(prd3, aes(x = change.cmrl, y = fit)) +
   theme_bw() +
   geom_line() +
   geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#777776FF", fill = "#777776FF") +
-  geom_point(data = rt.df, aes(x = change.cmrl.km, y = beta50.turn)) +
-  xlab("Change in CMRL (km)") +
+  geom_point(data = rt.df, aes(x = change.cmrl, y = beta50.turn)) +
+  xlab(expression(paste(Delta, ' CMRL', " (", degree, ")"))) +
+  #xlab("Change in CMRL (km)") +
   ylab(expression(beta["Turn"])) +
   # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
   #                    "Intercept =",signif(mod21$coef[[1]],5 ),
@@ -1142,19 +1144,19 @@ cmrl.plot2
 
 #Beta Nest CMRL
 set.seed(100)
-prd4 <- data.frame(change.cmrl.km = seq(from  = range(rt.df$change.cmrl.km)[1], to = range(rt.df$change.cmrl.km)[2], length.out = 100))
+prd4 <- data.frame(change.cmrl = seq(from  = range(rt.df$change.cmrl)[1], to = range(rt.df$change.cmrl)[2], length.out = 100))
 err4 <- predict(mod19, newdata = prd4, se.fit = T)
 
 prd4$lci <- err4$fit - 1.96 * err4$se.fit
 prd4$fit <- err4$fit
 prd4$uci <- err4$fit + 1.96 * err4$se.fit
 
-cmrl.plot3 <- ggplot(prd4, aes(x = change.cmrl.km, y = fit)) +
+cmrl.plot3 <- ggplot(prd4, aes(x = change.cmrl, y = fit)) +
   theme_bw() +
   geom_line() +
   geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#D7C463FF", fill = "#D7C463FF") +
-  geom_point(data = rt.df, aes(x = change.cmrl.km, y = beta50.nest)) +
-  xlab("Change in CMRL (km)") +
+  geom_point(data = rt.df, aes(x = change.cmrl, y = beta50.nest)) +
+  xlab(expression(paste(Delta, ' CMRL', " (", degree, ")"))) +
   ylab(expression(beta["Nest"])) +
   # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
   #                    "Intercept =",signif(mod21$coef[[1]],5 ),
@@ -1203,9 +1205,9 @@ rt.df$mean.anom.sp.s <- scale(rt.df$mean.anom.sp, center = T, scale = T)
 rt.df$p.anom.s <- scale(rt.df$p.anom, center = T, scale = T)
 
 #mod21 <- lm(data = rt.df, change.cmrl.km ~ mean.anom.sp.s)
-mod21 <- lm(data = rt.df, change.cmrl.km ~ mean.anom.sp)
+mod21 <- lm(data = rt.df, change.cmrl ~ mean.anom.sp)
 summary(mod21)
-
+tab_model(mod21)
 ########NLS########
 # o <- order(rt.df$mean.anom.sp)
 # df_o <- rt.df[o, ]
@@ -1227,9 +1229,9 @@ cmrl.plot <- ggplot(prd, aes(x = mean.anom.sp, y = fit)) +
   theme_bw() +
   geom_line() +
   geom_smooth(aes(ymin = lci, ymax = uci), stat = "identity", color = "#A09877FF", fill = "#A09877FF") +
-  geom_point(data = rt.df, aes(x = mean.anom.sp, y = change.cmrl.km)) +
+  geom_point(data = rt.df, aes(x = mean.anom.sp, y = change.cmrl)) +
   xlab(expression(paste("Change in Mean Spring Temp ( ", degree ~ C, " )"))) +
-  ylab('Change in CMRL (km)') +
+  ylab(expression(paste(Delta, ' CMRL', " (", degree, ")"))) +
   # labs(title = paste("R2 = ",signif(summary(mod21)$r.squared, 5),
   #                    "Intercept =",signif(mod21$coef[[1]],5 ),
   #                    " Slope =",signif(mod21$coef[[3]], 5),
@@ -1251,13 +1253,20 @@ cmrl.plots <- plot_grid(cmrl.plot, cmrl.plot1, cmrl.plot2, cmrl.plot3, align = "
 # ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_total.tiff"), plot = cmrl.plots,
 #        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
-ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_total_revised.tiff"), plot = cmrl.plots,
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_total_revised_deg.tiff"), plot = cmrl.plots,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 
 dev.off()
 
-tab.cmrl <- tab_model(mod17, mod18, mod19, mod21, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in CMRL", "Change in CMRL^2", "Change in Mean Spring Temp"),
+# tab.cmrl <- tab_model(mod17, mod18, mod19, mod21, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in CMRL", "Change in CMRL^2", "Change in Mean Spring Temp"),
+#                       dv.labels = c("Total Bird Community Beta Diversity", "Tota Bird Community Turnover",
+#                                     "Total Bird Community Nestedness", "Change in CMRL"), linebreak = F,
+#                       CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
+#                                  css.modelcolumn3 = 'background-color: #f0f0f0;',
+#                                  css.lasttablerow = 'border-bottom: 4px solid black;'), use.viewer = T)
+
+tab.cmrl <- tab_model(mod17, mod18, mod19, mod21, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in CMRL", "Change in Mean Spring Temp"),
                       dv.labels = c("Total Bird Community Beta Diversity", "Tota Bird Community Turnover",
                                     "Total Bird Community Nestedness", "Change in CMRL"), linebreak = F,
                       CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
@@ -1334,7 +1343,7 @@ map_gom_alpha <- map_gom_alpha + scale_color_viridis(name = expression(paste(alp
 map_gom_jac <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) + #coord_map(projection = "albers", lat0 = 26, lat1 = 30)+
   geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = beta50.jac), size = 3)
 
-map_gom_jac <- map_gom_jac + scale_color_viridis(name = expression(paste(beta, "-diversity"[italic("Jac")])), option = "E") + xlab("Longitude") + ylab("Latitude") + 
+map_gom_jac <- map_gom_jac + scale_color_viridis(name = expression(paste("Total Bird", " ", beta[italic("Jac")])), option = "E") + xlab("Longitude") + ylab("Latitude") + 
   theme_bw() + theme(legend.position = c(0,1), legend.title = element_text(size = 12, family = "serif"), legend.text = element_text(size = 12, family = "serif"), legend.background = element_rect(fill = "transparent"),
         plot.margin = unit(c(1,1,1,1), "cm"), axis.title = element_text(size = 12, family = "serif"), axis.text = element_text(size = 12, family = "serif"),
         legend.justification = c(0,1))   
@@ -1348,7 +1357,7 @@ dev.off()
 map_gom_wet <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
   geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = beta.wet.jac), size = 3)
 
-map_gom_wet <- map_gom_wet + scale_color_viridis(option = 'magma', name = expression(paste("Wetland Bird ", beta[italic("Jac")])))+ xlab("Longitude") + ylab("Latitude") + 
+map_gom_wet <- map_gom_wet + scale_color_viridis(option = 'magma', name = expression(paste("Wetland Bird", " ", beta[italic("Jac")])))+ xlab("Longitude") + ylab("Latitude") + 
         theme_bw() + theme(legend.position = c(0, 1), legend.justification = c(0, 1), legend.title = element_text(size = 12, family = "serif"), legend.text = element_text(size = 12, family = "serif"), legend.background = element_rect(fill = "transparent"),
         plot.margin = unit(c(1,1,1,1), "cm"), axis.title = element_text(size = 12, family = "serif"), axis.text = element_text(size = 12, family = "serif"))   
 
@@ -1361,7 +1370,7 @@ dev.off()
 map_change_alpha <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
   geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = alpha.pchange), size = 3)
 
-map_change_alpha <- map_change_alpha + scale_color_viridis(name = expression(paste(alpha, "-diversity ", "(% ", Delta, ")")), option = "E")+ xlab("Longitude") + ylab("Latitude") + 
+map_change_alpha <- map_change_alpha + scale_color_viridis(name = expression(paste("Total Bird", " ", alpha, " (% ", Delta, ")")), option = "E")+ xlab("Longitude") + ylab("Latitude") + 
   theme_bw() + theme(legend.position = c(0, 1), legend.justification = c(0, 1), legend.title = element_text(size = 12, family = "serif"), legend.text = element_text(size = 12, family = "serif"), legend.background = element_rect(fill = "transparent"),
         plot.margin = unit(c(1, 1, 1, 1), "cm"), axis.title = element_text(size = 12, family = "serif"), axis.text = element_text(size = 12, family = "serif"))  
 
@@ -1374,7 +1383,7 @@ dev.off()
 map_change_alpha_wet <- ggplot(data = gom) + geom_polygon(aes(x = long, y = lat, group = group), fill = "gray", color = "black") + coord_fixed(xlim = c(min(rt.df$Longitude) - 1.5, max(rt.df$Longitude)), ylim = c(min(rt.df$Latitude), max(rt.df$Latitude) + 2.5), ratio = 1.2) +
   geom_point(data = rt.df, aes(x = Longitude, y = Latitude, color = alphawet.pchange), size = 3)
 
-map_change_alpha_wet <- map_change_alpha_wet + scale_color_viridis(name = expression(paste("Wetland Bird ", alpha, " (% ", Delta, ")")), option = "magma")+ xlab("Longitude") + ylab("Latitude") + 
+map_change_alpha_wet <- map_change_alpha_wet + scale_color_viridis(name = expression(paste("Wetland Bird", " ", alpha, " (% ", Delta, ")")), option = "magma")+ xlab("Longitude") + ylab("Latitude") + 
   theme_bw() + theme(legend.position = c(0, 1), legend.justification = c(0, 1), legend.title = element_text(size = 12, family = "serif"), legend.text = element_text(size = 12, family = "serif"), legend.background = element_rect(fill = "transparent"),
         plot.margin = unit(c(1,1,1,1), "cm"), axis.title = element_text(size = 12, family = "serif"), axis.text = element_text(size = 12, family = "serif"))
 
@@ -1467,17 +1476,17 @@ plot_beta <- (ggplot(bbs_total_seg, aes(x = Year, y = beta50.jac, group = BCR,
                 #scale_y_continuous(limits = c(0,1), expand = c(0, 0), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1)) +
                 theme_bw() +
                 theme(axis.line = element_line(colour = "black", size =1.2),
-                      axis.text.x = element_text(size = 15, family = "serif"),
-                      axis.text.y = element_text(size = 15, family = "serif"),
-                      axis.title.x = element_text(vjust = -1, size = 15, family = "serif"),
-                      axis.title.y = element_text(vjust = 1.5, size = 15, family = "serif"),
+                      axis.text.x = element_text(size = 12, family = "serif"),
+                      axis.text.y = element_text(size = 12, family = "serif"),
+                      axis.title.x = element_text(vjust = -1, size = 12, family = "serif"),
+                      axis.title.y = element_text(vjust = 1.5, size = 12, family = "serif"),
                       axis.ticks = element_line(size = 1.2),
                       panel.grid.major = element_blank(),
                       panel.grid.minor = element_blank(),
                       panel.border = element_blank(),
                       panel.background = element_blank(),
                       plot.margin = unit(c(1,1,2,2), "lines"),
-                      text = element_text(size=15, family = "serif"))) 
+                      text = element_text(size=12, family = "serif"))) 
 
 plot_beta <- plot_beta + scale_color_viridis(discrete = T, option = "E") + scale_fill_viridis(discrete = T, option = "E")
 
@@ -1785,10 +1794,10 @@ plot_beta_cor <- ggplot(data = bbs_total_seg, aes(x = Year, y = beta50.jac, grou
   scale_color_viridis(discrete = T, option = "E") +
   scale_fill_viridis(discrete = T, option = "E") +
   xlab("Year") + 
-  ylab(expression(paste("Detection-corrected ", beta[italic("Jac")]))) + 
+  ylab(expression(paste("Total Bird", " ", beta[italic("Jac")]))) + 
   labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
   theme_bw() + 
-  theme(strip.text = element_text(size = 12, face = "bold", family = "serif"),
+  theme(strip.text = element_text(size = 12, face = "plain", family = "serif"),
         strip.background = element_blank(),
         legend.text = element_text(size = 12, family = "serif"), legend.title = element_text(size = 12, face = "bold", family = "serif"),
         axis.title.x = element_text(size = 12, family = "serif"), axis.title.y = element_text(size = 12, family = "serif"),
@@ -1811,10 +1820,10 @@ plot_beta_cor_wet <- ggplot(data = bbs_total_seg, aes(x = Year, y = beta.wet.jac
   scale_color_viridis(discrete = T, option = "magma") +
   scale_fill_viridis(discrete = T, option = "magma") +
   xlab("Year") + 
-  ylab(expression(paste("Wetland Bird Detection-corrected ", " ", beta[italic("Jac")]))) + 
+  ylab(expression(paste("Wetland Bird", " ", beta[italic("Jac")]))) + 
   labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
   theme_bw() + 
-  theme(strip.text = element_text(size = 12, face = "bold", family = "serif"),
+  theme(strip.text = element_text(size = 12, face = "plain", family = "serif"),
         strip.background = element_blank(),
         legend.text = element_text(size = 12, family = "serif"), legend.title = element_text(size = 12, face = "bold", family = "serif"),
         axis.title.x = element_text(size = 12, family = "serif"), axis.title.y = element_text(size = 12, family = "serif"),
@@ -1837,10 +1846,10 @@ plot_alpha_cor <- ggplot(data = bbs_total_seg, aes(x = Year, y = SR50, group = r
   scale_color_viridis(discrete = T) +
   scale_fill_viridis(discrete = T) +
   xlab("Year") + 
-  ylab(expression(paste("Detection-corrected ", alpha, "-diversity"))) + 
+  ylab(expression(paste("Total Bird", " ", alpha, "-diversity"))) + 
   labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
   theme_bw() + 
-  theme(strip.text = element_text(size = 12, face = "bold", family = "serif"),
+  theme(strip.text = element_text(size = 12, face = "plain", family = "serif"),
         strip.background = element_blank(),
         legend.text = element_text(size = 12, family = "serif"), legend.title = element_text(size = 12, face = "bold", family = "serif"),
         axis.title.x = element_text(size = 12, family = "serif"), axis.title.y = element_text(size = 12, family = "serif"),
@@ -1862,10 +1871,10 @@ plot_alpha_cor_wet <- ggplot(data = bbs_total_seg, aes(x = Year, y = SR.wet, gro
   scale_color_viridis(discrete = T, option = "plasma") +
   scale_fill_viridis(discrete = T, option = "plasma") +
   xlab("Year") + 
-  ylab(expression(paste("Wetland Bird Detection-corrected ", " ", alpha, "-diversity"))) + 
+  ylab(expression(paste("Wetland Bird", " ", alpha, "-diversity"))) + 
   labs(colour = "Bird Conservation Region", fill = "Bird Conservation Region") +
   theme_bw() + 
-  theme(strip.text = element_text(size = 12, face = "bold", family = "serif"),
+  theme(strip.text = element_text(size = 12, face = "plain", family = "serif"),
         strip.background = element_blank(),
         legend.text = element_text(size = 12, family = "serif"), legend.title = element_text(size = 12, face = "bold", family = "serif"),
         axis.title.x = element_text(size = 12, family = "serif"), axis.title.y = element_text(size = 12, family = "serif"),
@@ -1930,8 +1939,8 @@ climate2 <- climate2 %>% group_by(Year, variable) %>% summarize(mean = mean(valu
 climate2$variable_f <- factor(climate2$variable, levels = c("precip_Wet.c", "precip_Dry.c"))
 
 levels(climate2$variable_f) <- c(#pmean.c = expression("Precip"["mean"]), 
-                                 precip_Wet.c = expression("Wet Season Precip"["mean"]), 
-                                 precip_Dry.c = expression("Dry Season Precip"["mean"]))
+                                 precip_Wet.c = expression("p"["wet"]), 
+                                 precip_Dry.c = expression("p"["dry"]))
 
 
 precip.plot.annual <- ggplot() +
