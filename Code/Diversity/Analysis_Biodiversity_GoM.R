@@ -18,8 +18,8 @@ pacman::p_load("here", "tidyverse", "MuMIn", "sjPlot", "lme4", "vegan", "viridis
 
 #################################################################################
 #Checking Color Palettes for manual color changes 
-q_colors <- 30
-v_colors <- viridis(q_colors, option = "E")
+q_colors <- length(nationalparkcolors::park_palette("Everglades"))
+v_colors <- nationalparkcolors::park_palette("Everglades", q_colors)
 show_col(v_colors)
 loadfonts(device = "win")
 windowsFonts()
@@ -246,10 +246,10 @@ mds_plot <- ggplot(data = data.scores) +
         text = element_text(size=12, family = "serif"))
 mds_plot #+ labs(color = "Wetland Cover Types", shape = "Wetland Cover Type") + scale_shape_manual(values = c(0, 16, 3))
 
-ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot1.tiff"), plot = mds_plot,
-       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+#ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot1.tiff"), plot = mds_plot,
+#       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
-dev.off()
+#dev.off()
 
 mds_plot2 <- ggplot(data = data.scores) + 
   stat_ellipse(aes(x = NMDS1, y = NMDS2, colour = group2), level = 0.5, size = 1.2) +
@@ -279,10 +279,10 @@ mds_plot2 <- ggplot(data = data.scores) +
 
 mds_plot2
 
-ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot2.tiff"), plot = mds_plot2,
-       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
-
-dev.off()
+# ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot2.tiff"), plot = mds_plot2,
+#        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+# 
+# dev.off()
 
 adon.results <- adonis(occ_mds_cast ~ data.scores$group1, method = "jaccard", perm = 999)
 
@@ -293,10 +293,10 @@ print(adon.results2)
 
 mds_plot_m <- plot_grid(mds_plot2, mds_plot, nrow = 2, align = "hv", labels = c("A","B"), label_fontfamily = "serif", label_fontface = "plain")
 
-ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot_combine.tiff"), plot = mds_plot_m,
-       device = "tiff", width = 8, height = 8, units = "in", dpi = 600)
-
-dev.off()
+# ggsave(here::here("Figures/Figures_Diversity_Manuscript/MDSplot_combine.tiff"), plot = mds_plot_m,
+#        device = "tiff", width = 8, height = 8, units = "in", dpi = 600)
+# 
+# dev.off()
 
 
 
@@ -588,23 +588,40 @@ seg.df$diff.from.first.human <- seg.df$diff.from.first.human * 100
 seg.df$diff.from.first.ew <- seg.df$diff.from.first.ew * 100
 seg.df$diff.from.first.man <- seg.df$diff.from.first.man * 100
 seg.df$diff.from.first.wwnm <- seg.df$diff.from.first.wwnm * 100
-
+seg.df$Route <- seg.df$rteno
 
 #Beta Regression
+#GAM
+mod.gam <- gam(beta50.jac ~ Duration + SR50 + s(p.anom.wet, k = 5) + s(p.anom.dry, k = 5) + s(mean.anom.bird, k = 5) + s(diff.from.first.man, k = 5),
+               family = betar(link = "logit"),
+               gamma = 1.4,
+               data = seg.df)
+mod.viz <- mgcViz::getViz(mod.gam)
+print(plot(mod.viz, allTerms = T), pages = 1)
 #LMER
-mod1.lmer <- lmer(data = seg.df, beta50.jac.log ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
+mod1.lmer <- lmer(data = seg.df, beta50.jac.log ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.man.s^2 + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR50.s + (1|Route), REML = F)
 
 #Full Model Total Birds No Dispersion
-mod.1 <- glmmTMB(data = seg.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR50 + Duration + (1|Route), family = beta_family())
+mod.1 <- glmmTMB(data = seg.df, beta50.jac ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + SR50.s + Duration.s + (1|Route), family = beta_family(link = 'logit'), dispformula = ~1)
+
+Anova(mod.1, type = 2, ddf = "Kenward-Rogers")
+
+
+ggeffects::ggeffect(mod.1, "diff.from.first.man.s", ci.lvl = 0.95)
+mod.cis <- confint(mod.1, method = 'profile')
 
 #Full Model Total Birds Full Disp
-mod.disp.full <- update(mod.1, dispformula =  ~p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR50 + Duration)
+mod.disp.full <- update(mod.1, dispformula =  ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + SR50.s + Duration.s)
 
 #Full Model Total Birds Best Disp
-disp.best <- update(mod.1, dispformula = ~diff.from.first.man + SR50)
+disp.best <- update(mod.1, dispformula = ~diff.from.first.man.s + SR50.s)
+
+Anova(disp.best, type = 2, ddf = "Kenward-Rogers")
 
 #AIC selection best Model
-bbmle::AICtab(mod1.lmer, mod.1, mod.disp.full, disp.best)
+bbmle::AICtab(mod.1, mod.disp.full, disp.best)
+
+plot_model(disp.best)
 
 summary(disp.best)
 sjstats::r2(disp.best)
@@ -642,7 +659,7 @@ man.plot <- ggplot(data = e.man, aes(x = diff.from.first.man, fit)) +
         legend.position = c(1,1),
         legend.background = element_blank()) +
   xlab(expression(paste(Delta, " Mangrove Cover (%)"))) + 
-  ylab(expression(paste(beta, " Diversity")))
+  ylab(expression(paste(beta["Jac"])))
 
 e.temp <- as.data.frame(effects::predictorEffect("mean.anom.bird", disp.best))
 
@@ -742,10 +759,10 @@ anthro.plot <- ggplot(data = e.anthro, aes(x = diff.from.first.human, fit)) +
 
 
 
-ggsave(here::here("Figures/Figures_Diversity_Manuscript/man_eff.tiff"), plot = man.plot,
-       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
-
-dev.off()
+# ggsave(here::here("Figures/Figures_Diversity_Manuscript/man_eff.tiff"), plot = man.plot,
+#        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+# 
+# dev.off()
 
 e.survey <- as.data.frame(effects::predictorEffect("Duration", disp.best))
 
@@ -779,21 +796,25 @@ spr.plot <- ggplot(data = e.sr, aes(x = SR50, fit)) +
   xlab(expression(paste("Species Richness (# of spp.)"))) + 
   ylab(expression(paste(beta["Jac"])))
 
+
 #Wetland Beta Reg
 #Full Model LMER
-mod.w.lmer <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR.wet + Duration + (1|Route), REML = F)
+#mod.w.lmer <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR.wet + Duration + (1|Route), REML = F)
+mod.w.lmer <- lmer(data = seg.df, beta.wet.jac ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + SR.wet.s + Duration.s + (1|Route), REML = F)
 
 #Full Model no overdispersion
-mod.w <- glmmTMB(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR.wet + Duration + (1|Route), family = beta_family())
+#mod.w <- glmmTMB(data = seg.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR.wet + Duration + (1|Route), family = beta_family())
+mod.w <- glmmTMB(data = seg.df, beta.wet.jac ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + SR.wet.s + Duration.s + (1|Route), family = beta_family())
 
 #Full Dispersion and Full Model
-mod.disp.fullw <- update(mod.w, dispformula =  ~p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR.wet + Duration)
+#mod.disp.fullw <- update(mod.w, dispformula =  ~p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + SR.wet + Duration)
+mod.disp.fullw <- update(mod.w, dispformula =  ~p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + SR.wet.s + Duration.s)
 
 #Full Model Best Dispersion Predictors
-disp.bestw <- update(mod.w, dispformula = ~diff.from.first.man + SR50)
+disp.bestw <- update(mod.w, dispformula = ~diff.from.first.man.s + SR50.s)
 
 #Full Model All Significant Independent Dispersion Predictors 
-disp.mod <- update(mod.w, dispformula = ~diff.from.first.man + diff.from.first.human + diff.from.first.ew + SR.wet + Duration)
+disp.mod <- update(mod.w, dispformula = ~diff.from.first.man.s + diff.from.first.human.s + diff.from.first.ew.s + SR.wet.s + Duration.s)
 
 #AIC for all models
 bbmle::AICtab(mod.w.lmer, mod.w, mod.disp.fullw, disp.bestw, disp.mod)
@@ -816,12 +837,67 @@ man.plot.w <- ggplot(data = e.man.w, aes(x = diff.from.first.man, fit)) +
         legend.position = c(1,1),
         legend.background = element_blank()) +
   xlab(expression(paste(Delta, " Mangrove Cover (%)"))) + 
-  ylab(expression(paste("Wetland Bird  ", beta, " Diversity")))
+  ylab(expression(paste(beta["Jac"])))
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/man_eff_wet.tiff"), plot = man.plot.w,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 dev.off()
+
+e.pwet.w <- as.data.frame(effects::predictorEffect("p.anom.wet", disp.mod))
+
+pwet.plot <- ggplot(data = e.pwet.w, aes(x = p.anom.wet, fit)) +
+  geom_line(colour = "#BFB06EFF", lwd = 1) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, " p"["wet"], " (cm)"))) + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.survey.w <- as.data.frame(effects::predictorEffect("Duration", disp.mod))
+
+survey.plot.w <- ggplot(data = e.survey.w, aes(x = Duration, fit)) +
+  geom_line(colour = "#BFB06EFF", lwd = 1) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Survey Duration (Yrs)") + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.sr.w <- as.data.frame(effects::predictorEffect("SR.wet", disp.mod))
+
+e.sr.plot.w <- ggplot(data = e.sr.w, aes(x = SR.wet, fit)) +
+  geom_line(colour = "#BFB06EFF", lwd = 1) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Wetland Bird SR (# of spp.)") + 
+  ylab(expression(paste(beta["Jac"])))
+
+
+master.seg.plot <- plot_grid(man.plot, survey.plot, spr.plot, nrow = 1, align = "hv")
+
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/eff_plot_seg.tiff"), plot = master.seg.plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
 
 man.eff.c <- cowplot::plot_grid(man.plot, man.plot.w, labels = c("A", "B"), 
                                 label_size = 14, label_fontfamily = "serif",
@@ -840,7 +916,7 @@ tab_model(mod2)
 tab <- tab_model(disp.best, disp.mod, transform = NULL, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", 
                                                                            "Change in Mean Dry Season Precipitation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                            "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
-                                                                           "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
+                                                                           "Change in Anthropogenic Cover (%)", "Species Richness", "Wetland Bird Species Richness", "Duration of Survey (Years)"),
                  dv.labels = c("Total Bird Community Beta Diversity", "Wetland Bird Beta Diversity"), linebreak = F,
                  CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
                             css.modelcolumn3 = 'background-color: #f0f0f0;',
@@ -865,15 +941,14 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/dwplot_betaregw.tiff"), 
 
 
 #Change SR LMER 
-mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
+#mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50 + (1|Route), REML = F)
+mod7 <- lmer(data = seg.df, alpha50.pchange ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR50.s + (1|Route), REML = F)
+
 summary(mod7)
 car::Anova(mod7)
 tab_model(mod7)
 
 e.man2 <- as.data.frame(effects::predictorEffect("diff.from.first.man", mod7))
-plot(e.man2, rug = F, axes = list(y = list(lab = "Relative Change in Alpha Diversity"),
-                                  x = list(diff.from.first.man = list(lab = "Change in Mangrove Cover (%)")),
-                                  grid = T), main = "")
 
 #Trying to make a custon ggplot with effects results 
 man.plot1 <- ggplot(data = e.man2, aes(x = diff.from.first.man, fit)) +
@@ -888,13 +963,96 @@ man.plot1 <- ggplot(data = e.man2, aes(x = diff.from.first.man, fit)) +
         legend.position = c(1,1),
         legend.background = element_blank()) +
   xlab(expression(paste(Delta, " Mangrove Cover (%)"))) + 
-  ylab(expression(paste("Relative Change in   ", alpha, " Diversity")))
+  ylab(expression(paste("Relative Change in ", alpha)))
   
+e.survey.a <- as.data.frame(effects::predictorEffect("Duration", mod7))
+survey.plot1 <- ggplot(data = e.survey.a, aes(x = Duration, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Survey Duration (Yrs)") + 
+  ylab(expression(paste("Relative Change in ", alpha)))
+
+e.sr.a <- as.data.frame(effects::predictorEffect("SR50", mod7))
+sr.plot1 <- ggplot(data = e.sr.a, aes(x = SR50, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Species Richness (# spp.)") + 
+  ylab(expression(paste("Relative Change in ", alpha)))
+
         
 #Change Wetland SR LMER
-mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet + (1|Route), REML = F)
+#mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet + (1|Route), REML = F)
+mod8 <- lmer(data = seg.df, alphawet.pchange ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR.wet.s + (1|Route), REML = F)
+
 summary(mod8)
 car::Anova(mod8)
+tab_model(mod8)
+e.man2.w <- as.data.frame(effects::predictorEffect("diff.from.first.man", mod8))
+
+#Trying to make a custon ggplot with effects results 
+man.plot1w <- ggplot(data = e.man2.w, aes(x = diff.from.first.man, fit)) +
+  geom_line(colour = "#BFB06EFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, " Mangrove Cover (%)"))) + 
+  ylab(expression(paste("Relative Change in ", alpha)))
+
+e.survey.aw <- as.data.frame(effects::predictorEffect("Duration", mod8))
+survey.plot1w <- ggplot(data = e.survey.aw, aes(x = Duration, fit)) +
+  geom_line(colour = "#BFB06EFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Survey Duration (Yrs)") + 
+  ylab(expression(paste("Relative Change in ", alpha)))
+
+e.sr.aw <- as.data.frame(effects::predictorEffect("SR.wet", mod8))
+sr.plot1w <- ggplot(data = e.sr.aw, aes(x = SR.wet, fit)) +
+  geom_line(colour = "#BFB06EFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Wetland Bird SR (# spp.)") + 
+  ylab(expression(paste("Relative Change in ", alpha)))
+
+master.seg.plot.a <- plot_grid(man.plot1, survey.plot1, sr.plot1, man.plot1w, survey.plot1w, sr.plot1w)
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/eff_plot_seg_a.tiff"), plot = master.seg.plot.a,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 #Model Table Output Seg DF Pchange Alpha LMER
 tab <- tab_model(mod7, mod8, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", 
@@ -943,9 +1101,88 @@ mod9.lm <- lm(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.f +
 
 #Rt DF Full Beta Reg Model
 #Dispersion Modeled as Log Relationship
-mod9 <- betareg::betareg(data = rt.df, beta50.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50, link.phi = "log")
+#mod9 <- betareg::betareg(data = rt.df, beta50.jac ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR50.s, link.phi = "log")
+mod9 <- betareg::betareg(data = rt.df, beta50.jac ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR50.s)
 
+summary(mod9)
 
+#Effect Plots 
+e.rt.pdry <- as.data.frame(effects::predictorEffect("p.anom.dry", mod9))
+rt.pdry <- ggplot(data = e.rt.pdry, aes(x = p.anom.dry, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, "p"["dry"], " (cm)"))) + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.rt.temp <- as.data.frame(effects::predictorEffect("mean.anom.bird", mod9))
+rt.temp <- ggplot(data = e.rt.temp, aes(x = mean.anom.bird, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, "T"["breeding"], " (", degree, "C)"))) + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.rt.ww <- as.data.frame(effects::predictorEffect("diff.from.first.wwnm", mod9))
+rt.ww <- ggplot(data = e.rt.ww, aes(x = diff.from.first.wwnm, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, " Woody Wetland Cover (%)"))) + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.rt.survey <- as.data.frame(effects::predictorEffect("Duration", mod9))
+rt.survey <- ggplot(data = e.rt.survey, aes(x = Duration, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Survey Duration (Yrs)") + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.rt.sr <- as.data.frame(effects::predictorEffect("SR50", mod9))
+rt.sr <- ggplot(data = e.rt.sr, aes(x = SR50, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Species Richness (# spp.)") + 
+  ylab(expression(paste(beta["Jac"])))
+
+##############################################################################################
 dw.breg <- dwplot(mod9, vline = geom_vline(xintercept = 0, linetype = 2, colour = "grey50")) %>%
   relabel_predictors(c(p.anom.wet = "Wet Season Precip (cm)", p.anom.dry = "Dry Season Precip (cm)", 
                        mean.anom.bird = "Breeding Season Temp (C)", diff.from.first.man = "Mangrove Cover (%)", 
@@ -972,23 +1209,116 @@ plot(effects::allEffects(mod9))
 mod10.lm <- lm(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.f + mean.anom.sp + mean.anom.s + mean.anom.w + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet)
 
 #Rt DF LM Wetland Beta Reg
-mod10 <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet)
+#mod10 <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet)
+mod10 <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR.wet.s)
+
+summary(mod10)
+#Effect Plots Wetland Species 
+e.rt.pwet <- as.data.frame(effects::predictorEffect("p.anom.wet", mod10))
+rt.pwet <- ggplot(data = e.rt.pwet, aes(x = p.anom.wet, fit)) +
+  geom_line(colour = "#BFB06EFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, "p"["wet"], " (cm)"))) + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.rt.temp.w <- as.data.frame(effects::predictorEffect("mean.anom.bird", mod10))
+rt.temp.w <- ggplot(data = e.rt.temp, aes(x = mean.anom.bird, fit)) +
+  geom_line(colour = "#BFB06EFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, "T"["breeding"], " (", degree, "C)"))) + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.rt.human <- as.data.frame(effects::predictorEffect("diff.from.first.human", mod10))
+rt.human <- ggplot(data = e.rt.human, aes(x = diff.from.first.human, fit)) +
+  geom_line(colour = "#BFB06EFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, " Anthropogenic Cover (%)"))) + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.rt.survey.w <- as.data.frame(effects::predictorEffect("Duration", mod10))
+rt.survey.w <- ggplot(data = e.rt.survey.w, aes(x = Duration, fit)) +
+  geom_line(colour = "#BFB06EFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Survey Duration (Yrs)") + 
+  ylab(expression(paste(beta["Jac"])))
+
+e.rt.sr.w <- as.data.frame(effects::predictorEffect("SR.wet", mod10))
+rt.sr.w <- ggplot(data = e.rt.sr.w, aes(x = SR.wet, fit)) +
+  geom_line(colour = "#BFB06EFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#BFB06EFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Species Richness (# spp.)") + 
+  ylab(expression(paste(beta["Jac"])))
+
+master.rt.plot <- plot_grid(rt.pdry, rt.temp, rt.ww, rt.survey, rt.sr, rt.pwet, rt.temp.w, rt.human, rt.survey.w, rt.sr.w, nrow = 3, ncol = 3, align = "hv")
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/eff_plots_rt_beta.tiff"), plot = master.rt.plot,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+#################################################################################################
+
+
+#mod10.phi <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet | p.anom.wet)
+summary(mod10)
+summary(mod10.lm)
+#summary(mod10.phi)
+#lrtest(mod10, mod10.phi)
 # mod10.l <- betareg::betareg(data = rt.df, beta.wet.jac ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet, link.phi = "log")
 
 #Compare LM and Beta Reg
-bbmle::AICtab(mod10, mod10.lm)
+bbmle::AICtab(mod10.phi, mod10, mod10.lm)
 
 plot(effects::allEffects(mod10))
 
 tab.b <- tab_model(mod9, mod10, transform = NULL, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Preciptation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                               "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
-                                                                              "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Species Richness"),
+                                                                              "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Phi", "Wetland Species Richness"),
                   dv.labels = c("Beta Diversity", "Beta Wetland Bird"), linebreak = F,
                   CSS = list(css.modelcolumn1 = 'background-color: #f0f0f0;', 
                              css.modelcolumn3 = 'background-color: #f0f0f0;',
                              css.lasttablerow = 'border-bottom: 4px solid black;'), use.viewer = T)
 
 tab.b
+
+mod10 <- broom::tidy(mod10) %>% filter(component != "precision")
 
 dw.bregw <- dwplot(mod10, vline = geom_vline(xintercept = 0, linetype = 2, colour = "grey50")) %>%
   relabel_predictors(c(p.anom.wet = "Wet Season Precip (cm)", p.anom.dry = "Dry Season Precip (cm)", 
@@ -1021,15 +1351,116 @@ ggsave(here::here("Figures/Figures_Diversity_Manuscript/dwplot_betaregw.tiff"), 
 # 
 
 #Change SR LM
-mod15 <- lm(data = rt.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
+#mod15 <- lm(data = rt.df, alpha50.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR50)
+mod15 <- lm(data = rt.df, alpha50.pchange ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR50.s)
+
 summary(mod15)
 car::avPlots(mod15)
 
 #Change Wetland SR LM
-mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet)
+#mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom.wet + p.anom.dry + mean.anom.bird + diff.from.first.man + diff.from.first.ew + diff.from.first.wwnm + diff.from.first.human + Duration + SR.wet)
+mod16 <- lm(data = rt.df, alphawet.pchange ~ p.anom.wet.s + p.anom.dry.s + mean.anom.bird.s + diff.from.first.man.s + diff.from.first.ew.s + diff.from.first.wwnm.s + diff.from.first.human.s + Duration.s + SR.wet.s)
+
 summary(mod16)
 car::avPlots(mod16)
 
+#Effects plots 
+e.rt.pwet.a <- as.data.frame(effects::predictorEffect("p.anom.wet", mod15))
+rt.pwet.a <- ggplot(data = e.rt.pwet.a, aes(x = p.anom.wet, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, "p"["wet"], " (cm)"))) + 
+  ylab(expression(paste("Relative Change in  ", alpha)))
+
+e.rt.pdry.a <- as.data.frame(effects::predictorEffect("p.anom.dry", mod15))
+rt.pdry.a <- ggplot(data = e.rt.pdry.a, aes(x = p.anom.dry, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, "p"["dry"], " (cm)"))) + 
+  ylab(expression(paste("Relative Change in  ", alpha)))
+
+
+e.rt.temp.a <- as.data.frame(effects::predictorEffect("mean.anom.bird", mod15))
+rt.temp.a <- ggplot(data = e.rt.temp.a, aes(x = mean.anom.bird, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, "T"["breeding"], " (", degree, "C)"))) + 
+  ylab(expression(paste("Relative Change in  ", alpha)))
+
+e.rt.man.a <- as.data.frame(effects::predictorEffect("diff.from.first.man", mod15))
+rt.man.a <- ggplot(data = e.rt.man.a, aes(x = diff.from.first.man, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab(expression(paste(Delta, "Mangrove Cover (%)"))) + 
+  ylab(expression(paste("Relative Change in  ", alpha)))
+
+e.rt.survey.a <- as.data.frame(effects::predictorEffect("Duration", mod15))
+rt.survey.a <- ggplot(data = e.rt.survey.a, aes(x = Duration, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Survey Duration (Yrs)") + 
+  ylab(expression(paste("Relative Change in  ", alpha)))
+
+e.rt.sr.a <- as.data.frame(effects::predictorEffect("SR50", mod15))
+rt.sr.a <- ggplot(data = e.rt.sr.a, aes(x = SR50, fit)) +
+  geom_line(colour = "#3F4C6BFF") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "#3F4C6BFF") + 
+  theme_bw() + 
+  theme(axis.title = element_text(size = 12, family = "serif"),
+        axis.text = element_text(size = 12, family = "serif"),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 12, family = "serif"),
+        legend.justification = c(1,1),
+        legend.position = c(1,1),
+        legend.background = element_blank()) +
+  xlab("Species Richness (# spp.)") + 
+  ylab(expression(paste("Relative Change in  ", alpha)))
+
+master.rt.plota <- plot_grid(rt.pwet.a, rt.pdry.a, rt.temp.a, rt.man.a, rt.survey.a, rt.sr.a, align = "hv")
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/eff_plots_rt_a.tiff"), plot = master.rt.plota,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+
+#####################################################################
 tab2 <- tab_model(mod15, mod16, show.ci = 0.95, title = NULL, pred.labels = c("Intercept", "Change in Mean Wet Season Precipitation (cm)", "Change in Mean Dry Season Preciptation (cm)", "Change in Mean Breeding Season Temperature (C)",
                                                                                        "Change in Mangrove Cover (%)", "Change in Emergent Wetland Cover (%)", "Change in Woody Wetland Cover (%)",
                                                                                        "Change in Anthropogenic Cover (%)", "Duration of Survey (Years)", "Species Richness", "Wetland Bird Species Richness"),
@@ -1039,6 +1470,11 @@ tab2 <- tab_model(mod15, mod16, show.ci = 0.95, title = NULL, pred.labels = c("I
                             css.lasttablerow = 'border-bottom: 4px solid black;'), use.viewer = T)
 
 tab2
+
+
+
+
+
 
 ########################################################################################################################################################################################################
 bbs_clim_rt1 <- bbs_total_seg %>% group_by(rteno.x) %>% arrange(Year) %>% filter(Year <= 1999) %>% 
@@ -1427,11 +1863,13 @@ dev.off()
 
 cmrl.plots <- plot_grid(cmrl.plot, cmrl.plot1, cmrl.plot2, cmrl.plot3, align = "hv", nrow = 2,
                         labels = c("A", "B", "C", "D"), label_size = 12, label_fontfamily = "serif")
-
+cmrl.plot.pres <- plot_grid(cmrl.plot, cmrl.plot1, align = "v")
 # ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_total.tiff"), plot = cmrl.plots,
 #        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_total_revised_deg.tiff"), plot = cmrl.plots,
+       device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
+ggsave(here::here("Figures/Figures_Diversity_Manuscript/CMRL_plot_total_revised_deg_pres.tiff"), plot = cmrl.plot.pres,
        device = "tiff", width = 8, height = 5, units = "in", dpi = 600)
 
 
